@@ -3,1048 +3,545 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Kiểm Phiếu Bầu Cử 2026</title>
+<title>Kiểm Phiếu 2026</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 
   :root {
-    --red: #e53e3e;
-    --green: #38a169;
-    --blue: #2b6cb0;
-    --gold: #d69e2e;
-    --pink: #d53f8c;
-    --teal: #2c7a7b;
     --bg: #0f1117;
     --card: #1a1d27;
     --border: #2d3148;
     --text: #e2e8f0;
     --muted: #718096;
+    --gold: #f6ad55;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-  body {
+  html, body {
     font-family: 'Be Vietnam Pro', sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ===== HEADER ===== */
-  .header {
-    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .header-title { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
-  .header-title span { color: #f6ad55; }
-  .btn-result {
-    background: linear-gradient(135deg, #f6ad55, #ed8936);
-    color: #1a1d27;
-    border: none;
-    border-radius: 8px;
-    padding: 7px 14px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  /* ===== TABS ===== */
-  .tabs {
-    display: flex;
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-  }
-  .tab {
-    flex: 1;
-    padding: 12px 8px;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.2s;
-    color: var(--muted);
-  }
-  .tab.active { color: var(--text); border-bottom-color: #f6ad55; }
-  .tab-qh.active { border-bottom-color: #fc8181; }
-  .tab-tinh.active { border-bottom-color: #63b3ed; }
-  .tab-xa.active { border-bottom-color: #fbd38d; }
-
-  /* ===== MAIN CONTENT ===== */
-  .content { padding: 16px; }
-
-  /* ===== CAMERA SECTION ===== */
-  .camera-card {
-    background: var(--card);
-    border-radius: 16px;
-    border: 1px solid var(--border);
+    height: 100%;
     overflow: hidden;
-    margin-bottom: 16px;
-  }
-  .camera-label {
-    padding: 10px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .cam-dot { width: 8px; height: 8px; border-radius: 50%; background: #fc8181; animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
-
-  .video-wrap {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 4/3;
-    background: #000;
-  }
-  #video {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  #canvas { display: none; }
-
-  /* Color indicator overlay */
-  .color-overlay {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    padding: 10px 14px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.85));
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .color-swatch {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    border: 2px solid white;
-    flex-shrink: 0;
-  }
-  .color-info { font-size: 13px; font-weight: 600; }
-  .color-sub { font-size: 11px; color: rgba(255,255,255,0.7); }
-
-  /* Scan frame */
-  .scan-frame {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 70%; height: 75%;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 8px;
-    pointer-events: none;
-  }
-  .scan-frame::before, .scan-frame::after {
-    content: '';
-    position: absolute;
-    width: 20px; height: 20px;
-  }
-  .scan-frame::before {
-    top: -2px; left: -2px;
-    border-top: 3px solid #f6ad55;
-    border-left: 3px solid #f6ad55;
-    border-radius: 4px 0 0 0;
-  }
-  .scan-frame::after {
-    bottom: -2px; right: -2px;
-    border-bottom: 3px solid #f6ad55;
-    border-right: 3px solid #f6ad55;
-    border-radius: 0 0 4px 0;
-  }
-
-  /* AI Processing overlay */
-  .ai-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    display: none;
-  }
-  .ai-overlay.show { display: flex; }
-  .spinner {
-    width: 40px; height: 40px;
-    border: 3px solid rgba(246,173,85,0.3);
-    border-top-color: #f6ad55;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .ai-text { font-size: 14px; font-weight: 600; color: #f6ad55; }
-
-  /* ===== SCOREBOARD ===== */
-  .score-card {
-    background: var(--card);
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-  .score-header {
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-  }
-  .score-title { font-size: 13px; font-weight: 700; }
-  .score-badge {
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-weight: 600;
-  }
-  .badge-qh { background: rgba(252,129,129,0.15); color: #fc8181; }
-  .badge-tinh { background: rgba(99,179,237,0.15); color: #63b3ed; }
-  .badge-xa { background: rgba(251,211,141,0.15); color: #fbd38d; }
-
-  .candidate-row {
-    display: flex;
-    align-items: center;
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(45,49,72,0.5);
-    transition: all 0.3s;
-  }
-  .candidate-row:last-child { border-bottom: none; }
-  .candidate-rank {
-    width: 24px;
-    font-size: 12px;
-    color: var(--muted);
-    font-weight: 600;
-    flex-shrink: 0;
-  }
-  .candidate-name {
-    flex: 1;
     font-size: 14px;
-    font-weight: 500;
-    margin: 0 10px;
-  }
-  .candidate-votes {
-    font-size: 20px;
-    font-weight: 800;
-    min-width: 40px;
-    text-align: right;
-    transition: all 0.3s;
-  }
-  .vote-bump {
-    animation: bump 0.4s ease-out;
-  }
-  @keyframes bump {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.4); color: #68d391; }
-    100% { transform: scale(1); }
   }
 
-  /* ===== STATUS BAR ===== */
-  .status-bar {
-    background: var(--card);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .status-icon { font-size: 20px; }
-  .status-text { font-size: 13px; }
-  .status-text strong { display: block; font-size: 14px; margin-bottom: 2px; }
-
-  .status-bar.detecting { border-color: #f6ad55; }
-  .status-bar.valid { border-color: #68d391; }
-  .status-bar.invalid { border-color: #fc8181; }
-  .status-bar.idle { border-color: var(--border); }
-
-  /* ===== LAST BALLOT ===== */
-  .last-ballot {
-    background: var(--card);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    font-size: 13px;
-    color: var(--muted);
-    min-height: 60px;
-  }
-  .last-ballot strong { color: var(--text); display: block; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
-  .voted-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  .voted-chip {
-    background: rgba(104,211,145,0.15);
-    color: #68d391;
-    border-radius: 6px;
-    padding: 3px 8px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .crossed-chip {
-    background: rgba(252,129,129,0.15);
-    color: #fc8181;
-    border-radius: 6px;
-    padding: 3px 8px;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: line-through;
-  }
-
-  /* ===== STATS ROW ===== */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .stat-box {
-    background: var(--card);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 12px;
-    text-align: center;
-  }
-  .stat-num { font-size: 24px; font-weight: 800; }
-  .stat-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-  .stat-valid .stat-num { color: #68d391; }
-  .stat-invalid .stat-num { color: #fc8181; }
-  .stat-total .stat-num { color: #f6ad55; }
-
-  /* ===== RESULT PAGE ===== */
-  #result-page {
-    display: none;
-    padding: 16px;
-  }
-  .result-header {
-    text-align: center;
-    padding: 20px 0;
-    margin-bottom: 20px;
-  }
-  .result-header h2 { font-size: 22px; font-weight: 800; }
-  .result-header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
-
-  .result-section {
-    background: var(--card);
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-  .result-section-header {
-    padding: 14px 16px;
-    font-weight: 700;
-    font-size: 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .result-row {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(45,49,72,0.5);
-  }
-  .result-row:last-child { border-bottom: none; }
-  .result-name { flex: 1; font-size: 14px; }
-  .result-count { font-size: 22px; font-weight: 800; color: #f6ad55; }
-  .result-bar-wrap { width: 100%; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-top: 4px; }
-  .result-bar { height: 4px; background: linear-gradient(90deg, #f6ad55, #ed8936); border-radius: 2px; transition: width 1s ease; }
-
-  .btn-back {
-    width: 100%;
-    padding: 14px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    margin-top: 8px;
-  }
-
-  /* ===== SETUP PAGE ===== */
+  /* SETUP */
   #setup-page {
-    padding: 20px 16px;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100vh; padding: 24px; gap: 10px;
   }
-  .setup-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
-  .setup-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
-  .setup-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
-  .setup-input {
-    width: 100%;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--text);
-    font-size: 14px;
-    font-family: inherit;
-    margin-bottom: 16px;
-    outline: none;
+  #setup-page h1 { font-size: 22px; font-weight: 800; }
+  #setup-page p { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+  .lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; align-self: flex-start; }
+  .inp {
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 14px; color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
   }
-  .setup-input:focus { border-color: #f6ad55; }
-  .btn-start {
-    width: 100%;
-    padding: 15px;
-    background: linear-gradient(135deg, #f6ad55, #ed8936);
-    border: none;
-    border-radius: 12px;
-    color: #1a1d27;
-    font-size: 16px;
-    font-weight: 800;
-    cursor: pointer;
-    font-family: inherit;
-    margin-top: 8px;
+  .inp:focus { border-color: var(--gold); }
+  .btn-primary {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg,#f6ad55,#ed8936);
+    border: none; border-radius: 12px; color: #1a1d27;
+    font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 4px;
   }
 
-  .hidden { display: none !important; }
+  /* MAIN */
+  #main-app { display:none; flex-direction:column; height:100vh; overflow:hidden; }
+  #main-app.show { display:flex; }
 
-  /* camera start btn */
-  .btn-camera {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #2b6cb0, #2c5282);
-    border: none;
-    border-radius: 12px;
-    color: white;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+  .hdr {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 8px 12px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  .hdr-title { font-size: 14px; font-weight: 800; }
+  .hdr-title span { color: var(--gold); }
+  .btn-sm {
+    background: linear-gradient(135deg,#f6ad55,#ed8936); color: #1a1d27;
+    border: none; border-radius: 8px; padding: 6px 11px;
+    font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
 
-  .section-divider {
-    text-align: center;
-    color: var(--muted);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin: 16px 0 12px;
+  .stats {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 6px; padding: 6px 10px; flex-shrink:0;
   }
+  .stat { background:var(--card);border-radius:8px;border:1px solid var(--border);padding:6px;text-align:center; }
+  .stat-n { font-size:19px;font-weight:800;line-height:1; }
+  .stat-l { font-size:10px;color:var(--muted);font-weight:600;margin-top:1px; }
+  .c-gold{color:#f6ad55;} .c-green{color:#68d391;} .c-red{color:#fc8181;}
+
+  .status {
+    margin: 0 10px 5px; padding: 7px 11px;
+    background:var(--card);border:1px solid var(--border);border-radius:9px;
+    flex-shrink:0;display:flex;align-items:center;gap:8px;
+  }
+  .status.ok{border-color:#68d391;} .status.err{border-color:#fc8181;} .status.busy{border-color:#f6ad55;}
+  .status-ico{font-size:16px;flex-shrink:0;}
+  .status-t{font-size:12px;font-weight:700;} .status-s{font-size:10px;color:var(--muted);}
+
+  .body-cols {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:8px; padding:0 10px; flex:1; overflow:hidden; min-height:0;
+  }
+
+  /* Camera col */
+  .col-cam { display:flex;flex-direction:column;gap:5px;overflow:hidden;min-height:0; }
+  .cam-card {
+    background:var(--card);border-radius:10px;border:1px solid var(--border);
+    overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;
+  }
+  .cam-lbl {
+    padding:5px 9px;font-size:10px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;flex-shrink:0;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:#fc8181;animation:pulse 1.5s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+  .vid-wrap{position:relative;flex:1;background:#000;min-height:0;}
+  #video{width:100%;height:100%;object-fit:cover;display:block;}
+  #canvas{display:none;}
+  .color-bar{position:absolute;bottom:0;left:0;right:0;padding:5px 8px;background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;align-items:center;gap:7px;}
+  .swatch{width:20px;height:20px;border-radius:50%;border:2px solid white;flex-shrink:0;}
+  .color-t{font-size:11px;font-weight:700;} .color-s{font-size:9px;color:rgba(255,255,255,.7);}
+  .frame-corner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:75%;border:1.5px solid rgba(255,255,255,.2);border-radius:5px;pointer-events:none;}
+  .frame-corner::before,.frame-corner::after{content:'';position:absolute;width:14px;height:14px;}
+  .frame-corner::before{top:-2px;left:-2px;border-top:3px solid #f6ad55;border-left:3px solid #f6ad55;border-radius:3px 0 0 0;}
+  .frame-corner::after{bottom:-2px;right:-2px;border-bottom:3px solid #f6ad55;border-right:3px solid #f6ad55;border-radius:0 0 3px 0;}
+  .ai-ov{position:absolute;inset:0;background:rgba(0,0,0,.75);display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+  .ai-ov.show{display:flex;}
+  .spin{width:30px;height:30px;border:3px solid rgba(246,173,85,.3);border-top-color:#f6ad55;border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ai-t{font-size:12px;font-weight:700;color:#f6ad55;}
+
+  .btn-cam {
+    padding:8px;background:linear-gradient(135deg,#2b6cb0,#2c5282);
+    border:none;border-radius:9px;color:white;font-size:12px;font-weight:700;
+    cursor:pointer;font-family:inherit;flex-shrink:0;
+  }
+
+  .last-card{background:var(--card);border-radius:9px;border:1px solid var(--border);padding:7px 9px;flex-shrink:0;}
+  .last-ttl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+  .chips{display:flex;flex-wrap:wrap;gap:3px;}
+  .chip-ok{background:rgba(104,211,145,.15);color:#68d391;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;}
+  .chip-x{background:rgba(252,129,129,.15);color:#fc8181;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;text-decoration:line-through;}
+
+  /* Score col */
+  .col-score{display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+  .tabs{display:flex;background:var(--card);border-radius:9px 9px 0 0;border:1px solid var(--border);border-bottom:none;flex-shrink:0;}
+  .tab{flex:1;padding:7px 3px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;color:var(--muted);}
+  .tab.active{color:var(--text);}
+  .tab-qh.active{border-bottom-color:#fc8181;} .tab-tinh.active{border-bottom-color:#63b3ed;} .tab-xa.active{border-bottom-color:#fbd38d;}
+  .score-wrap{background:var(--card);border:1px solid var(--border);border-radius:0 0 9px 9px;flex:1;overflow-y:auto;min-height:0;}
+  .score-wrap::-webkit-scrollbar{width:3px;}
+  .score-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  .cand-row{display:flex;align-items:center;padding:7px 9px;border-bottom:1px solid rgba(45,49,72,.4);}
+  .cand-row:last-child{border-bottom:none;}
+  .cand-rank{width:18px;font-size:10px;color:var(--muted);font-weight:700;flex-shrink:0;}
+  .cand-name{flex:1;font-size:11px;font-weight:500;margin:0 5px;line-height:1.3;}
+  .cand-v{font-size:17px;font-weight:800;min-width:28px;text-align:right;}
+  .bump{animation:bump .4s ease-out;}
+  @keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.5);color:#68d391}100%{transform:scale(1)}}
+
+  .btm{padding:6px 10px;flex-shrink:0;display:flex;gap:7px;}
+  .btn-reset{padding:9px 12px;background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.3);border-radius:9px;color:#fc8181;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .btn-result-main{flex:1;padding:9px;background:linear-gradient(135deg,#f6ad55,#ed8936);border:none;border-radius:9px;color:#1a1d27;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;}
+
+  /* RESULT */
+  #result-page{display:none;flex-direction:column;height:100vh;overflow:hidden;}
+  #result-page.show{display:flex;}
+  .res-hdr{padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .res-hdr h2{font-size:15px;font-weight:800;}
+  .res-body{flex:1;overflow-y:auto;padding:10px;}
+  .res-body::-webkit-scrollbar{width:3px;}
+  .res-body::-webkit-scrollbar-thumb{background:var(--border);}
+  .res-section{background:var(--card);border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-bottom:9px;}
+  .res-sec-hdr{padding:9px 12px;font-weight:700;font-size:12px;border-bottom:1px solid var(--border);}
+  .res-row{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(45,49,72,.4);}
+  .res-row:last-child{border-bottom:none;}
+  .res-name{flex:1;font-size:12px;}
+  .res-n{font-size:18px;font-weight:800;color:#f6ad55;}
+  .res-bar-w{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:3px;}
+  .res-bar{height:3px;background:linear-gradient(90deg,#f6ad55,#ed8936);border-radius:2px;transition:width 1s;}
+
+  .hidden{display:none!important;}
 </style>
 </head>
 <body>
 
-<!-- SETUP PAGE -->
+<!-- SETUP -->
 <div id="setup-page">
-  <div style="text-align:center;padding:30px 0 20px;">
-    <div style="font-size:48px;margin-bottom:12px;">🗳️</div>
-    <div class="setup-title">Kiểm Phiếu Bầu Cử</div>
-    <div class="setup-sub">Xã Trị An · Đồng Nai · 2026</div>
-  </div>
-
-  <div class="setup-label">Cloudflare Worker URL</div>
-  <input class="setup-input" id="workerUrl" type="url" 
+  <div style="font-size:42px">🗳️</div>
+  <h1>Kiểm Phiếu Bầu Cử</h1>
+  <p>Xã Trị An · Đồng Nai · 2026</p>
+  <div class="lbl">Cloudflare Worker URL</div>
+  <input class="inp" id="workerUrl" type="url"
     placeholder="https://kiem-phieu-proxy.greohu.workers.dev"
     value="https://kiem-phieu-proxy.greohu.workers.dev">
-
-  <div class="setup-label">Đơn vị bầu cử (tùy chọn)</div>
-  <input class="setup-input" id="donVi" type="text" placeholder="Ví dụ: Tổ 5, Xã Trị An">
-
-  <button class="btn-start" onclick="startApp()">▶ Bắt đầu kiểm phiếu</button>
+  <button class="btn-primary" onclick="startApp()">▶ Bắt đầu kiểm phiếu</button>
 </div>
 
-<!-- MAIN APP -->
-<div id="main-app" class="hidden">
-
-  <div class="header">
-    <div class="header-title">🗳️ Kiểm <span>Phiếu</span></div>
-    <button class="btn-result" onclick="showResult()">📊 Kết quả</button>
+<!-- MAIN -->
+<div id="main-app">
+  <div class="hdr">
+    <div class="hdr-title">🗳️ Kiểm <span>Phiếu</span> 2026</div>
+    <button class="btn-sm" onclick="showResult()">📊 Kết quả</button>
   </div>
 
-  <div class="tabs">
-    <div class="tab tab-qh active" onclick="switchTab('qh')">🏛️ Quốc Hội</div>
-    <div class="tab tab-tinh" onclick="switchTab('tinh')">🏢 Tỉnh</div>
-    <div class="tab tab-xa" onclick="switchTab('xa')">🏘️ Xã</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-n c-gold" id="totalCount">0</div><div class="stat-l">Tổng phiếu</div></div>
+    <div class="stat"><div class="stat-n c-green" id="validCount">0</div><div class="stat-l">Hợp lệ</div></div>
+    <div class="stat"><div class="stat-n c-red" id="invalidCount">0</div><div class="stat-l">Không HL</div></div>
   </div>
 
-  <div class="content">
-
-    <!-- Stats -->
-    <div class="stats-row">
-      <div class="stat-box stat-total">
-        <div class="stat-num" id="totalCount">0</div>
-        <div class="stat-label">Tổng phiếu</div>
-      </div>
-      <div class="stat-box stat-valid">
-        <div class="stat-num" id="validCount">0</div>
-        <div class="stat-label">Hợp lệ</div>
-      </div>
-      <div class="stat-box stat-invalid">
-        <div class="stat-num" id="invalidCount">0</div>
-        <div class="stat-label">Không HL</div>
-      </div>
+  <div class="status" id="statusBar">
+    <div class="status-ico">📷</div>
+    <div>
+      <div class="status-t" id="statusTitle">Sẵn sàng</div>
+      <div class="status-s" id="statusSub">Bật camera và đưa phiếu vào khung</div>
     </div>
+  </div>
 
-    <!-- Status -->
-    <div class="status-bar idle" id="statusBar">
-      <div class="status-icon">📷</div>
-      <div class="status-text">
-        <strong id="statusTitle">Sẵn sàng</strong>
-        <span id="statusSub">Hướng camera vào phiếu bầu</span>
-      </div>
-    </div>
-
-    <!-- Camera -->
-    <div class="camera-card">
-      <div class="camera-label">
-        <span class="cam-dot"></span>
-        Camera trực tiếp
-      </div>
-      <div class="video-wrap">
-        <video id="video" autoplay playsinline muted></video>
-        <canvas id="canvas"></canvas>
-        <div class="scan-frame"></div>
-        <div class="color-overlay" id="colorOverlay">
-          <div class="color-swatch" id="colorSwatch" style="background:#555"></div>
-          <div>
-            <div class="color-info" id="colorInfo">Chưa phát hiện phiếu</div>
-            <div class="color-sub" id="colorSub">Đưa phiếu vào khung</div>
+  <div class="body-cols">
+    <div class="col-cam">
+      <div class="cam-card">
+        <div class="cam-lbl"><span class="dot"></span> Camera</div>
+        <div class="vid-wrap">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="canvas"></canvas>
+          <div class="frame-corner"></div>
+          <div class="color-bar">
+            <div class="swatch" id="colorSwatch" style="background:#444"></div>
+            <div>
+              <div class="color-t" id="colorInfo">Chưa phát hiện</div>
+              <div class="color-s" id="colorSub">Đưa phiếu vào khung</div>
+            </div>
+          </div>
+          <div class="ai-ov" id="aiOverlay">
+            <div class="spin"></div>
+            <div class="ai-t">AI đang đọc...</div>
           </div>
         </div>
-        <div class="ai-overlay" id="aiOverlay">
-          <div class="spinner"></div>
-          <div class="ai-text">AI đang đọc phiếu...</div>
-        </div>
+      </div>
+      <button class="btn-cam" id="btnCamera" onclick="startCamera()">📷 Bật Camera</button>
+      <div class="last-card" id="lastBallot">
+        <div class="last-ttl">Phiếu vừa kiểm</div>
+        <div style="color:var(--muted);font-size:11px">Chưa có phiếu nào</div>
       </div>
     </div>
 
-    <button class="btn-camera" id="btnCamera" onclick="startCamera()">
-      📷 Bật Camera
-    </button>
-
-    <!-- Last ballot -->
-    <div class="last-ballot" id="lastBallot">
-      <strong>Phiếu vừa kiểm</strong>
-      <span style="color:var(--muted)">Chưa có phiếu nào</span>
-    </div>
-
-    <div class="section-divider" id="scoreTitle">Bảng điểm — Quốc Hội</div>
-
-    <!-- Scoreboard QH -->
-    <div class="score-card" id="score-qh">
-      <div class="score-header">
-        <div class="score-title">🏛️ Đại biểu Quốc Hội</div>
-        <div class="score-badge badge-qh">Bầu 3/5</div>
+    <div class="col-score">
+      <div class="tabs">
+        <div class="tab tab-qh active" onclick="switchTab('qh')">🏛️ QH</div>
+        <div class="tab tab-tinh" onclick="switchTab('tinh')">🏢 Tỉnh</div>
+        <div class="tab tab-xa" onclick="switchTab('xa')">🏘️ Xã</div>
       </div>
-      <div id="rows-qh"></div>
-    </div>
-
-    <!-- Scoreboard Tinh -->
-    <div class="score-card hidden" id="score-tinh">
-      <div class="score-header">
-        <div class="score-title">🏢 HĐND Tỉnh Đồng Nai</div>
-        <div class="score-badge badge-tinh">Bầu 3/5</div>
+      <div class="score-wrap">
+        <div id="rows-qh"></div>
+        <div id="rows-tinh" class="hidden"></div>
+        <div id="rows-xa" class="hidden"></div>
       </div>
-      <div id="rows-tinh"></div>
     </div>
+  </div>
 
-    <!-- Scoreboard Xa -->
-    <div class="score-card hidden" id="score-xa">
-      <div class="score-header">
-        <div class="score-title">🏘️ HĐND Xã Trị An</div>
-        <div class="score-badge badge-xa">Bầu 5/8</div>
-      </div>
-      <div id="rows-xa"></div>
-    </div>
-
+  <div class="btm">
+    <button class="btn-reset" onclick="resetAll()">🗑️ Reset</button>
+    <button class="btn-result-main" onclick="showResult()">📊 Xem kết quả đầy đủ</button>
   </div>
 </div>
 
-<!-- RESULT PAGE -->
+<!-- RESULT -->
 <div id="result-page">
-  <div class="result-header">
+  <div class="res-hdr">
     <h2>📊 Kết Quả Kiểm Phiếu</h2>
-    <p id="resultSub">Tổng hợp cuối cùng</p>
+    <button class="btn-sm" onclick="hideResult()">← Quay lại</button>
   </div>
-
-  <div class="result-section">
-    <div class="result-section-header" style="color:#fc8181">🏛️ Quốc Hội Khóa XVI</div>
-    <div id="result-rows-qh"></div>
+  <div class="res-body">
+    <div style="color:var(--muted);font-size:12px;text-align:center;padding:5px 0 8px" id="resultSub"></div>
+    <div class="res-section">
+      <div class="res-sec-hdr" style="color:#fc8181">🏛️ Quốc Hội Khóa XVI</div>
+      <div id="result-rows-qh"></div>
+    </div>
+    <div class="res-section">
+      <div class="res-sec-hdr" style="color:#63b3ed">🏢 HĐND Tỉnh Đồng Nai XI</div>
+      <div id="result-rows-tinh"></div>
+    </div>
+    <div class="res-section">
+      <div class="res-sec-hdr" style="color:#fbd38d">🏘️ HĐND Xã Trị An XIII</div>
+      <div id="result-rows-xa"></div>
+    </div>
+    <div class="res-section">
+      <div class="res-sec-hdr">📋 Tổng hợp</div>
+      <div id="result-summary"></div>
+    </div>
   </div>
-
-  <div class="result-section">
-    <div class="result-section-header" style="color:#63b3ed">🏢 HĐND Tỉnh Đồng Nai Khóa XI</div>
-    <div id="result-rows-tinh"></div>
-  </div>
-
-  <div class="result-section">
-    <div class="result-section-header" style="color:#fbd38d">🏘️ HĐND Xã Trị An Khóa XIII</div>
-    <div id="result-rows-xa"></div>
-  </div>
-
-  <div class="result-section">
-    <div class="result-section-header">📋 Tổng hợp phiếu</div>
-    <div id="result-summary"></div>
-  </div>
-
-  <button class="btn-back" onclick="hideResult()">← Quay lại kiểm phiếu</button>
-  <button class="btn-back" style="margin-top:8px;color:#fc8181;border-color:#fc8181" onclick="resetAll()">🗑️ Xóa tất cả & bắt đầu lại</button>
 </div>
-
-<audio id="beepOk" src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA..." preload="auto"></audio>
 
 <script>
-// ===== DATA =====
 const BALLOTS = {
-  qh: {
-    name: 'Quốc Hội',
-    color: 'white',
-    colorName: 'Trắng',
-    colorRGB: {r:240,g:240,b:240},
-    maxVotes: 3,
-    candidates: [
-      'Lê Hoàng Hải',
-      'Nguyễn Hồng Phong', 
-      'Đặng Doãn Thành',
-      'Hoàng Thị Thắm',
-      'Bùi Xuân Thống'
-    ]
-  },
-  tinh: {
-    name: 'Tỉnh',
-    color: 'blue',
-    colorName: 'Xanh',
-    colorRGB: {r:180,g:210,b:240},
-    maxVotes: 3,
-    candidates: [
-      'Mai Thị Thùy Dung',
-      'Nguyễn Thị Hồng',
-      'Nguyễn Kim Long',
-      'Phạm Thành Nam',
-      'Nguyễn Thanh Tú'
-    ]
-  },
-  xa: {
-    name: 'Xã',
-    color: 'yellow',
-    colorName: 'Vàng',
-    colorRGB: {r:250,g:240,b:180},
-    maxVotes: 5,
-    candidates: [
-      'Dương Thị Thái An',
-      'Trịnh Văn Duy',
-      'Phan Thanh Hà',
-      'Lê Ngọc Hiếu',
-      'Nguyễn Xuân Linh',
-      'Lê Đình Minh',
-      'Lê Thị Ngọc Nga',
-      'Đinh Thị Vân'
-    ]
-  }
+  qh:   { name:'Quốc Hội', colorName:'Trắng', maxVotes:3,
+          candidates:['Lê Hoàng Hải','Nguyễn Hồng Phong','Đặng Doãn Thành','Hoàng Thị Thắm','Bùi Xuân Thống'] },
+  tinh: { name:'Tỉnh', colorName:'Xanh', maxVotes:3,
+          candidates:['Mai Thị Thùy Dung','Nguyễn Thị Hồng','Nguyễn Kim Long','Phạm Thành Nam','Nguyễn Thanh Tú'] },
+  xa:   { name:'Xã', colorName:'Vàng', maxVotes:5,
+          candidates:['Dương Thị Thái An','Trịnh Văn Duy','Phan Thanh Hà','Lê Ngọc Hiếu','Nguyễn Xuân Linh','Lê Đình Minh','Lê Thị Ngọc Nga','Đinh Thị Vân'] }
 };
 
-// ===== STATE =====
-let votes = {
-  qh: {},
-  tinh: {},
-  xa: {}
-};
-let stats = { total: 0, valid: 0, invalid: 0 };
-let currentTab = 'qh';
-let workerUrl = '';
-let stream = null;
-let scanInterval = null;
-let lastDetectedType = null;
-let isProcessing = false;
-let lastScanTime = 0;
-let ballotLog = [];
+let votes={}, stats={total:0,valid:0,invalid:0}, ballotLog=[];
+let workerUrl='', stream=null, scanInterval=null;
+let lastDetectedType=null, isProcessing=false, lastScanTime=0, currentTab='qh';
 
-// Init votes
-Object.keys(BALLOTS).forEach(type => {
-  BALLOTS[type].candidates.forEach(name => {
-    votes[type][name] = 0;
-  });
-});
+Object.keys(BALLOTS).forEach(t=>{ votes[t]={}; BALLOTS[t].candidates.forEach(n=>votes[t][n]=0); });
 
-// ===== SETUP =====
 function startApp() {
-  workerUrl = document.getElementById('workerUrl').value.trim();
+  workerUrl = document.getElementById('workerUrl').value.trim().replace(/\/$/,'');
   if (!workerUrl) { alert('Vui lòng nhập Worker URL'); return; }
-  
-  // Load saved data
-  const saved = localStorage.getItem('kiemPhieuData');
-  if (saved) {
-    try {
-      const d = JSON.parse(saved);
-      votes = d.votes;
-      stats = d.stats;
-      ballotLog = d.ballotLog || [];
-    } catch(e) {}
-  }
-
+  try {
+    const d = JSON.parse(localStorage.getItem('kiemPhieuData')||'{}');
+    if(d.votes) votes=d.votes; if(d.stats) stats=d.stats; if(d.ballotLog) ballotLog=d.ballotLog;
+  } catch(e){}
   document.getElementById('setup-page').classList.add('hidden');
-  document.getElementById('main-app').classList.remove('hidden');
-  renderAllRows();
-  updateStats();
+  document.getElementById('main-app').classList.add('show');
+  renderAllRows(); updateStats();
 }
 
-// ===== SAVE =====
 function saveData() {
-  localStorage.setItem('kiemPhieuData', JSON.stringify({ votes, stats, ballotLog }));
+  localStorage.setItem('kiemPhieuData', JSON.stringify({votes,stats,ballotLog}));
 }
 
-// ===== RENDER ROWS =====
 function renderAllRows() {
-  ['qh', 'tinh', 'xa'].forEach(type => {
-    const container = document.getElementById(`rows-${type}`);
-    const sorted = [...BALLOTS[type].candidates].sort((a,b) => votes[type][b] - votes[type][a]);
-    container.innerHTML = sorted.map((name, i) => `
-      <div class="candidate-row" id="row-${type}-${name.replace(/\s/g,'_')}">
-        <div class="candidate-rank">${i+1}</div>
-        <div class="candidate-name">${name}</div>
-        <div class="candidate-votes" id="vote-${type}-${name.replace(/\s/g,'_')}">${votes[type][name]}</div>
-      </div>
-    `).join('');
+  ['qh','tinh','xa'].forEach(t=>{
+    const c=document.getElementById(`rows-${t}`);
+    const sorted=[...BALLOTS[t].candidates].sort((a,b)=>votes[t][b]-votes[t][a]);
+    c.innerHTML=sorted.map((n,i)=>`
+      <div class="cand-row">
+        <div class="cand-rank">${i+1}</div>
+        <div class="cand-name">${n}</div>
+        <div class="cand-v" id="v-${t}-${n.replace(/\s/g,'_')}">${votes[t][n]}</div>
+      </div>`).join('');
   });
 }
 
-function updateVoteDisplay(type, name) {
-  const id = `vote-${type}-${name.replace(/\s/g,'_')}`;
-  const el = document.getElementById(id);
-  if (el) {
-    el.textContent = votes[type][name];
-    el.classList.remove('vote-bump');
-    void el.offsetWidth;
-    el.classList.add('vote-bump');
-  }
-  // Re-sort
-  const container = document.getElementById(`rows-${type}`);
-  const sorted = [...BALLOTS[type].candidates].sort((a,b) => votes[type][b] - votes[type][a]);
-  sorted.forEach((n, i) => {
-    const row = document.getElementById(`row-${type}-${n.replace(/\s/g,'_')}`);
-    if (row) {
-      row.querySelector('.candidate-rank').textContent = i+1;
-    }
-  });
+function bumpVote(t,n) {
+  const el=document.getElementById(`v-${t}-${n.replace(/\s/g,'_')}`);
+  if(!el) return;
+  el.textContent=votes[t][n];
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
 }
 
 function updateStats() {
-  document.getElementById('totalCount').textContent = stats.total;
-  document.getElementById('validCount').textContent = stats.valid;
-  document.getElementById('invalidCount').textContent = stats.invalid;
+  document.getElementById('totalCount').textContent=stats.total;
+  document.getElementById('validCount').textContent=stats.valid;
+  document.getElementById('invalidCount').textContent=stats.invalid;
 }
 
-// ===== TABS =====
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`.tab-${tab}`).classList.add('active');
-  
-  ['qh','tinh','xa'].forEach(t => {
-    document.getElementById(`score-${t}`).classList.toggle('hidden', t !== tab);
-  });
-  
-  const titles = { qh: 'Quốc Hội', tinh: 'HĐND Tỉnh', xa: 'HĐND Xã' };
-  document.getElementById('scoreTitle').textContent = `Bảng điểm — ${titles[tab]}`;
+function switchTab(t) {
+  currentTab=t;
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`.tab-${t}`).classList.add('active');
+  ['qh','tinh','xa'].forEach(x=>document.getElementById(`rows-${x}`).classList.toggle('hidden',x!==t));
 }
 
-// ===== CAMERA =====
 async function startCamera() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} } 
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:960}}
     });
-    document.getElementById('video').srcObject = stream;
+    document.getElementById('video').srcObject=stream;
     document.getElementById('btnCamera').classList.add('hidden');
-    
-    // Start color detection loop
-    scanInterval = setInterval(detectColor, 500);
-  } catch(e) {
-    alert('Không thể mở camera: ' + e.message);
-  }
+    scanInterval=setInterval(detectColor,600);
+  } catch(e){ alert('Không mở được camera: '+e.message); }
 }
 
-// ===== COLOR DETECTION =====
 function detectColor() {
-  if (isProcessing) return;
-  
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  if (!video.videoWidth) return;
-  
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  
-  // Sample center region
-  const cx = Math.floor(canvas.width / 2);
-  const cy = Math.floor(canvas.height / 2);
-  const size = 60;
-  const imageData = ctx.getImageData(cx - size/2, cy - size/2, size, size);
-  
-  let r=0, g=0, b=0, count=0;
-  for (let i=0; i<imageData.data.length; i+=4) {
-    r += imageData.data[i];
-    g += imageData.data[i+1];
-    b += imageData.data[i+2];
-    count++;
-  }
-  r = Math.round(r/count);
-  g = Math.round(g/count);
-  b = Math.round(b/count);
-  
-  // Update swatch
-  document.getElementById('colorSwatch').style.background = `rgb(${r},${g},${b})`;
-  
-  // Classify color
-  const detected = classifyColor(r, g, b);
-  
-  if (detected) {
-    document.getElementById('colorInfo').textContent = `Phiếu ${BALLOTS[detected].colorName} - ${BALLOTS[detected].name}`;
-    document.getElementById('colorSub').textContent = 'Đang phân tích...';
-    
-    // Trigger AI scan (debounced)
-    const now = Date.now();
-    if (detected !== lastDetectedType || now - lastScanTime > 8000) {
-      lastDetectedType = detected;
-      lastScanTime = now;
-      triggerAIScan(detected, canvas);
+  if(isProcessing) return;
+  const video=document.getElementById('video');
+  const canvas=document.getElementById('canvas');
+  if(!video.videoWidth) return;
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0);
+  const cx=Math.floor(canvas.width/2), cy=Math.floor(canvas.height/2), sz=80;
+  const id=ctx.getImageData(cx-sz/2,cy-sz/2,sz,sz);
+  let r=0,g=0,b=0,cnt=0;
+  for(let i=0;i<id.data.length;i+=4){r+=id.data[i];g+=id.data[i+1];b+=id.data[i+2];cnt++;}
+  r=Math.round(r/cnt); g=Math.round(g/cnt); b=Math.round(b/cnt);
+  document.getElementById('colorSwatch').style.background=`rgb(${r},${g},${b})`;
+  const det=classifyColor(r,g,b);
+  if(det) {
+    document.getElementById('colorInfo').textContent=`Phiếu ${BALLOTS[det].colorName} — ${BALLOTS[det].name}`;
+    document.getElementById('colorSub').textContent='Đang phân tích...';
+    const now=Date.now();
+    if(det!==lastDetectedType || now-lastScanTime>9000) {
+      lastDetectedType=det; lastScanTime=now;
+      triggerAIScan(det,canvas);
     }
   } else {
-    document.getElementById('colorInfo').textContent = 'Chưa nhận diện được phiếu';
-    document.getElementById('colorSub').textContent = 'Đưa phiếu vào khung camera';
-    lastDetectedType = null;
+    document.getElementById('colorInfo').textContent='Chưa nhận diện được phiếu';
+    document.getElementById('colorSub').textContent='Đưa phiếu vào khung camera';
+    lastDetectedType=null;
   }
 }
 
-function classifyColor(r, g, b) {
-  // Blue ballot (phiếu tỉnh - xanh)
-  if (b > r + 20 && b > g - 10 && b > 150) return 'tinh';
-  
-  // Yellow ballot (phiếu xã - vàng)
-  if (r > 180 && g > 180 && b < 150 && r > b + 50) return 'xa';
-  
-  // White ballot (phiếu quốc hội - trắng)
-  if (r > 200 && g > 200 && b > 200 && Math.abs(r-g)<30 && Math.abs(g-b)<30) return 'qh';
-  
+function classifyColor(r,g,b) {
+  if(b>r+25 && b>140) return 'tinh';                                    // Xanh
+  if(r>180 && g>170 && b<140 && r>b+50) return 'xa';                   // Vàng
+  if(r>210 && g>210 && b>210 && Math.abs(r-g)<25 && Math.abs(g-b)<25) return 'qh'; // Trắng
   return null;
 }
 
-// ===== AI SCAN =====
 async function triggerAIScan(ballotType, canvas) {
-  if (isProcessing) return;
-  isProcessing = true;
-  
-  setStatus('detecting', '🤖 AI đang đọc phiếu...', `Phiếu ${BALLOTS[ballotType].name}`);
+  if(isProcessing) return;
+  isProcessing=true;
+  setStatus('busy','🤖 AI đang đọc phiếu...',`Phiếu ${BALLOTS[ballotType].name}`);
   document.getElementById('aiOverlay').classList.add('show');
-  
   try {
-    // Get image as base64
-    const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-    
-    const candidates = BALLOTS[ballotType].candidates;
-    const maxVotes = BALLOTS[ballotType].maxVotes;
-    
-    const prompt = `Đây là ảnh phiếu bầu cử Việt Nam. Phiếu có ${candidates.length} ứng viên theo thứ tự:
-${candidates.map((c,i) => `${i+1}. ${c}`).join('\n')}
+    const imgData=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+    const cands=BALLOTS[ballotType].candidates;
+    const maxV=BALLOTS[ballotType].maxVotes;
+    const prompt=`Đây là phiếu bầu cử Việt Nam. Danh sách ứng viên theo thứ tự in trên phiếu:\n${cands.map((c,i)=>`${i+1}. ${c}`).join('\n')}\n\nPhiếu được bầu tối đa ${maxV} người. Cử tri gạch bỏ tên người KHÔNG muốn bầu.\n\nXác định tên nào bị gạch bỏ. Chỉ trả về JSON:\n{"crossed":["tên bị gạch"],"valid":true}\n\nNếu không hợp lệ: {"crossed":[],"valid":false,"reason":"lý do"}`;
 
-Được bầu tối đa ${maxVotes} người. Cử tri gạch bỏ tên người KHÔNG muốn bầu.
-
-Hãy xác định tên nào bị gạch bỏ (có đường gạch ngang qua tên). 
-Trả lời ĐÚNG format JSON sau, không giải thích thêm:
-{"crossed": ["Tên bị gạch 1", "Tên bị gạch 2"], "valid": true/false, "reason": "lý do nếu không hợp lệ"}
-
-Nếu không rõ hoặc không thấy phiếu: {"crossed": [], "valid": false, "reason": "Không đọc được phiếu"}`;
-
-    const response = await fetch(workerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 300,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageData } },
-            { type: 'text', text: prompt }
-          ]
-        }]
+    const res=await fetch(workerUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:300,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:imgData}},
+          {type:'text',text:prompt}
+        ]}]
       })
     });
-    
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-    
-    // Parse JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Không parse được kết quả');
-    
-    const result = JSON.parse(jsonMatch[0]);
-    processBallotResult(ballotType, result);
-    
+
+    if(!res.ok) {
+      const errText=await res.text();
+      throw new Error(`Worker ${res.status}: ${errText.slice(0,120)}`);
+    }
+
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+
+    const text=data.content?.[0]?.text||'';
+    const match=text.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error('AI không trả JSON: '+text.slice(0,80));
+
+    processBallot(ballotType, JSON.parse(match[0]));
+
   } catch(e) {
-    console.error('AI scan error:', e);
-    setStatus('invalid', '❌ Lỗi đọc phiếu', e.message);
+    console.error('AI error:',e);
+    setStatus('err','❌ '+e.message.slice(0,55),'Xem console để biết thêm chi tiết');
     beep(2);
   } finally {
-    isProcessing = false;
+    isProcessing=false;
     document.getElementById('aiOverlay').classList.remove('show');
-    // Reset after 6 seconds to allow next scan
-    setTimeout(() => { lastDetectedType = null; }, 6000);
+    setTimeout(()=>{ lastDetectedType=null; },7000);
   }
 }
 
-// ===== PROCESS RESULT =====
-function processBallotResult(ballotType, result) {
-  const { crossed, valid, reason } = result;
-  const candidates = BALLOTS[ballotType].candidates;
-  const maxVotes = BALLOTS[ballotType].maxVotes;
-  
-  const votedFor = candidates.filter(c => !crossed.includes(c));
-  
-  // Validate
-  let isValid = valid !== false;
-  if (votedFor.length === 0) isValid = false;
-  if (votedFor.length > maxVotes) isValid = false;
-  
+function processBallot(type, result) {
+  const {crossed=[],valid=true,reason=''}=result;
+  const cands=BALLOTS[type].candidates;
+  const maxV=BALLOTS[type].maxVotes;
+  const votedFor=cands.filter(c=>!crossed.includes(c));
+  let isValid=valid!==false;
+  if(votedFor.length===0) isValid=false;
+  if(votedFor.length>maxV) isValid=false;
   stats.total++;
-  
-  if (isValid) {
+  if(isValid) {
     stats.valid++;
-    votedFor.forEach(name => {
-      if (votes[ballotType][name] !== undefined) {
-        votes[ballotType][name]++;
-        updateVoteDisplay(ballotType, name);
-      }
-    });
-    
-    setStatus('valid', `✅ Hợp lệ — bầu ${votedFor.length} người`, BALLOTS[ballotType].name);
+    votedFor.forEach(n=>{ if(votes[type][n]!==undefined) votes[type][n]++; });
+    renderAllRows();
+    votedFor.forEach(n=>bumpVote(type,n));
+    setStatus('ok',`✅ Hợp lệ — bầu ${votedFor.length}/${maxV} người`,BALLOTS[type].name);
     beep(1);
-    
-    // Update last ballot display
-    document.getElementById('lastBallot').innerHTML = `
-      <strong>Phiếu vừa kiểm — ${BALLOTS[ballotType].name}</strong>
-      <div class="voted-names">
-        ${votedFor.map(n => `<span class="voted-chip">✓ ${n}</span>`).join('')}
-        ${crossed.map(n => `<span class="crossed-chip">${n}</span>`).join('')}
-      </div>
-    `;
-    
-    // Switch to relevant tab
-    switchTab(ballotType);
-    
+    document.getElementById('lastBallot').innerHTML=`
+      <div class="last-ttl">Phiếu ${BALLOTS[type].name} — Hợp lệ</div>
+      <div class="chips">
+        ${votedFor.map(n=>`<span class="chip-ok">✓ ${n}</span>`).join('')}
+        ${crossed.map(n=>`<span class="chip-x">${n}</span>`).join('')}
+      </div>`;
+    switchTab(type);
   } else {
     stats.invalid++;
-    const msg = reason || (votedFor.length > maxVotes ? `Bầu quá ${maxVotes} người` : 'Không hợp lệ');
-    setStatus('invalid', `❌ Không hợp lệ`, msg);
+    const msg=reason||(votedFor.length>maxV?`Bầu quá ${maxV} người`:'Phiếu không hợp lệ');
+    setStatus('err','❌ Không hợp lệ',msg);
     beep(2);
-    
-    document.getElementById('lastBallot').innerHTML = `
-      <strong>Phiếu vừa kiểm — KHÔNG HỢP LỆ</strong>
-      <div style="color:#fc8181;font-size:13px;margin-top:4px">${msg}</div>
-    `;
+    document.getElementById('lastBallot').innerHTML=`
+      <div class="last-ttl" style="color:#fc8181">Phiếu KHÔNG HỢP LỆ</div>
+      <div style="font-size:11px;color:#fc8181;margin-top:3px">${msg}</div>`;
   }
-  
-  ballotLog.push({ type: ballotType, votedFor, crossed, valid: isValid, time: new Date().toISOString() });
-  updateStats();
-  saveData();
+  ballotLog.push({type,votedFor,crossed,valid:isValid,time:new Date().toISOString()});
+  updateStats(); saveData();
 }
 
-// ===== STATUS =====
-function setStatus(type, title, sub) {
-  const bar = document.getElementById('statusBar');
-  bar.className = `status-bar ${type}`;
-  document.getElementById('statusTitle').textContent = title;
-  document.getElementById('statusSub').textContent = sub;
+function setStatus(type,title,sub) {
+  const bar=document.getElementById('statusBar');
+  bar.className='status'+(type==='ok'?' ok':type==='err'?' err':type==='busy'?' busy':'');
+  document.getElementById('statusTitle').textContent=title;
+  document.getElementById('statusSub').textContent=sub;
 }
 
-// ===== BEEP =====
 function beep(times) {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  let delay = 0;
-  for (let i = 0; i < times; i++) {
-    setTimeout(() => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = times === 1 ? 880 : 330;
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.3);
-    }, delay);
-    delay += 350;
-  }
+  try {
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    for(let i=0;i<times;i++) {
+      setTimeout(()=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value=times===1?880:330;
+        g.gain.setValueAtTime(0.3,ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+        o.start(ctx.currentTime); o.stop(ctx.currentTime+0.3);
+      },i*380);
+    }
+  } catch(e){}
 }
 
-// ===== RESULT PAGE =====
 function showResult() {
-  document.getElementById('main-app').classList.add('hidden');
-  document.getElementById('result-page').style.display = 'block';
-  
-  document.getElementById('resultSub').textContent = 
-    `Tổng: ${stats.total} phiếu · Hợp lệ: ${stats.valid} · Không HL: ${stats.invalid}`;
-  
-  ['qh', 'tinh', 'xa'].forEach(type => {
-    const container = document.getElementById(`result-rows-${type}`);
-    const sorted = [...BALLOTS[type].candidates].sort((a,b) => votes[type][b] - votes[type][a]);
-    const maxVal = Math.max(...sorted.map(n => votes[type][n]), 1);
-    
-    container.innerHTML = sorted.map((name, i) => `
-      <div class="result-row">
+  document.getElementById('main-app').classList.remove('show');
+  document.getElementById('result-page').classList.add('show');
+  document.getElementById('resultSub').textContent=`Tổng: ${stats.total} · Hợp lệ: ${stats.valid} · Không HL: ${stats.invalid}`;
+  ['qh','tinh','xa'].forEach(t=>{
+    const c=document.getElementById(`result-rows-${t}`);
+    const sorted=[...BALLOTS[t].candidates].sort((a,b)=>votes[t][b]-votes[t][a]);
+    const maxVal=Math.max(...sorted.map(n=>votes[t][n]),1);
+    c.innerHTML=sorted.map((n,i)=>`
+      <div class="res-row">
         <div style="flex:1">
-          <div class="result-name">${i+1}. ${name}</div>
-          <div class="result-bar-wrap"><div class="result-bar" style="width:${votes[type][name]/maxVal*100}%"></div></div>
+          <div class="res-name">${i+1}. ${n}</div>
+          <div class="res-bar-w"><div class="res-bar" style="width:${votes[t][n]/maxVal*100}%"></div></div>
         </div>
-        <div class="result-count">${votes[type][name]}</div>
-      </div>
-    `).join('');
+        <div class="res-n">${votes[t][n]}</div>
+      </div>`).join('');
   });
-  
-  // Summary
-  const qhLog = ballotLog.filter(b => b.type === 'qh');
-  const tinhLog = ballotLog.filter(b => b.type === 'tinh');
-  const xaLog = ballotLog.filter(b => b.type === 'xa');
-  
-  document.getElementById('result-summary').innerHTML = `
-    <div class="result-row"><div class="result-name">🏛️ Quốc Hội — tổng phiếu</div><div class="result-count">${qhLog.length}</div></div>
-    <div class="result-row"><div class="result-name">🏢 Tỉnh — tổng phiếu</div><div class="result-count">${tinhLog.length}</div></div>
-    <div class="result-row"><div class="result-name">🏘️ Xã — tổng phiếu</div><div class="result-count">${xaLog.length}</div></div>
-    <div class="result-row"><div class="result-name" style="color:#fc8181">❌ Không hợp lệ</div><div class="result-count" style="color:#fc8181">${stats.invalid}</div></div>
-  `;
+  const sum=[
+    {l:'🏛️ Quốc Hội',v:ballotLog.filter(b=>b.type==='qh').length},
+    {l:'🏢 Tỉnh',v:ballotLog.filter(b=>b.type==='tinh').length},
+    {l:'🏘️ Xã',v:ballotLog.filter(b=>b.type==='xa').length},
+    {l:'❌ Không hợp lệ',v:stats.invalid,red:true},
+  ];
+  document.getElementById('result-summary').innerHTML=sum.map(s=>`
+    <div class="res-row">
+      <div class="res-name" ${s.red?'style="color:#fc8181"':''}>${s.l}</div>
+      <div class="res-n" ${s.red?'style="color:#fc8181"':''}>${s.v}</div>
+    </div>`).join('');
 }
 
 function hideResult() {
-  document.getElementById('result-page').style.display = 'none';
-  document.getElementById('main-app').classList.remove('hidden');
+  document.getElementById('result-page').classList.remove('show');
+  document.getElementById('main-app').classList.add('show');
 }
 
 function resetAll() {
-  if (!confirm('Xóa toàn bộ dữ liệu kiểm phiếu?')) return;
+  if(!confirm('Xóa toàn bộ dữ liệu?')) return;
   localStorage.removeItem('kiemPhieuData');
-  Object.keys(BALLOTS).forEach(type => {
-    BALLOTS[type].candidates.forEach(name => { votes[type][name] = 0; });
-  });
-  stats = { total: 0, valid: 0, invalid: 0 };
-  ballotLog = [];
-  renderAllRows();
-  updateStats();
-  hideResult();
+  Object.keys(BALLOTS).forEach(t=>{BALLOTS[t].candidates.forEach(n=>{votes[t][n]=0;});});
+  stats={total:0,valid:0,invalid:0}; ballotLog=[];
+  renderAllRows(); updateStats(); hideResult();
 }
 
-// Init
 renderAllRows();
 </script>
 </body>
