@@ -424,14 +424,26 @@ async function triggerAIScan(ballotType, canvas) {
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
 
     const text=data.content?.[0]?.text||'';
-    const match=text.match(/\{[\s\S]*\}/);
-    if(!match) throw new Error('AI không trả JSON: '+text.slice(0,80));
+    console.log('AI response:', text); // debug
 
-    processBallot(ballotType, JSON.parse(match[0]));
+    // Try to extract JSON
+    const match=text.match(/\{[\s\S]*?\}/);
+    if(!match) {
+      // Nếu không có JSON, log toàn bộ response
+      console.error('Full response:', JSON.stringify(data));
+      throw new Error('Không tìm thấy JSON. AI nói: '+text.slice(0,100));
+    }
+
+    let parsed;
+    try { parsed = JSON.parse(match[0]); }
+    catch(pe) { throw new Error('JSON lỗi cú pháp: '+match[0].slice(0,80)); }
+
+    processBallot(ballotType, parsed);
 
   } catch(e) {
     console.error('AI error:',e);
-    setStatus('err','❌ '+e.message.slice(0,55),'Xem console để biết thêm chi tiết');
+    setStatus('err','Loi AI',e.message.slice(0,70));
+    document.getElementById('lastBallot').innerHTML='<div class="last-ttl" style="color:#fc8181">Chi tiet loi</div><div style="font-size:10px;color:#fc8181;margin-top:3px;word-break:break-all">'+ e.message +'</div>';
     beep(2);
   } finally {
     isProcessing=false;
