@@ -483,170 +483,259 @@ function detectBaseColor(ctx,W,H){
 }
 
 // ============================================================
-// PHÂN TÍCH PHIẾU:
-//  1. Tìm N hàng ứng viên (đoạn pixel tối có chiều cao >= 12px, đều nhau nhất)
-//  2. Nếu màu trắng: thử tìm nhóm 5 và 8 — CV nhỏ hơn thắng → biết QH hay XA
-//  3. Với mỗi hàng: phát hiện đường gạch ngang
+// THUẬT TOÁN MỚI — 3 BƯỚC:
+//
+// 1. ANCHOR: Tìm vùng tiêu đề "CỘNG HÒA" ở đỉnh phiếu
+//    → xác định Y_TOP (mốc trên), chống lệch khi phiếu xoay nhẹ
+//
+// 2. DÒ TỪ DƯỚI LÊN: Scan từ cuối frame lên trên
+//    → tìm các band tối (dòng chữ ứng viên)
+//    → bỏ qua tiêu đề và phần header phiếu phía trên Y_TOP
+//
+// 3. PHÁT HIỆN GẠCH: Với mỗi band tìm được,
+//    kiểm tra "max horizontal dark run" — đường nằm ngang liên tục
+//    Chữ alphabet có dấu gạch ngang (Ă,Â,Đ,Ê,Ô,Ơ,Ư) chỉ có run ngắn ~3–8px
+//    Đường gạch bút có run dài 40%+ chiều rộng band → dễ phân biệt
 // ============================================================
-function analyzeBallot(ctx,W,H,baseColor){
-  // Vùng scan: trong khung hướng dẫn (4%–96% ngang, 4%–96% dọc)
-  const bx=Math.floor(W*0.04), bw=Math.floor(W*0.92);
-  const by=Math.floor(H*0.04), bh=Math.floor(H*0.92);
 
-  // Tính luminance trung bình mỗi hàng pixel trong vùng scan
-  const rowLum=[];
-  for(let y=by; y<by+bh; y++){
-    const id=ctx.getImageData(bx, y, bw, 1);
-    const d=id.data;
-    let sum=0,cnt=0;
-    for(let i=0;i<d.length;i+=4){
-      if(d[i+3]<50) continue;
-      sum+=(d[i]+d[i+1]+d[i+2])/3; cnt++;
-    }
-    rowLum.push(cnt?sum/cnt:255);
+function analyzeBallot(ctx, W, H, baseColor) {
+  const bx = Math.floor(W * 0.03), bw = Math.floor(W * 0.94);
+  const by = Math.floor(H * 0.03), bh = Math.floor(H * 0.94);
+
+  // ── BƯỚC 1: Tìm anchor Y (đáy của vùng tiêu đề) ──────────────────
+  // Quét từ trên xuống, tìm dải tối đậm đầu tiên = tiêu đề CỘNG HÒA...
+  // Sau đó tìm khoảng trắng bên dưới nó = ranh giới header/nội dung
+  const anchorY = findHeaderAnchor(ctx, bx, by, bw, bh, W, H);
+
+  // ── BƯỚC 2: Đếm hàng ứng viên — DÒ TỪ DƯỚI LÊN ──────────────────
+  // Chỉ scan từ anchorY xuống đáy (bỏ tiêu đề)
+  const scanTop = anchorY || Math.floor(H * 0.20); // fallback 20% nếu không tìm được anchor
+  const scanBot = by + bh;
+
+  const segs = findRowSegments(ctx, bx, scanTop, bw, scanBot - scanTop);
+
+  if (segs.length < 2) return null;
+
+  // ── BƯỚC 3: Gán type dựa vào màu + số hàng ────────────────────────
+  let type, rows;
+  const nCands = baseColor === 'xa' ? 8 : 5;
+  const grp = findEvenGroup(segs, nCands);
+  if (!grp) return null;
+
+  type = baseColor === 'xa' ? 'xa' : (baseColor === 'tinh' ? 'tinh' : 'qh');
+  rows = grp;
+
+  // ── BƯỚC 4: Đo nền phiếu (lấy từ vùng giữa các hàng — sạch nhất) ─
+  const spacing = calcSpacing(rows);
+  const halfRow = Math.floor(spacing * 0.46);
+
+  // Lấy mẫu nền từ khoảng trắng giữa hàng 1 và 2
+  const bgSample = rows.length >= 2
+    ? ctx.getImageData(bx + 10, rows[0].end + 2, bw - 20, Math.max(1, rows[1].start - rows[0].end - 4))
+    : ctx.getImageData(bx + 10, scanTop, bw - 20, Math.max(1, rows[0].start - scanTop - 5));
+  const bgLum = avgLum(bgSample.data);
+
+  // ── BƯỚC 5: Phát hiện gạch — MAX HORIZONTAL RUN ───────────────────
+  const crossed = new Set();
+  const rowData = rows.map((row, idx) => {
+    const y0 = Math.max(scanTop, row.mid - halfRow);
+    const y1 = Math.min(scanBot, row.mid + halfRow);
+    const rh = Math.max(1, y1 - y0);
+    const isCrossed = detectStrikeByRun(ctx, bx, y0, bw, rh, bgLum);
+    if (isCrossed) crossed.add(idx);
+    return { y0, y1, mid: row.mid, isCrossed };
+  });
+
+  drawOverlay(W, H, rowData, bx, bw);
+
+  const cands = BALLOTS[type].candidates;
+  const votedNames = cands.filter((_, i) => !crossed.has(i));
+  return { type, crossed, votedNames, rowData };
+}
+
+// ── Tìm Y-anchor: đáy của khối tiêu đề phiếu ─────────────────────────
+// Tiêu đề "CỘNG HÒA XÃ HỘI..." là dải chữ đậm + khoảng trắng bên dưới
+// Ta tìm: dải tối đậm đầu tiên trong 35% trên, rồi tìm khoảng sáng sau nó
+function findHeaderAnchor(ctx, bx, by, bw, bh, W, H) {
+  const scanLimit = by + Math.floor(bh * 0.38); // chỉ tìm trong 38% trên
+  const rowLum = [];
+  for (let y = by; y < scanLimit; y++) {
+    const id = ctx.getImageData(bx, y, bw, 1);
+    rowLum.push({ y, lum: avgLum(id.data) });
   }
 
-  // Smoothing nhẹ
-  const sm=rowLum.map((_,i)=>{
-    let s=0,c=0;
-    for(let k=-2;k<=2;k++){ if(i+k>=0&&i+k<rowLum.length){s+=rowLum[i+k];c++;} }
+  // Smooth
+  const sm = rowLum.map((r, i) => {
+    let s = 0, c = 0;
+    for (let k = -3; k <= 3; k++) {
+      if (i+k >= 0 && i+k < rowLum.length) { s += rowLum[i+k].lum; c++; }
+    }
+    return { y: r.y, lum: s/c };
+  });
+
+  const mean = sm.reduce((a,b) => a + b.lum, 0) / sm.length;
+  const darkTh = mean * 0.80; // pixel tối = dưới 80% mean
+
+  // Tìm dải tối đậm đầu tiên (tiêu đề CỘNG HÒA) — dài ít nhất 8px
+  let headerEnd = -1;
+  let inDark = false, darkStart = 0;
+  for (let i = 0; i < sm.length; i++) {
+    if (sm[i].lum < darkTh && !inDark) { inDark = true; darkStart = i; }
+    else if (sm[i].lum >= darkTh && inDark) {
+      inDark = false;
+      if (i - darkStart >= 8) {
+        // Tìm tiếp: khoảng sáng sau band tối này (gap >= 8px)
+        let gapStart = i;
+        let j = i;
+        while (j < sm.length && sm[j].lum >= darkTh) j++;
+        if (j - gapStart >= 6) {
+          headerEnd = sm[j].y; // đây là Y bắt đầu vùng nội dung
+          break;
+        }
+      }
+    }
+  }
+  return headerEnd > 0 ? headerEnd : -1;
+}
+
+// ── Tìm các band tối từ dưới lên ────────────────────────────────────
+// Dò theo hướng từ bottom → top để tránh nhầm tiêu đề
+function findRowSegments(ctx, bx, topY, bw, scanH) {
+  const rowLum = [];
+  for (let y = topY; y < topY + scanH; y++) {
+    const id = ctx.getImageData(bx, y, bw, 1);
+    rowLum.push(avgLum(id.data));
+  }
+
+  // Smooth
+  const sm = rowLum.map((_, i) => {
+    let s = 0, c = 0;
+    for (let k = -2; k <= 2; k++) {
+      if (i+k >= 0 && i+k < rowLum.length) { s += rowLum[i+k]; c++; }
+    }
     return s/c;
   });
 
-  // Tìm ngưỡng tối (mean - std*0.7)
-  const mean=sm.reduce((a,b)=>a+b,0)/sm.length;
-  const std=Math.sqrt(sm.reduce((a,b)=>a+(b-mean)**2,0)/sm.length);
-  const thresh=mean-std*0.7;
+  const mean = sm.reduce((a,b)=>a+b,0)/sm.length;
+  const std = Math.sqrt(sm.reduce((a,b)=>a+(b-mean)**2,0)/sm.length);
+  const thresh = mean - std * 0.65;
 
-  // Tìm segments tối (chiều cao >= 10px)
-  const segs=[];
-  let inSeg=false, segStart=0;
-  for(let i=0;i<sm.length;i++){
-    if(sm[i]<thresh && !inSeg){ inSeg=true; segStart=i; }
-    else if(sm[i]>=thresh && inSeg){
-      inSeg=false;
-      const h=i-segStart;
-      if(h>=10) segs.push({start:by+segStart, end:by+i, mid:by+segStart+Math.floor(h/2), h});
+  const segs = [];
+  let inSeg = false, segStart = 0;
+  for (let i = 0; i < sm.length; i++) {
+    if (sm[i] < thresh && !inSeg) { inSeg = true; segStart = i; }
+    else if (sm[i] >= thresh && inSeg) {
+      inSeg = false;
+      const h = i - segStart;
+      if (h >= 8) {
+        segs.push({
+          start: topY + segStart,
+          end:   topY + i,
+          mid:   topY + segStart + Math.floor(h/2),
+          h
+        });
+      }
     }
   }
 
-  if(segs.length<2) return null;
-
-  let type, rows;
-  if(baseColor==='tinh'){
-    // Tỉnh (Xanh): luôn 5 hàng
-    const g=findEvenGroup(segs,5);
-    if(!g) return null;
-    type='tinh'; rows=g;
-  } else if(baseColor==='qh'){
-    // Quốc Hội (Hồng): luôn 5 hàng
-    const g=findEvenGroup(segs,5);
-    if(!g) return null;
-    type='qh'; rows=g;
-  } else if(baseColor==='xa'){
-    // Xã (Vàng): luôn 8 hàng
-    const g=findEvenGroup(segs,8);
-    if(!g) return null;
-    type='xa'; rows=g;
-  } else {
-    return null;
-  }
-
-  if(!rows) return null;
-
-  // Tính spacing để xác định vùng mỗi hàng
-  const mids=rows.map(r=>r.mid);
-  const diffs=mids.slice(1).map((v,i)=>v-mids[i]);
-  const spacing=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
-  const halfRow=Math.floor(spacing*0.48);
-
-  // Đo màu nền phiếu từ vùng trên cùng (phần tiêu đề, không có tên)
-  const bgY=by+4;
-  const bgId=ctx.getImageData(bx+10, bgY, bw-20, Math.max(1,rows[0].start-bgY-10));
-  const bgD=bgId.data;
-  let bgSum=0,bgN=0;
-  for(let i=0;i<bgD.length;i+=4){ if(bgD[i+3]>50){bgSum+=(bgD[i]+bgD[i+1]+bgD[i+2])/3;bgN++;} }
-  const bgLum=bgN?bgSum/bgN:240;
-
-  // Phát hiện gạch mỗi hàng
-  const crossed=new Set();
-  const rowData=rows.map((row,idx)=>{
-    const y0=Math.max(by, row.mid-halfRow);
-    const y1=Math.min(by+bh, row.mid+halfRow);
-    const rh=Math.max(1,y1-y0);
-    const isCrossed=detectStrike(ctx,bx,y0,bw,rh,bgLum);
-    if(isCrossed) crossed.add(idx);
-    return {y0,y1,mid:row.mid,isCrossed};
-  });
-
-  drawOverlay(W,H,rowData,bx,bw);
-
-  const cands=BALLOTS[type].candidates;
-  const votedNames=cands.filter((_,i)=>!crossed.has(i));
-  return {type, crossed, votedNames, rowData};
+  // Sắp xếp từ dưới lên (bottom-first) để ưu tiên hàng ứng viên cuối
+  segs.sort((a,b) => b.mid - a.mid);
+  return segs;
 }
 
-// Tìm nhóm n segments đều nhau nhất
-function findEvenGroup(segs,n){
-  if(segs.length<n) return null;
-  let best=null, bestCV=Infinity;
-  for(let i=0;i<=segs.length-n;i++){
-    const g=segs.slice(i,i+n);
-    const cv=groupCV(g);
-    if(cv<bestCV){ bestCV=cv; best=g; }
+// ── Tìm nhóm n segments đều nhau nhất ───────────────────────────────
+function findEvenGroup(segs, n) {
+  if (segs.length < n) return null;
+  let best = null, bestCV = Infinity;
+  for (let i = 0; i <= segs.length - n; i++) {
+    const g = segs.slice(i, i+n);
+    const cv = groupCV(g);
+    if (cv < bestCV) { bestCV = cv; best = g; }
   }
-  return bestCV<0.25?best:null; // CV quá cao = không đều = không phải tên
+  if (bestCV >= 0.28) return null;
+  // Đảo lại thứ tự: từ trên xuống (tăng dần Y)
+  return best.sort((a,b) => a.mid - b.mid);
 }
 
-function groupCV(g){
-  const mids=g.map(s=>s.mid);
-  const diffs=mids.slice(1).map((v,i)=>v-mids[i]);
-  if(!diffs.length) return 0;
-  const mean=diffs.reduce((a,b)=>a+b,0)/diffs.length;
-  if(mean===0) return 999;
-  const std=Math.sqrt(diffs.reduce((a,b)=>a+(b-mean)**2,0)/diffs.length);
-  return std/mean; // Coefficient of Variation
+function groupCV(g) {
+  const mids = g.map(s => s.mid);
+  const diffs = mids.slice(1).map((v,i) => Math.abs(v - mids[i]));
+  if (!diffs.length) return 0;
+  const mean = diffs.reduce((a,b)=>a+b,0) / diffs.length;
+  if (mean === 0) return 999;
+  const std = Math.sqrt(diffs.reduce((a,b)=>a+(b-mean)**2,0)/diffs.length);
+  return std/mean;
+}
+
+function calcSpacing(rows) {
+  const mids = rows.map(r => r.mid);
+  const diffs = mids.slice(1).map((v,i) => v-mids[i]);
+  return Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
+}
+
+function avgLum(data) {
+  let s = 0, n = 0;
+  for (let i = 0; i < data.length; i+=4) {
+    if (data[i+3] < 50) continue;
+    s += (data[i]+data[i+1]+data[i+2])/3; n++;
+  }
+  return n ? s/n : 255;
 }
 
 // ============================================================
-// PHÁT HIỆN ĐƯỜNG GẠCH NGANG
+// PHÁT HIỆN GẠCH — MAX HORIZONTAL DARK RUN
 //
-// Nguyên lý (từ phân tích ảnh thực tế):
-//   - Nền phiếu: lum ~230–250
-//   - Chữ in đậm: lum ~30–80
-//   - Đường gạch bút: lum ~0–80 (mực bút bi/mực in bị gạch)
+// Nguyên lý chính xác theo ý tưởng:
+//   Chữ alphabet Việt (kể cả Ă Â Đ Ê Ô Ơ Ư) → run ngang tối nhất
+//   chỉ dài ~3–10px (dấu gạch trên chữ cái)
 //
-//   Trong vùng mỗi hàng, scan từng cột x:
-//     với mỗi cột, lấy pixel tối nhất trong dải dọc
-//     nếu pixel đó tối hơn nền DARK_DIFF và có nhiều cột liên tiếp như vậy
-//     → có đường gạch
+//   Đường gạch bút thực sự → run ngang liên tục 35%+ chiều rộng
 //
-//   Khác biệt chữ in vs gạch:
-//     - Chữ in (tên): các cột tối tập trung trong 15–20% chiều rộng (chỉ phần có chữ)
-//     - Đường gạch: cột tối trải dài 50%+ chiều rộng
+// Thuật toán:
+//   1. Với mỗi hàng pixel trong band, đếm max run liên tục của pixel tối
+//   2. Lấy giá trị run dài nhất trong toàn band
+//   3. Nếu max_run / band_width >= RUN_THRESH → bị gạch
+//
+// RUN_THRESH = 0.35 (35%) — gạch bút luôn > 35%, dấu chữ cái < 5%
 // ============================================================
-function detectStrike(ctx, x0, y0, w, h, bgLum){
-  const id=ctx.getImageData(x0, y0, w, h);
-  const d=id.data;
-  const DARK_THRESH=bgLum-50; // pixel tối hơn nền 50 units
+function detectStrikeByRun(ctx, x0, y0, w, h, bgLum) {
+  const id = ctx.getImageData(x0, y0, w, h);
+  const d = id.data;
 
-  // Với mỗi cột: tìm pixel tối nhất
-  let darkCols=0;
-  for(let x=0; x<w; x++){
-    let minLum=255;
-    for(let y=0; y<h; y++){
-      const i=(y*w+x)*4;
-      const lum=(d[i]+d[i+1]+d[i+2])/3;
-      if(lum<minLum) minLum=lum;
+  // Pixel tối = tối hơn nền ít nhất 45 units
+  const darkTh = Math.max(30, bgLum - 45);
+
+  // Để lọc nhiễu: chỉ xét vùng giữa 10%–90% chiều rộng
+  // (bỏ viền trái/phải có thể có đường kẻ khung)
+  const xStart = Math.floor(w * 0.08);
+  const xEnd   = Math.floor(w * 0.92);
+  const usableW = xEnd - xStart;
+
+  let maxRun = 0;
+
+  for (let row = 0; row < h; row++) {
+    let run = 0, longestRun = 0;
+    for (let x = xStart; x < xEnd; x++) {
+      const idx = (row * w + x) * 4;
+      const lum = (d[idx] + d[idx+1] + d[idx+2]) / 3;
+      if (lum < darkTh) {
+        run++;
+        if (run > longestRun) longestRun = run;
+      } else {
+        run = 0;
+      }
     }
-    if(minLum<DARK_THRESH) darkCols++;
+    if (longestRun > maxRun) maxRun = longestRun;
   }
 
-  const darkRatio=darkCols/w;
+  const runRatio = maxRun / usableW;
 
-  // Gạch ngang trải dài ≥ 45% chiều rộng
-  // Nhưng chỉ gạch ngang mới liên tục 45%+; chữ in bình thường < 30%
-  return darkRatio>=0.45;
+  // Debug: có thể bỏ comment để xem giá trị
+  // console.log(`run=${maxRun} w=${usableW} ratio=${runRatio.toFixed(2)}`);
+
+  // Gạch ngang thực sự: run >= 35% chiều rộng
+  // Chữ in thường: run < 8% (chỉ là nét ngang của chữ cái)
+  return runRatio >= 0.35;
 }
 
 // ============================================================
