@@ -5,167 +5,151 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Kiểm Phiếu 2026</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+:root{--bg:#0f1117;--card:#1a1d27;--border:#2d3148;--text:#e2e8f0;--muted:#718096;--gold:#f6ad55;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+body{background:var(--bg);}
 
-  :root {
-    --bg: #0f1117;
-    --card: #1a1d27;
-    --border: #2d3148;
-    --text: #e2e8f0;
-    --muted: #718096;
-    --gold: #f6ad55;
-  }
+/* ===== SETUP ===== */
+#setup-page{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:24px;gap:10px;
+}
+#setup-page h1{font-size:22px;font-weight:800;}
+#setup-page p{color:var(--muted);font-size:13px;margin-bottom:4px;}
+.lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;align-self:flex-start;}
+.inp{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;}
+.inp:focus{border-color:var(--gold);}
+.btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,#f6ad55,#ed8936);border:none;border-radius:12px;color:#1a1d27;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:4px;}
 
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+/* ===== MAIN - iPhone: scroll, iPad: fixed ===== */
+#main-app{display:none;}
+#main-app.show{display:block;}
 
-  html, body {
-    font-family: 'Be Vietnam Pro', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    height: 100%;
-    overflow: hidden;
-    font-size: 14px;
-  }
+.hdr{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:8px 12px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+}
+.hdr-title{font-size:14px;font-weight:800;}
+.hdr-title span{color:var(--gold);}
+.btn-sm{background:linear-gradient(135deg,#f6ad55,#ed8936);color:#1a1d27;border:none;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 
-  /* SETUP */
-  #setup-page {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; height: 100vh; padding: 24px; gap: 10px;
-  }
-  #setup-page h1 { font-size: 22px; font-weight: 800; }
-  #setup-page p { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
-  .lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; align-self: flex-start; }
-  .inp {
-    width: 100%; background: var(--card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 11px 14px; color: var(--text);
-    font-size: 13px; font-family: inherit; outline: none;
-  }
-  .inp:focus { border-color: var(--gold); }
-  .btn-primary {
-    width: 100%; padding: 13px;
-    background: linear-gradient(135deg,#f6ad55,#ed8936);
-    border: none; border-radius: 12px; color: #1a1d27;
-    font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 4px;
-  }
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 10px;}
+.stat{background:var(--card);border-radius:8px;border:1px solid var(--border);padding:7px;text-align:center;}
+.stat-n{font-size:20px;font-weight:800;line-height:1;}
+.stat-l{font-size:10px;color:var(--muted);font-weight:600;margin-top:1px;}
+.c-gold{color:#f6ad55;}.c-green{color:#68d391;}.c-red{color:#fc8181;}
 
-  /* MAIN */
-  #main-app { display:none; flex-direction:column; height:100vh; overflow:hidden; }
-  #main-app.show { display:flex; }
+.status-bar{margin:0 10px 6px;padding:7px 11px;background:var(--card);border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;gap:8px;}
+.status-bar.ok{border-color:#68d391;}.status-bar.err{border-color:#fc8181;}.status-bar.busy{border-color:#f6ad55;}
+.st-ico{font-size:16px;flex-shrink:0;}
+.st-t{font-size:12px;font-weight:700;}.st-s{font-size:10px;color:var(--muted);}
 
-  .hdr {
-    background: var(--card); border-bottom: 1px solid var(--border);
-    padding: 8px 12px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
-  }
-  .hdr-title { font-size: 14px; font-weight: 800; }
-  .hdr-title span { color: var(--gold); }
-  .btn-sm {
-    background: linear-gradient(135deg,#f6ad55,#ed8936); color: #1a1d27;
-    border: none; border-radius: 8px; padding: 6px 11px;
-    font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
-  }
+/* Camera */
+.cam-section{padding:0 10px 6px;}
+.cam-card{background:var(--card);border-radius:10px;border:1px solid var(--border);overflow:hidden;}
+.cam-lbl{padding:5px 9px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;}
+.dot{width:6px;height:6px;border-radius:50%;background:#fc8181;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
 
-  .stats {
-    display: grid; grid-template-columns: repeat(3,1fr);
-    gap: 6px; padding: 6px 10px; flex-shrink:0;
-  }
-  .stat { background:var(--card);border-radius:8px;border:1px solid var(--border);padding:6px;text-align:center; }
-  .stat-n { font-size:19px;font-weight:800;line-height:1; }
-  .stat-l { font-size:10px;color:var(--muted);font-weight:600;margin-top:1px; }
-  .c-gold{color:#f6ad55;} .c-green{color:#68d391;} .c-red{color:#fc8181;}
+.vid-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;}
+#video{width:100%;height:100%;object-fit:cover;display:block;}
+#canvas{display:none;}
+.color-bar{position:absolute;bottom:0;left:0;right:0;padding:6px 9px;background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;align-items:center;gap:7px;}
+.swatch{width:20px;height:20px;border-radius:50%;border:2px solid white;flex-shrink:0;}
+.color-t{font-size:11px;font-weight:700;}.color-s{font-size:9px;color:rgba(255,255,255,.7);}
+.fc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:75%;border:1.5px solid rgba(255,255,255,.2);border-radius:5px;pointer-events:none;}
+.fc::before,.fc::after{content:'';position:absolute;width:14px;height:14px;}
+.fc::before{top:-2px;left:-2px;border-top:3px solid #f6ad55;border-left:3px solid #f6ad55;border-radius:3px 0 0 0;}
+.fc::after{bottom:-2px;right:-2px;border-bottom:3px solid #f6ad55;border-right:3px solid #f6ad55;border-radius:0 0 3px 0;}
+.ai-ov{position:absolute;inset:0;background:rgba(0,0,0,.75);display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.ai-ov.show{display:flex;}
+.spin{width:30px;height:30px;border:3px solid rgba(246,173,85,.3);border-top-color:#f6ad55;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-t{font-size:12px;font-weight:700;color:#f6ad55;}
 
-  .status {
-    margin: 0 10px 5px; padding: 7px 11px;
-    background:var(--card);border:1px solid var(--border);border-radius:9px;
-    flex-shrink:0;display:flex;align-items:center;gap:8px;
-  }
-  .status.ok{border-color:#68d391;} .status.err{border-color:#fc8181;} .status.busy{border-color:#f6ad55;}
-  .status-ico{font-size:16px;flex-shrink:0;}
-  .status-t{font-size:12px;font-weight:700;} .status-s{font-size:10px;color:var(--muted);}
+.btn-cam{width:100%;margin-top:6px;padding:9px;background:linear-gradient(135deg,#2b6cb0,#2c5282);border:none;border-radius:9px;color:white;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 
-  .body-cols {
-    display:grid; grid-template-columns:1fr 1fr;
-    gap:8px; padding:0 10px; flex:1; overflow:hidden; min-height:0;
-  }
+/* Last ballot */
+.last-card{background:var(--card);border-radius:9px;border:1px solid var(--border);padding:7px 9px;margin:6px 10px 0;}
+.last-ttl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+.chips{display:flex;flex-wrap:wrap;gap:3px;}
+.chip-ok{background:rgba(104,211,145,.15);color:#68d391;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;}
+.chip-x{background:rgba(252,129,129,.15);color:#fc8181;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;text-decoration:line-through;}
 
-  /* Camera col */
-  .col-cam { display:flex;flex-direction:column;gap:5px;overflow:hidden;min-height:0; }
-  .cam-card {
-    background:var(--card);border-radius:10px;border:1px solid var(--border);
-    overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;
-  }
-  .cam-lbl {
-    padding:5px 9px;font-size:10px;font-weight:700;color:var(--muted);
-    text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;flex-shrink:0;
-  }
-  .dot{width:6px;height:6px;border-radius:50%;background:#fc8181;animation:pulse 1.5s infinite;}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
-  .vid-wrap{position:relative;flex:1;background:#000;min-height:0;}
-  #video{width:100%;height:100%;object-fit:cover;display:block;}
-  #canvas{display:none;}
-  .color-bar{position:absolute;bottom:0;left:0;right:0;padding:5px 8px;background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;align-items:center;gap:7px;}
-  .swatch{width:20px;height:20px;border-radius:50%;border:2px solid white;flex-shrink:0;}
-  .color-t{font-size:11px;font-weight:700;} .color-s{font-size:9px;color:rgba(255,255,255,.7);}
-  .frame-corner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:75%;border:1.5px solid rgba(255,255,255,.2);border-radius:5px;pointer-events:none;}
-  .frame-corner::before,.frame-corner::after{content:'';position:absolute;width:14px;height:14px;}
-  .frame-corner::before{top:-2px;left:-2px;border-top:3px solid #f6ad55;border-left:3px solid #f6ad55;border-radius:3px 0 0 0;}
-  .frame-corner::after{bottom:-2px;right:-2px;border-bottom:3px solid #f6ad55;border-right:3px solid #f6ad55;border-radius:0 0 3px 0;}
-  .ai-ov{position:absolute;inset:0;background:rgba(0,0,0,.75);display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
-  .ai-ov.show{display:flex;}
-  .spin{width:30px;height:30px;border:3px solid rgba(246,173,85,.3);border-top-color:#f6ad55;border-radius:50%;animation:spin .8s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .ai-t{font-size:12px;font-weight:700;color:#f6ad55;}
+/* Scoreboard */
+.score-section{padding:8px 10px;}
+.tabs{display:flex;background:var(--card);border-radius:9px 9px 0 0;border:1px solid var(--border);border-bottom:none;}
+.tab{flex:1;padding:7px 3px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);}
+.tab.active{color:var(--text);}
+.tab-qh.active{border-bottom-color:#fc8181;}.tab-tinh.active{border-bottom-color:#63b3ed;}.tab-xa.active{border-bottom-color:#fbd38d;}
+.score-wrap{background:var(--card);border:1px solid var(--border);border-radius:0 0 9px 9px;overflow:hidden;}
+.cand-row{display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(45,49,72,.4);}
+.cand-row:last-child{border-bottom:none;}
+.cand-rank{width:18px;font-size:10px;color:var(--muted);font-weight:700;flex-shrink:0;}
+.cand-name{flex:1;font-size:12px;font-weight:500;margin:0 5px;line-height:1.3;}
+.cand-v{font-size:18px;font-weight:800;min-width:28px;text-align:right;}
+.bump{animation:bump .4s ease-out;}
+@keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.5);color:#68d391}100%{transform:scale(1)}}
 
-  .btn-cam {
-    padding:8px;background:linear-gradient(135deg,#2b6cb0,#2c5282);
-    border:none;border-radius:9px;color:white;font-size:12px;font-weight:700;
-    cursor:pointer;font-family:inherit;flex-shrink:0;
+/* Bottom */
+.btm{padding:8px 10px 20px;display:flex;gap:7px;}
+.btn-reset{padding:10px 13px;background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.3);border-radius:9px;color:#fc8181;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-result-main{flex:1;padding:10px;background:linear-gradient(135deg,#f6ad55,#ed8936);border:none;border-radius:9px;color:#1a1d27;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+
+/* ===== iPad layout ===== */
+@media (min-width: 768px) {
+  #main-app.show{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+  .hdr{flex-shrink:0;}
+  .stats{flex-shrink:0;}
+  .status-bar{flex-shrink:0;}
+  .main-body{
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:8px;padding:0 10px;
+    flex:1;overflow:hidden;min-height:0;
   }
-
-  .last-card{background:var(--card);border-radius:9px;border:1px solid var(--border);padding:7px 9px;flex-shrink:0;}
-  .last-ttl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
-  .chips{display:flex;flex-wrap:wrap;gap:3px;}
-  .chip-ok{background:rgba(104,211,145,.15);color:#68d391;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;}
-  .chip-x{background:rgba(252,129,129,.15);color:#fc8181;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;text-decoration:line-through;}
-
-  /* Score col */
-  .col-score{display:flex;flex-direction:column;overflow:hidden;min-height:0;}
-  .tabs{display:flex;background:var(--card);border-radius:9px 9px 0 0;border:1px solid var(--border);border-bottom:none;flex-shrink:0;}
-  .tab{flex:1;padding:7px 3px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;color:var(--muted);}
-  .tab.active{color:var(--text);}
-  .tab-qh.active{border-bottom-color:#fc8181;} .tab-tinh.active{border-bottom-color:#63b3ed;} .tab-xa.active{border-bottom-color:#fbd38d;}
-  .score-wrap{background:var(--card);border:1px solid var(--border);border-radius:0 0 9px 9px;flex:1;overflow-y:auto;min-height:0;}
+  /* cam col */
+  .cam-col{display:flex;flex-direction:column;gap:5px;overflow:hidden;min-height:0;}
+  .cam-section{padding:0;flex:1;display:flex;flex-direction:column;min-height:0;}
+  .cam-card{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .vid-wrap{aspect-ratio:unset;flex:1;}
+  .btn-cam{margin-top:0;flex-shrink:0;}
+  .last-card{margin:0;flex-shrink:0;}
+  /* score col */
+  .score-col{display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+  .score-section{padding:0;flex:1;display:flex;flex-direction:column;min-height:0;}
+  .score-wrap{overflow-y:auto;flex:1;}
   .score-wrap::-webkit-scrollbar{width:3px;}
   .score-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-  .cand-row{display:flex;align-items:center;padding:7px 9px;border-bottom:1px solid rgba(45,49,72,.4);}
-  .cand-row:last-child{border-bottom:none;}
-  .cand-rank{width:18px;font-size:10px;color:var(--muted);font-weight:700;flex-shrink:0;}
-  .cand-name{flex:1;font-size:11px;font-weight:500;margin:0 5px;line-height:1.3;}
-  .cand-v{font-size:17px;font-weight:800;min-width:28px;text-align:right;}
-  .bump{animation:bump .4s ease-out;}
-  @keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.5);color:#68d391}100%{transform:scale(1)}}
+  .btm{flex-shrink:0;}
+  /* hide iPhone-only wrappers */
+  .iphone-only{display:none;}
+}
 
-  .btm{padding:6px 10px;flex-shrink:0;display:flex;gap:7px;}
-  .btn-reset{padding:9px 12px;background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.3);border-radius:9px;color:#fc8181;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
-  .btn-result-main{flex:1;padding:9px;background:linear-gradient(135deg,#f6ad55,#ed8936);border:none;border-radius:9px;color:#1a1d27;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;}
+/* iPhone: no fixed height, scrollable */
+@media (max-width: 767px) {
+  .main-body{display:block;}
+  .cam-col,.score-col{display:contents;}
+  .ipad-only{display:none;}
+}
 
-  /* RESULT */
-  #result-page{display:none;flex-direction:column;height:100vh;overflow:hidden;}
-  #result-page.show{display:flex;}
-  .res-hdr{padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-  .res-hdr h2{font-size:15px;font-weight:800;}
-  .res-body{flex:1;overflow-y:auto;padding:10px;}
-  .res-body::-webkit-scrollbar{width:3px;}
-  .res-body::-webkit-scrollbar-thumb{background:var(--border);}
-  .res-section{background:var(--card);border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-bottom:9px;}
-  .res-sec-hdr{padding:9px 12px;font-weight:700;font-size:12px;border-bottom:1px solid var(--border);}
-  .res-row{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(45,49,72,.4);}
-  .res-row:last-child{border-bottom:none;}
-  .res-name{flex:1;font-size:12px;}
-  .res-n{font-size:18px;font-weight:800;color:#f6ad55;}
-  .res-bar-w{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:3px;}
-  .res-bar{height:3px;background:linear-gradient(90deg,#f6ad55,#ed8936);border-radius:2px;transition:width 1s;}
-
-  .hidden{display:none!important;}
+/* ===== RESULT ===== */
+#result-page{display:none;}
+#result-page.show{display:block;}
+.res-hdr{padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.res-hdr h2{font-size:15px;font-weight:800;}
+.res-body{padding:10px;}
+.res-section{background:var(--card);border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-bottom:9px;}
+.res-sec-hdr{padding:9px 12px;font-weight:700;font-size:12px;border-bottom:1px solid var(--border);}
+.res-row{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(45,49,72,.4);}
+.res-row:last-child{border-bottom:none;}
+.res-name{flex:1;font-size:12px;}
+.res-n{font-size:18px;font-weight:800;color:#f6ad55;}
+.res-bar-w{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:3px;}
+.res-bar{height:3px;background:linear-gradient(90deg,#f6ad55,#ed8936);border-radius:2px;transition:width 1s;}
+.hidden{display:none!important;}
 </style>
 </head>
 <body>
@@ -177,13 +161,13 @@
   <p>Xã Trị An · Đồng Nai · 2026</p>
   <div class="lbl">Cloudflare Worker URL</div>
   <input class="inp" id="workerUrl" type="url"
-    placeholder="https://kiem-phieu-proxy.greohu.workers.dev"
     value="https://kiem-phieu-proxy.greohu.workers.dev">
   <button class="btn-primary" onclick="startApp()">▶ Bắt đầu kiểm phiếu</button>
 </div>
 
 <!-- MAIN -->
 <div id="main-app">
+
   <div class="hdr">
     <div class="hdr-title">🗳️ Kiểm <span>Phiếu</span> 2026</div>
     <button class="btn-sm" onclick="showResult()">📊 Kết quả</button>
@@ -195,61 +179,71 @@
     <div class="stat"><div class="stat-n c-red" id="invalidCount">0</div><div class="stat-l">Không HL</div></div>
   </div>
 
-  <div class="status" id="statusBar">
-    <div class="status-ico">📷</div>
+  <div class="status-bar" id="statusBar">
+    <div class="st-ico">📷</div>
     <div>
-      <div class="status-t" id="statusTitle">Sẵn sàng</div>
-      <div class="status-s" id="statusSub">Bật camera và đưa phiếu vào khung</div>
+      <div class="st-t" id="statusTitle">Sẵn sàng</div>
+      <div class="st-s" id="statusSub">Bật camera và đưa phiếu vào khung</div>
     </div>
   </div>
 
-  <div class="body-cols">
-    <div class="col-cam">
-      <div class="cam-card">
-        <div class="cam-lbl"><span class="dot"></span> Camera</div>
-        <div class="vid-wrap">
-          <video id="video" autoplay playsinline muted></video>
-          <canvas id="canvas"></canvas>
-          <div class="frame-corner"></div>
-          <div class="color-bar">
-            <div class="swatch" id="colorSwatch" style="background:#444"></div>
-            <div>
-              <div class="color-t" id="colorInfo">Chưa phát hiện</div>
-              <div class="color-s" id="colorSub">Đưa phiếu vào khung</div>
+  <div class="main-body">
+
+    <!-- Camera column -->
+    <div class="cam-col">
+      <div class="cam-section">
+        <div class="cam-card">
+          <div class="cam-lbl"><span class="dot"></span> Camera</div>
+          <div class="vid-wrap">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="canvas"></canvas>
+            <div class="fc"></div>
+            <div class="color-bar">
+              <div class="swatch" id="colorSwatch" style="background:#444"></div>
+              <div>
+                <div class="color-t" id="colorInfo">Chưa phát hiện</div>
+                <div class="color-s" id="colorSub">Đưa phiếu vào khung</div>
+              </div>
+            </div>
+            <div class="ai-ov" id="aiOverlay">
+              <div class="spin"></div>
+              <div class="ai-t">AI đang đọc...</div>
             </div>
           </div>
-          <div class="ai-ov" id="aiOverlay">
-            <div class="spin"></div>
-            <div class="ai-t">AI đang đọc...</div>
-          </div>
         </div>
+        <button class="btn-cam" id="btnCamera" onclick="startCamera()">📷 Bật Camera</button>
       </div>
-      <button class="btn-cam" id="btnCamera" onclick="startCamera()">📷 Bật Camera</button>
+
       <div class="last-card" id="lastBallot">
         <div class="last-ttl">Phiếu vừa kiểm</div>
         <div style="color:var(--muted);font-size:11px">Chưa có phiếu nào</div>
       </div>
     </div>
 
-    <div class="col-score">
-      <div class="tabs">
-        <div class="tab tab-qh active" onclick="switchTab('qh')">🏛️ QH</div>
-        <div class="tab tab-tinh" onclick="switchTab('tinh')">🏢 Tỉnh</div>
-        <div class="tab tab-xa" onclick="switchTab('xa')">🏘️ Xã</div>
-      </div>
-      <div class="score-wrap">
-        <div id="rows-qh"></div>
-        <div id="rows-tinh" class="hidden"></div>
-        <div id="rows-xa" class="hidden"></div>
+    <!-- Score column -->
+    <div class="score-col">
+      <div class="score-section">
+        <div class="tabs">
+          <div class="tab tab-qh active" onclick="switchTab('qh')">🏛️ QH</div>
+          <div class="tab tab-tinh" onclick="switchTab('tinh')">🏢 Tỉnh</div>
+          <div class="tab tab-xa" onclick="switchTab('xa')">🏘️ Xã</div>
+        </div>
+        <div class="score-wrap">
+          <div id="rows-qh"></div>
+          <div id="rows-tinh" class="hidden"></div>
+          <div id="rows-xa" class="hidden"></div>
+        </div>
       </div>
     </div>
-  </div>
+
+  </div><!-- end main-body -->
 
   <div class="btm">
     <button class="btn-reset" onclick="resetAll()">🗑️ Reset</button>
     <button class="btn-result-main" onclick="showResult()">📊 Xem kết quả đầy đủ</button>
   </div>
-</div>
+
+</div><!-- end main-app -->
 
 <!-- RESULT -->
 <div id="result-page">
@@ -275,44 +269,41 @@
       <div class="res-sec-hdr">📋 Tổng hợp</div>
       <div id="result-summary"></div>
     </div>
+    <div style="height:20px"></div>
   </div>
 </div>
 
 <script>
-const BALLOTS = {
-  qh:   { name:'Quốc Hội', colorName:'Trắng', maxVotes:3,
-          candidates:['Lê Hoàng Hải','Nguyễn Hồng Phong','Đặng Doãn Thành','Hoàng Thị Thắm','Bùi Xuân Thống'] },
-  tinh: { name:'Tỉnh', colorName:'Xanh', maxVotes:3,
-          candidates:['Mai Thị Thùy Dung','Nguyễn Thị Hồng','Nguyễn Kim Long','Phạm Thành Nam','Nguyễn Thanh Tú'] },
-  xa:   { name:'Xã', colorName:'Vàng', maxVotes:5,
-          candidates:['Dương Thị Thái An','Trịnh Văn Duy','Phan Thanh Hà','Lê Ngọc Hiếu','Nguyễn Xuân Linh','Lê Đình Minh','Lê Thị Ngọc Nga','Đinh Thị Vân'] }
+const BALLOTS={
+  qh:{name:'Quốc Hội',colorName:'Trắng',maxVotes:3,
+    candidates:['Lê Hoàng Hải','Nguyễn Hồng Phong','Đặng Doãn Thành','Hoàng Thị Thắm','Bùi Xuân Thống']},
+  tinh:{name:'Tỉnh',colorName:'Xanh',maxVotes:3,
+    candidates:['Mai Thị Thùy Dung','Nguyễn Thị Hồng','Nguyễn Kim Long','Phạm Thành Nam','Nguyễn Thanh Tú']},
+  xa:{name:'Xã',colorName:'Vàng',maxVotes:5,
+    candidates:['Dương Thị Thái An','Trịnh Văn Duy','Phan Thanh Hà','Lê Ngọc Hiếu','Nguyễn Xuân Linh','Lê Đình Minh','Lê Thị Ngọc Nga','Đinh Thị Vân']}
 };
 
-let votes={}, stats={total:0,valid:0,invalid:0}, ballotLog=[];
-let workerUrl='', stream=null, scanInterval=null;
-let lastDetectedType=null, isProcessing=false, lastScanTime=0, currentTab='qh';
+let votes={},stats={total:0,valid:0,invalid:0},ballotLog=[];
+let workerUrl='',stream=null,scanInterval=null;
+let lastDetectedType=null,isProcessing=false,lastScanTime=0,currentTab='qh';
 
-Object.keys(BALLOTS).forEach(t=>{ votes[t]={}; BALLOTS[t].candidates.forEach(n=>votes[t][n]=0); });
+Object.keys(BALLOTS).forEach(t=>{votes[t]={};BALLOTS[t].candidates.forEach(n=>votes[t][n]=0);});
 
-function startApp() {
-  workerUrl = document.getElementById('workerUrl').value.trim().replace(/\/$/,'');
-  if (!workerUrl) { alert('Vui lòng nhập Worker URL'); return; }
-  try {
-    const d = JSON.parse(localStorage.getItem('kiemPhieuData')||'{}');
-    if(d.votes) votes=d.votes; if(d.stats) stats=d.stats; if(d.ballotLog) ballotLog=d.ballotLog;
-  } catch(e){}
+function startApp(){
+  workerUrl=document.getElementById('workerUrl').value.trim().replace(/\/$/,'');
+  if(!workerUrl){alert('Vui lòng nhập Worker URL');return;}
+  try{const d=JSON.parse(localStorage.getItem('kiemPhieuData')||'{}');
+    if(d.votes)votes=d.votes;if(d.stats)stats=d.stats;if(d.ballotLog)ballotLog=d.ballotLog;}catch(e){}
   document.getElementById('setup-page').classList.add('hidden');
   document.getElementById('main-app').classList.add('show');
-  renderAllRows(); updateStats();
+  renderAllRows();updateStats();
 }
 
-function saveData() {
-  localStorage.setItem('kiemPhieuData', JSON.stringify({votes,stats,ballotLog}));
-}
+function saveData(){localStorage.setItem('kiemPhieuData',JSON.stringify({votes,stats,ballotLog}));}
 
-function renderAllRows() {
+function renderAllRows(){
   ['qh','tinh','xa'].forEach(t=>{
-    const c=document.getElementById(`rows-${t}`);
+    const c=document.getElementById('rows-'+t);
     const sorted=[...BALLOTS[t].candidates].sort((a,b)=>votes[t][b]-votes[t][a]);
     c.innerHTML=sorted.map((n,i)=>`
       <div class="cand-row">
@@ -323,84 +314,85 @@ function renderAllRows() {
   });
 }
 
-function bumpVote(t,n) {
-  const el=document.getElementById(`v-${t}-${n.replace(/\s/g,'_')}`);
-  if(!el) return;
+function bumpVote(t,n){
+  const el=document.getElementById('v-'+t+'-'+n.replace(/\s/g,'_'));
+  if(!el)return;
   el.textContent=votes[t][n];
-  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');
 }
 
-function updateStats() {
+function updateStats(){
   document.getElementById('totalCount').textContent=stats.total;
   document.getElementById('validCount').textContent=stats.valid;
   document.getElementById('invalidCount').textContent=stats.invalid;
 }
 
-function switchTab(t) {
+function switchTab(t){
   currentTab=t;
   document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
-  document.querySelector(`.tab-${t}`).classList.add('active');
-  ['qh','tinh','xa'].forEach(x=>document.getElementById(`rows-${x}`).classList.toggle('hidden',x!==t));
+  document.querySelector('.tab-'+t).classList.add('active');
+  ['qh','tinh','xa'].forEach(x=>document.getElementById('rows-'+x).classList.toggle('hidden',x!==t));
 }
 
-async function startCamera() {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:960}}
-    });
+async function startCamera(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:960}}});
     document.getElementById('video').srcObject=stream;
     document.getElementById('btnCamera').classList.add('hidden');
     scanInterval=setInterval(detectColor,600);
-  } catch(e){ alert('Không mở được camera: '+e.message); }
+  }catch(e){alert('Không mở được camera: '+e.message);}
 }
 
-function detectColor() {
-  if(isProcessing) return;
+function detectColor(){
+  if(isProcessing)return;
   const video=document.getElementById('video');
   const canvas=document.getElementById('canvas');
-  if(!video.videoWidth) return;
-  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-  const ctx=canvas.getContext('2d');
-  ctx.drawImage(video,0,0);
-  const cx=Math.floor(canvas.width/2), cy=Math.floor(canvas.height/2), sz=80;
+  if(!video.videoWidth)return;
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');ctx.drawImage(video,0,0);
+  const cx=Math.floor(canvas.width/2),cy=Math.floor(canvas.height/2),sz=80;
   const id=ctx.getImageData(cx-sz/2,cy-sz/2,sz,sz);
   let r=0,g=0,b=0,cnt=0;
   for(let i=0;i<id.data.length;i+=4){r+=id.data[i];g+=id.data[i+1];b+=id.data[i+2];cnt++;}
-  r=Math.round(r/cnt); g=Math.round(g/cnt); b=Math.round(b/cnt);
-  document.getElementById('colorSwatch').style.background=`rgb(${r},${g},${b})`;
+  r=Math.round(r/cnt);g=Math.round(g/cnt);b=Math.round(b/cnt);
+  document.getElementById('colorSwatch').style.background='rgb('+r+','+g+','+b+')';
   const det=classifyColor(r,g,b);
-  if(det) {
-    document.getElementById('colorInfo').textContent=`Phiếu ${BALLOTS[det].colorName} — ${BALLOTS[det].name}`;
+  if(det){
+    document.getElementById('colorInfo').textContent='Phiếu '+BALLOTS[det].colorName+' — '+BALLOTS[det].name;
     document.getElementById('colorSub').textContent='Đang phân tích...';
     const now=Date.now();
-    if(det!==lastDetectedType || now-lastScanTime>9000) {
-      lastDetectedType=det; lastScanTime=now;
-      triggerAIScan(det,canvas);
+    if(det!==lastDetectedType||now-lastScanTime>9000){
+      lastDetectedType=det;lastScanTime=now;triggerAIScan(det,canvas);
     }
-  } else {
+  }else{
     document.getElementById('colorInfo').textContent='Chưa nhận diện được phiếu';
     document.getElementById('colorSub').textContent='Đưa phiếu vào khung camera';
     lastDetectedType=null;
   }
 }
 
-function classifyColor(r,g,b) {
-  if(b>r+25 && b>140) return 'tinh';                                    // Xanh
-  if(r>180 && g>170 && b<140 && r>b+50) return 'xa';                   // Vàng
-  if(r>210 && g>210 && b>210 && Math.abs(r-g)<25 && Math.abs(g-b)<25) return 'qh'; // Trắng
+function classifyColor(r,g,b){
+  if(b>r+25&&b>140)return 'tinh';
+  if(r>180&&g>170&&b<140&&r>b+50)return 'xa';
+  if(r>210&&g>210&&b>210&&Math.abs(r-g)<25&&Math.abs(g-b)<25)return 'qh';
   return null;
 }
 
-async function triggerAIScan(ballotType, canvas) {
-  if(isProcessing) return;
+async function triggerAIScan(ballotType,canvas){
+  if(isProcessing)return;
   isProcessing=true;
-  setStatus('busy','🤖 AI đang đọc phiếu...',`Phiếu ${BALLOTS[ballotType].name}`);
+  setStatus('busy','AI đang đọc phiếu...','Phiếu '+BALLOTS[ballotType].name);
   document.getElementById('aiOverlay').classList.add('show');
-  try {
+  try{
     const imgData=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
     const cands=BALLOTS[ballotType].candidates;
     const maxV=BALLOTS[ballotType].maxVotes;
-    const prompt=`Đây là phiếu bầu cử Việt Nam. Danh sách ứng viên theo thứ tự in trên phiếu:\n${cands.map((c,i)=>`${i+1}. ${c}`).join('\n')}\n\nPhiếu được bầu tối đa ${maxV} người. Cử tri gạch bỏ tên người KHÔNG muốn bầu.\n\nXác định tên nào bị gạch bỏ. Chỉ trả về JSON:\n{"crossed":["tên bị gạch"],"valid":true}\n\nNếu không hợp lệ: {"crossed":[],"valid":false,"reason":"lý do"}`;
+    const prompt='Đây là phiếu bầu cử Việt Nam. Danh sách ứng viên:\n'
+      +cands.map((c,i)=>(i+1)+'. '+c).join('\n')
+      +'\n\nBầu tối đa '+maxV+' người. Cử tri gạch bỏ tên KHÔNG muốn bầu.\n'
+      +'Chỉ trả về JSON, không giải thích gì thêm:\n'
+      +'{"crossed":["tên bị gạch"],"valid":true}\n'
+      +'Nếu không đọc được: {"crossed":[],"valid":false,"reason":"lý do"}';
 
     const res=await fetch(workerUrl,{
       method:'POST',
@@ -415,108 +407,108 @@ async function triggerAIScan(ballotType, canvas) {
       })
     });
 
-    if(!res.ok) {
-      const errText=await res.text();
-      throw new Error(`Worker ${res.status}: ${errText.slice(0,120)}`);
+    if(!res.ok){
+      const t=await res.text();
+      throw new Error('Worker '+res.status+': '+t.slice(0,100));
     }
 
     const data=await res.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
 
-    const text=data.content?.[0]?.text||'';
-    console.log('AI response:', text); // debug
+    const text=data.content&&data.content[0]?data.content[0].text:'';
+    console.log('AI raw response:',text);
 
-    // Try to extract JSON
+    // Tìm JSON trong response
     const match=text.match(/\{[\s\S]*?\}/);
-    if(!match) {
-      // Nếu không có JSON, log toàn bộ response
-      console.error('Full response:', JSON.stringify(data));
-      throw new Error('Không tìm thấy JSON. AI nói: '+text.slice(0,100));
-    }
+    if(!match)throw new Error('Không tìm thấy JSON. AI trả: '+text.slice(0,80));
 
     let parsed;
-    try { parsed = JSON.parse(match[0]); }
-    catch(pe) { throw new Error('JSON lỗi cú pháp: '+match[0].slice(0,80)); }
+    try{parsed=JSON.parse(match[0]);}
+    catch(pe){throw new Error('JSON lỗi: '+match[0].slice(0,60));}
 
-    processBallot(ballotType, parsed);
+    processBallot(ballotType,parsed);
 
-  } catch(e) {
-    console.error('AI error:',e);
-    setStatus('err','Loi AI',e.message.slice(0,70));
-    document.getElementById('lastBallot').innerHTML='<div class="last-ttl" style="color:#fc8181">Chi tiet loi</div><div style="font-size:10px;color:#fc8181;margin-top:3px;word-break:break-all">'+ e.message +'</div>';
+  }catch(e){
+    console.error('Lỗi AI:',e);
+    setStatus('err','Lỗi',e.message.slice(0,60));
+    document.getElementById('lastBallot').innerHTML=
+      '<div class="last-ttl" style="color:#fc8181">Chi tiết lỗi</div>'
+      +'<div style="font-size:10px;color:#fc8181;margin-top:3px;word-break:break-all">'+e.message+'</div>';
     beep(2);
-  } finally {
+  }finally{
     isProcessing=false;
     document.getElementById('aiOverlay').classList.remove('show');
-    setTimeout(()=>{ lastDetectedType=null; },7000);
+    setTimeout(()=>{lastDetectedType=null;},7000);
   }
 }
 
-function processBallot(type, result) {
-  const {crossed=[],valid=true,reason=''}=result;
+function processBallot(type,result){
+  const crossed=result.crossed||[];
+  const valid=result.valid!==false;
+  const reason=result.reason||'';
   const cands=BALLOTS[type].candidates;
   const maxV=BALLOTS[type].maxVotes;
   const votedFor=cands.filter(c=>!crossed.includes(c));
-  let isValid=valid!==false;
-  if(votedFor.length===0) isValid=false;
-  if(votedFor.length>maxV) isValid=false;
+  let isValid=valid;
+  if(votedFor.length===0)isValid=false;
+  if(votedFor.length>maxV)isValid=false;
   stats.total++;
-  if(isValid) {
+  if(isValid){
     stats.valid++;
-    votedFor.forEach(n=>{ if(votes[type][n]!==undefined) votes[type][n]++; });
+    votedFor.forEach(n=>{if(votes[type][n]!==undefined)votes[type][n]++;});
     renderAllRows();
     votedFor.forEach(n=>bumpVote(type,n));
-    setStatus('ok',`✅ Hợp lệ — bầu ${votedFor.length}/${maxV} người`,BALLOTS[type].name);
+    setStatus('ok','Hop le — bau '+votedFor.length+'/'+maxV+' nguoi',BALLOTS[type].name);
     beep(1);
-    document.getElementById('lastBallot').innerHTML=`
-      <div class="last-ttl">Phiếu ${BALLOTS[type].name} — Hợp lệ</div>
-      <div class="chips">
-        ${votedFor.map(n=>`<span class="chip-ok">✓ ${n}</span>`).join('')}
-        ${crossed.map(n=>`<span class="chip-x">${n}</span>`).join('')}
-      </div>`;
+    document.getElementById('lastBallot').innerHTML=
+      '<div class="last-ttl">Phiếu '+BALLOTS[type].name+' — Hợp lệ</div>'
+      +'<div class="chips">'
+      +votedFor.map(n=>'<span class="chip-ok">✓ '+n+'</span>').join('')
+      +crossed.map(n=>'<span class="chip-x">'+n+'</span>').join('')
+      +'</div>';
     switchTab(type);
-  } else {
+  }else{
     stats.invalid++;
-    const msg=reason||(votedFor.length>maxV?`Bầu quá ${maxV} người`:'Phiếu không hợp lệ');
-    setStatus('err','❌ Không hợp lệ',msg);
+    const msg=reason||(votedFor.length>maxV?'Bau qua '+maxV+' nguoi':'Phieu khong hop le');
+    setStatus('err','Khong hop le',msg);
     beep(2);
-    document.getElementById('lastBallot').innerHTML=`
-      <div class="last-ttl" style="color:#fc8181">Phiếu KHÔNG HỢP LỆ</div>
-      <div style="font-size:11px;color:#fc8181;margin-top:3px">${msg}</div>`;
+    document.getElementById('lastBallot').innerHTML=
+      '<div class="last-ttl" style="color:#fc8181">Phiếu KHÔNG HỢP LỆ</div>'
+      +'<div style="font-size:11px;color:#fc8181;margin-top:3px">'+msg+'</div>';
   }
   ballotLog.push({type,votedFor,crossed,valid:isValid,time:new Date().toISOString()});
-  updateStats(); saveData();
+  updateStats();saveData();
 }
 
-function setStatus(type,title,sub) {
+function setStatus(type,title,sub){
   const bar=document.getElementById('statusBar');
-  bar.className='status'+(type==='ok'?' ok':type==='err'?' err':type==='busy'?' busy':'');
+  bar.className='status-bar'+(type==='ok'?' ok':type==='err'?' err':type==='busy'?' busy':'');
   document.getElementById('statusTitle').textContent=title;
   document.getElementById('statusSub').textContent=sub;
 }
 
-function beep(times) {
-  try {
+function beep(times){
+  try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    for(let i=0;i<times;i++) {
+    for(let i=0;i<times;i++){
       setTimeout(()=>{
         const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
+        o.connect(g);g.connect(ctx.destination);
         o.frequency.value=times===1?880:330;
         g.gain.setValueAtTime(0.3,ctx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
-        o.start(ctx.currentTime); o.stop(ctx.currentTime+0.3);
+        o.start(ctx.currentTime);o.stop(ctx.currentTime+0.3);
       },i*380);
     }
-  } catch(e){}
+  }catch(e){}
 }
 
-function showResult() {
+function showResult(){
   document.getElementById('main-app').classList.remove('show');
   document.getElementById('result-page').classList.add('show');
-  document.getElementById('resultSub').textContent=`Tổng: ${stats.total} · Hợp lệ: ${stats.valid} · Không HL: ${stats.invalid}`;
+  document.getElementById('resultSub').textContent='Tổng: '+stats.total+' · Hợp lệ: '+stats.valid+' · Không HL: '+stats.invalid;
   ['qh','tinh','xa'].forEach(t=>{
-    const c=document.getElementById(`result-rows-${t}`);
+    const c=document.getElementById('result-rows-'+t);
     const sorted=[...BALLOTS[t].candidates].sort((a,b)=>votes[t][b]-votes[t][a]);
     const maxVal=Math.max(...sorted.map(n=>votes[t][n]),1);
     c.innerHTML=sorted.map((n,i)=>`
@@ -534,24 +526,24 @@ function showResult() {
     {l:'🏘️ Xã',v:ballotLog.filter(b=>b.type==='xa').length},
     {l:'❌ Không hợp lệ',v:stats.invalid,red:true},
   ];
-  document.getElementById('result-summary').innerHTML=sum.map(s=>`
-    <div class="res-row">
-      <div class="res-name" ${s.red?'style="color:#fc8181"':''}>${s.l}</div>
-      <div class="res-n" ${s.red?'style="color:#fc8181"':''}>${s.v}</div>
-    </div>`).join('');
+  document.getElementById('result-summary').innerHTML=sum.map(s=>
+    '<div class="res-row">'
+    +'<div class="res-name"'+(s.red?' style="color:#fc8181"':'')+'>'+s.l+'</div>'
+    +'<div class="res-n"'+(s.red?' style="color:#fc8181"':'')+'>'+s.v+'</div>'
+    +'</div>').join('');
 }
 
-function hideResult() {
+function hideResult(){
   document.getElementById('result-page').classList.remove('show');
   document.getElementById('main-app').classList.add('show');
 }
 
-function resetAll() {
-  if(!confirm('Xóa toàn bộ dữ liệu?')) return;
+function resetAll(){
+  if(!confirm('Xóa toàn bộ dữ liệu?'))return;
   localStorage.removeItem('kiemPhieuData');
   Object.keys(BALLOTS).forEach(t=>{BALLOTS[t].candidates.forEach(n=>{votes[t][n]=0;});});
-  stats={total:0,valid:0,invalid:0}; ballotLog=[];
-  renderAllRows(); updateStats(); hideResult();
+  stats={total:0,valid:0,invalid:0};ballotLog=[];
+  renderAllRows();updateStats();hideResult();
 }
 
 renderAllRows();
