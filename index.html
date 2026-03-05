@@ -6,232 +6,279 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kiểm Phiếu">
-<meta name="theme-color" content="#0a0a18">
+<meta name="theme-color" content="#07071a">
 <title>Kiểm Phiếu Bầu Cử</title>
 <style>
-:root {
-  --bg:#0a0a18;--s1:#111126;--s2:#181830;--s3:#1e1e3a;--s4:#252548;
-  --border:rgba(255,255,255,0.07);--text:#f0f0ff;--muted:#5a5a8a;--dim:#8888b8;
+:root{
+  --bg:#07071a;--s1:#0e0e24;--s2:#14142e;--s3:#1a1a38;--s4:#212142;
+  --b:rgba(255,255,255,0.07);--text:#f0f0ff;--muted:#55558a;--dim:#8888b8;
   --pink:#ff5c95;--blue:#38bdf8;--yellow:#fbbf24;
   --green:#34d399;--red:#f87171;--purple:#a78bfa;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text)}
-body{font-family:-apple-system,system-ui,sans-serif}
-button,input,textarea{font-family:inherit}
+html,body,#app{height:100%;overflow:hidden}
+body{font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea{font-family:inherit;-webkit-appearance:none;border:none;cursor:pointer}
 ::-webkit-scrollbar{display:none}
 
-@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes ping{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.4)}50%{box-shadow:0 0 0 8px rgba(52,211,153,0)}}
-@keyframes sl{0%{top:6%}100%{top:92%}}
-@keyframes pop{0%{transform:scale(.94);opacity:0}100%{transform:scale(1);opacity:1}}
-@keyframes fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@keyframes numup{0%{transform:translateY(6px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes sl{0%{top:5%}100%{top:93%}}
+@keyframes numflash{0%{transform:scale(1.6);color:#34d399}100%{transform:scale(1)}}
+@keyframes rowblink{0%{background:rgba(52,211,153,.3)}100%{background:rgba(52,211,153,.06)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes fadein{from{opacity:0;transform:translateY(-4px)}to{opacity:1}}
+@keyframes slidein{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
 
 #app{display:flex;flex-direction:column;height:100dvh}
 
-/* ── HEADER ── */
-.hdr{flex-shrink:0;background:var(--s1);border-bottom:1px solid var(--border);
-  padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));
-  display:flex;align-items:center;gap:10px}
-.hdr-logo{font-size:22px;line-height:1}
-.hdr-title{font-size:14px;font-weight:800}
+/* HDR */
+.hdr{flex-shrink:0;background:var(--s1);border-bottom:1px solid var(--b);
+  padding:9px 13px;padding-top:max(9px,env(safe-area-inset-top));
+  display:flex;align-items:center;gap:9px}
+.hdr-logo{font-size:20px}
+.hdr-info{flex:1}
+.hdr-title{font-size:13px;font-weight:800}
 .hdr-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.hdr-badge{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;
+  background:var(--s3);color:var(--dim);white-space:nowrap;transition:all .3s}
 
-/* ── TABS ── */
-.tabs{flex-shrink:0;display:flex;background:var(--s1);border-bottom:1px solid var(--border)}
-.tab{flex:1;padding:9px 4px;font-size:11px;font-weight:700;color:var(--muted);
-  background:transparent;border:none;border-bottom:2px solid transparent;
-  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .2s}
+/* TABS */
+.tabs{flex-shrink:0;display:flex;background:var(--s1);border-bottom:1px solid var(--b)}
+.tab{flex:1;padding:8px 4px;font-size:11px;font-weight:700;color:var(--muted);
+  background:transparent;border-bottom:2px solid transparent;
+  display:flex;flex-direction:column;align-items:center;gap:2px}
 .tab.on{color:var(--text);border-bottom-color:var(--green)}
-.tab-icon{font-size:17px;line-height:1}
+.ti{font-size:16px;line-height:1}
 
-/* ── PAGES ── */
-.page{display:none;flex:1;overflow-y:auto;overflow-x:hidden}
-.page.on{display:flex;flex-direction:column}
-.page-scroll{flex:1;overflow-y:auto;padding:12px 14px 100px}
+/* PAGES */
+.page{display:none;flex:1;overflow:hidden;flex-direction:column}
+.page.on{display:flex}
+.scroll{flex:1;overflow-y:auto;padding:12px 13px 90px}
 
-/* ── CAM ZONE ── */
-.cam-wrap{position:relative;background:#000;flex-shrink:0;overflow:hidden}
+/* ══ SCAN PAGE ══ */
+/* Camera area — full height, scoreboard overlays on right */
+.cam-area{position:relative;flex:1;min-height:0;background:#000;overflow:hidden}
 #vid{width:100%;height:100%;object-fit:cover;display:block}
-.no-cam{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:8px;color:var(--muted);font-size:12px;text-align:center;background:var(--bg)}
-.no-cam-icon{font-size:44px}
+#clr-cvs{display:none}
+.no-cam{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;
+  color:var(--muted);font-size:12px;text-align:center;background:var(--bg)}
+.no-cam-ic{font-size:44px;margin-bottom:4px}
 
-/* frame overlay */
-.cam-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.frame-box{position:relative;width:72%;aspect-ratio:1.55;border-radius:10px;
-  box-shadow:0 0 0 2000px rgba(0,0,0,.45)}
-.corner{position:absolute;width:22px;height:22px;border-color:rgba(255,255,255,.5);
-  border-style:solid;transition:border-color .25s}
-.corner.tl{top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:5px 0 0 0}
-.corner.tr{top:-2px;right:-2px;border-width:3px 3px 0 0;border-radius:0 5px 0 0}
-.corner.bl{bottom:-2px;left:-2px;border-width:0 0 3px 3px;border-radius:0 0 0 5px}
-.corner.br{bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 5px 0}
-.frame-box.det .corner{border-color:var(--green)}
-.frame-box.lock .corner{border-color:var(--yellow)}
-.scan-line{position:absolute;left:8px;right:8px;height:2px;
-  background:linear-gradient(90deg,transparent,var(--green) 50%,transparent);
-  border-radius:2px;animation:sl 1.8s ease-in-out infinite;top:6%;opacity:0;transition:opacity .3s}
+/* frame */
+.cam-guide{position:absolute;inset:0;pointer-events:none;
+  display:flex;align-items:center;justify-content:flex-start;padding-left:6%}
+.guide-box{position:relative;width:44%;aspect-ratio:1.55;border-radius:8px;
+  box-shadow:0 0 0 2000px rgba(0,0,0,.5)}
+.corner{position:absolute;width:16px;height:16px;border-style:solid;transition:border-color .25s}
+.corner.tl{top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:4px 0 0 0;border-color:rgba(255,255,255,.4)}
+.corner.tr{top:-2px;right:-2px;border-width:3px 3px 0 0;border-radius:0 4px 0 0;border-color:rgba(255,255,255,.4)}
+.corner.bl{bottom:-2px;left:-2px;border-width:0 0 3px 3px;border-radius:0 0 0 4px;border-color:rgba(255,255,255,.4)}
+.corner.br{bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 4px 0;border-color:rgba(255,255,255,.4)}
+.guide-box.det .corner{border-color:var(--green)!important}
+.guide-box.lock .corner{border-color:var(--yellow)!important}
+.scan-line{position:absolute;left:4px;right:4px;height:2px;top:5%;
+  background:linear-gradient(90deg,transparent,var(--green),transparent);
+  border-radius:2px;opacity:0;animation:sl 1.8s ease-in-out infinite}
 .scanning .scan-line{opacity:1}
 
 /* color pill */
-.cpill{position:absolute;top:10px;left:50%;transform:translateX(-50%);
-  padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;
-  background:rgba(0,0,0,.65);backdrop-filter:blur(8px);
-  display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:3;
+.cpill{position:absolute;top:8px;left:8px;
+  padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700;
+  background:rgba(0,0,0,.72);backdrop-filter:blur(8px);
+  display:flex;align-items:center;gap:5px;white-space:nowrap;z-index:4;
   border:1px solid rgba(255,255,255,.08)}
-.cpill-dot{width:9px;height:9px;border-radius:50%;background:#555;transition:background .3s;flex-shrink:0}
+.cpill-dot{width:7px;height:7px;border-radius:50%;background:#444;transition:background .3s;flex-shrink:0}
 
-/* ── FOOTER SCAN ── */
-.scan-footer{flex-shrink:0;background:var(--s1);border-top:1px solid var(--border);
-  padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+/* ── SCOREBOARD — right half of camera area ── */
+.sb{
+  position:absolute;top:0;right:0;bottom:0;
+  width:54%;
+  background:rgba(7,7,26,.9);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-left:1px solid rgba(255,255,255,.08);
+  display:flex;flex-direction:column;
+  z-index:5;
+  transition:transform .25s ease,opacity .25s ease;
+}
+.sb.hidden{transform:translateX(100%);opacity:0;pointer-events:none}
 
-.btn-start{width:100%;padding:15px;border-radius:14px;background:var(--green);
-  color:#061a10;font-size:15px;font-weight:800;border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
-.btn-start:active{transform:scale(.97)}
+.sb-hdr{flex-shrink:0;padding:8px 10px 7px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-cap-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.sb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.sb-cap-name{font-size:12px;font-weight:800}
+.sb-meta{display:flex;align-items:center;gap:5px}
+.sb-sub{font-size:10px;color:var(--muted);flex:1}
+.sb-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;transition:all .2s;white-space:nowrap}
+.sb-ok{background:rgba(52,211,153,.15);color:var(--green)}
+.sb-bad{background:rgba(248,113,113,.15);color:var(--red)}
 
-.btn-stop{width:100%;padding:13px;border-radius:14px;
-  background:rgba(248,113,113,.1);border:1.5px solid rgba(248,113,113,.3);
-  color:var(--red);font-size:14px;font-weight:800;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px}
+.sb-body{flex:1;overflow-y:auto;padding:5px 7px}
+
+/* candidate row */
+.sbr{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 8px;border-radius:8px;
+  border:1.5px solid rgba(255,255,255,.05);
+  margin-bottom:5px;cursor:pointer;
+  background:rgba(255,255,255,.03);
+  transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.sbr:active{transform:scale(.97)}
+.sbr.voted{background:rgba(52,211,153,.07);border-color:rgba(52,211,153,.22);animation:rowblink .4s ease}
+.sbr.gach{background:rgba(248,113,113,.05);border-color:rgba(248,113,113,.18)}
+.sbr-name{font-size:11px;font-weight:500;flex:1;line-height:1.3}
+.sbr.gach .sbr-name{text-decoration:line-through;color:var(--muted);font-size:10px}
+.sbr-st{font-size:8px;font-weight:700;padding:1px 5px;border-radius:8px;flex-shrink:0}
+.st-v{background:rgba(52,211,153,.12);color:var(--green)}
+.st-g{background:rgba(248,113,113,.12);color:var(--red)}
+.sbr-votes{font-family:monospace;font-size:14px;font-weight:800;
+  min-width:20px;text-align:right;transition:color .2s}
+.sbr.voted .sbr-votes{color:var(--green)}
+.sbr.gach .sbr-votes{color:var(--muted);font-size:11px}
+.vf{animation:numflash .4s ease forwards}
+
+/* idle state in sb */
+.sb-idle{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:16px;text-align:center;gap:8px}
+.sb-idle-ic{font-size:30px;opacity:.35}
+.sb-idle-txt{font-size:10px;color:var(--muted);line-height:1.6}
+
+/* ── FOOTER ── */
+.sf{flex-shrink:0;background:var(--s1);border-top:1px solid var(--b);
+  padding:8px 13px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.sf-row1{margin-bottom:7px}
+.sf-row2{display:flex;align-items:center;gap:6px}
+
+.btn-start{width:100%;padding:13px;border-radius:12px;background:var(--green);
+  color:#061a10;font-size:14px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:7px}
+.btn-start:active{opacity:.88}
+.btn-undo-idle{width:100%;padding:10px;border-radius:11px;
+  background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.25);
+  color:var(--purple);font-size:12px;font-weight:700}
+.btn-undo-idle:active{background:var(--purple);color:#fff}
+
+.btn-next{flex:1;padding:12px;border-radius:12px;background:var(--green);
+  color:#061a10;font-size:13px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:5px}
+.btn-next:disabled{background:var(--s3);color:var(--muted)}
+.btn-next:not(:disabled):active{opacity:.88}
+.btn-undo-act{flex-shrink:0;padding:12px 12px;border-radius:12px;
+  background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.25);
+  color:var(--purple);font-size:11px;font-weight:700}
+.btn-undo-act:active{background:var(--purple);color:#fff}
+.btn-stop{flex-shrink:0;padding:12px 12px;border-radius:12px;
+  background:rgba(248,113,113,.08);border:1.5px solid rgba(248,113,113,.22);
+  color:var(--red);font-size:12px;font-weight:700}
 .btn-stop:active{background:var(--red);color:#fff}
 
-.btn-undo{width:100%;padding:11px;border-radius:12px;margin-top:8px;
-  background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.3);
-  color:var(--purple);font-size:13px;font-weight:700;cursor:pointer}
-.btn-undo:active{background:var(--purple);color:#fff}
-
-.status-row{display:flex;align-items:center;gap:10px;padding:10px 14px;
-  border-radius:12px;background:var(--s2);border:1px solid var(--border);margin-bottom:8px}
-.status-dot{width:10px;height:10px;border-radius:50%;background:var(--green);
+.status-row{display:flex;align-items:center;gap:7px;margin-top:7px}
+.s-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
   animation:ping 1.5s ease-in-out infinite;flex-shrink:0}
-.status-txt{font-size:12px;font-weight:600;color:var(--dim);flex:1}
-.status-count{font-family:monospace;font-size:13px;font-weight:700;color:var(--green)}
+.s-txt{font-size:11px;font-weight:600;color:var(--dim);flex:1}
+.s-cnt{font-family:monospace;font-size:12px;font-weight:700;color:var(--green);white-space:nowrap}
 
-/* ── STATS BAR ── */
-.stats-bar{flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
-  padding:10px 14px;background:var(--bg);border-top:1px solid var(--border)}
-.stat-box{background:var(--s1);border:1px solid var(--border);border-radius:12px;
-  padding:10px 8px;text-align:center}
-.stat-n{font-size:24px;font-weight:800;font-family:monospace;line-height:1;transition:color .2s}
-.stat-n.bump{animation:numup .3s ease}
-.stat-l{font-size:10px;color:var(--muted);margin-top:3px}
+/* STATS */
+.stats-bar{flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  padding:8px 13px;background:var(--bg);border-top:1px solid var(--b)}
+.stat-box{background:var(--s1);border:1px solid var(--b);border-radius:10px;padding:8px 6px;text-align:center}
+.stat-n{font-size:20px;font-weight:800;font-family:monospace;line-height:1}
+.stat-n.vf{animation:numflash .35s ease}
+.stat-l{font-size:9px;color:var(--muted);margin-top:2px}
 
-/* ── MODAL NHẬP PHIẾU ── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
-  z-index:50;display:flex;align-items:flex-end;animation:pop .2s ease}
-.modal{background:var(--s2);border-radius:24px 24px 0 0;
-  border-top:1px solid var(--border);
-  padding:0 0 max(20px,env(safe-area-inset-bottom)) 0;
-  max-height:85vh;display:flex;flex-direction:column;width:100%;animation:fadeup .25s ease}
-.modal-hdr{padding:16px 18px 12px;display:flex;align-items:center;gap:10px;
-  border-bottom:1px solid var(--border);flex-shrink:0}
-.modal-cap-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
-.modal-title{font-size:15px;font-weight:800;flex:1}
-.modal-sub{font-size:11px;color:var(--muted);margin-top:2px}
-.modal-body{overflow-y:auto;padding:12px 16px;flex:1}
-.modal-tip{font-size:11px;color:var(--muted);margin-bottom:10px;
-  padding:8px 12px;background:var(--s3);border-radius:10px;line-height:1.5}
-.cand-btn{width:100%;padding:13px 16px;border-radius:12px;margin-bottom:7px;
-  background:var(--s3);border:1.5px solid var(--border);
-  color:var(--text);font-size:14px;font-weight:500;
-  display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;text-align:left}
-.cand-btn:active{transform:scale(.98)}
-.cand-btn.gach{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.3);color:var(--muted)}
-.cand-btn.gach .cand-name{text-decoration:line-through}
-.cand-idx{width:24px;height:24px;border-radius:7px;background:var(--s4);
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;font-family:monospace;color:var(--muted);flex-shrink:0}
-.cand-name{flex:1}
-.cand-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
-.tag-bau{background:rgba(52,211,153,.12);color:var(--green)}
-.tag-gach{background:rgba(248,113,113,.12);color:var(--red)}
-.modal-footer{padding:12px 16px 0;flex-shrink:0;display:flex;gap:8px;border-top:1px solid var(--border)}
-.btn-confirm{flex:1;padding:14px;border-radius:14px;background:var(--green);
-  color:#061a10;font-size:15px;font-weight:800;border:none;cursor:pointer;transition:.15s}
-.btn-confirm:active{transform:scale(.97)}
-.btn-confirm:disabled{background:var(--s4);color:var(--muted);cursor:default}
-.btn-cancel{padding:14px 18px;border-radius:14px;
-  background:var(--s3);border:1.5px solid var(--border);
-  color:var(--dim);font-size:13px;font-weight:700;cursor:pointer}
-.btn-cancel:active{background:var(--s4)}
+/* LOG */
+.recent{flex-shrink:0;padding:6px 13px 8px;background:var(--bg);max-height:120px;overflow-y:auto}
+.sec-hd{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.sec-hd-t{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.sec-hd-l{flex:1;height:1px;background:var(--b)}
+.log-item{display:flex;align-items:center;gap:8px;padding:5px 10px;
+  border-radius:8px;background:var(--s1);border:1px solid var(--b);
+  margin-bottom:4px;animation:fadein .22s ease;font-size:11px}
+.log-num{font-family:monospace;font-size:10px;color:var(--muted);width:22px}
+.log-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.log-cap{font-weight:600;flex:1}
+.log-v{color:var(--dim);font-size:10px;white-space:nowrap}
+.log-ic{font-size:12px}
 
-/* validity badge */
-.validity{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:4px}
-.ok{background:rgba(52,211,153,.12);color:var(--green)}
-.bad{background:rgba(248,113,113,.12);color:var(--red)}
-
-/* ── RECENT ── */
-.recent-wrap{flex-shrink:0;padding:8px 14px 10px;background:var(--bg);max-height:150px;overflow-y:auto}
-.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.sec-hd-txt{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
-.sec-hd-line{flex:1;height:1px;background:var(--border)}
-.recent-item{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:10px;
-  background:var(--s1);border:1px solid var(--border);margin-bottom:5px;animation:fadeup .25s ease}
-.r-num{font-family:monospace;font-size:10px;color:var(--muted);width:24px}
-.r-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.r-cap{font-size:11px;font-weight:600;flex:1}
-.r-icon{font-size:14px}
-
-/* ── RESULT ── */
-.rtabs{display:flex;gap:6px;margin-bottom:14px}
-.rtab{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;
-  border:1.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:.2s}
+/* ══ RESULT ══ */
+.rtabs{display:flex;gap:6px;margin-bottom:12px}
+.rtab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;
+  border:1.5px solid var(--b);background:transparent;color:var(--muted)}
 .rtab.on{background:var(--purple);color:#fff;border-color:var(--purple)}
-.cap-sec{margin-bottom:24px}
-.cap-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.cap-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.cap-name{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px}
-.cap-line{flex:1;height:1px;background:var(--border)}
+
+.log-summary{background:var(--s1);border:1px solid var(--b);border-radius:12px;
+  padding:12px;margin-bottom:16px}
+.ls-title{font-size:10px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px}
+.ls-cap{margin-bottom:10px}
+.ls-cap-hd{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.ls-cap-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ls-cap-name{font-size:11px;font-weight:700}
+.ls-row{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 10px;border-radius:8px;background:var(--s2);margin-bottom:4px}
+.ls-lbl{font-size:11px;color:var(--dim)}
+.ls-val{font-family:monospace;font-size:12px;font-weight:700}
+.ls-hi{color:var(--green)}
+.ls-warn{color:var(--red)}
+
+.cap-sec{margin-bottom:20px}
+.cap-hd{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.cap-dot2{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.cap-nm{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px}
+.cap-line{flex:1;height:1px;background:var(--b)}
 .cap-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
-.r-item{display:flex;align-items:center;gap:10px;padding:10px 12px;
-  border-radius:11px;background:var(--s1);border:1px solid var(--border);margin-bottom:5px}
-.r-rank{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+.r-item{display:flex;align-items:center;gap:8px;padding:9px 11px;
+  border-radius:10px;background:var(--s1);border:1px solid var(--b);margin-bottom:4px}
+.r-rank{width:24px;height:24px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
   font-size:10px;font-weight:700;font-family:monospace;flex-shrink:0}
 .rk1{background:rgba(251,191,36,.2);color:var(--yellow)}
 .rk2{background:rgba(200,200,200,.12);color:#ccc}
 .rk3{background:rgba(180,120,60,.15);color:#c97e3a}
 .rk_{background:var(--s3);color:var(--muted)}
 .r-info{flex:1}
-.r-name-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.r-nm-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .r-nm{font-size:13px;font-weight:500}
 .r-win{font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;
   background:rgba(167,139,250,.15);color:var(--purple)}
-.r-bar-wrap{height:3px;background:var(--s3);border-radius:2px;margin-top:5px}
-.r-bar{height:100%;border-radius:2px;min-width:4px;transition:width .5s ease}
-.r-votes{font-family:monospace;font-size:16px;font-weight:700}
-.export-btn{width:100%;padding:14px;border-radius:14px;background:var(--purple);
-  color:#fff;font-size:14px;font-weight:800;border:none;cursor:pointer;margin-top:4px}
+.r-bar-wrap{height:3px;background:var(--s3);border-radius:2px;margin-top:4px}
+.r-bar{height:100%;border-radius:2px;min-width:3px;transition:width .5s}
+.r-votes{font-family:monospace;font-size:15px;font-weight:700}
+.export-btn{width:100%;padding:13px;border-radius:13px;background:var(--purple);
+  color:#fff;font-size:14px;font-weight:800;margin-top:4px}
 .export-btn:active{opacity:.85}
 
-/* ── SETUP ── */
-.cfg-card{background:var(--s1);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
-.cfg-hd{font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.cfg-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0}
-.cfg-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
-.cfg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.cfg-input{width:100%;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;
-  color:var(--text);font-size:13px;padding:9px 12px;outline:none;resize:vertical;transition:border-color .2s}
-.cfg-input:focus{border-color:var(--purple)}
-.save-btn{width:100%;padding:14px;border-radius:14px;background:var(--green);color:#061a10;
-  font-size:14px;font-weight:800;border:none;cursor:pointer;margin-bottom:8px}
-.del-btn{width:100%;padding:13px;border-radius:14px;background:rgba(248,113,113,.1);
-  border:1.5px solid rgba(248,113,113,.25);color:var(--red);font-size:13px;font-weight:700;cursor:pointer}
+/* ══ SETUP ══ */
+.cfg-card{background:var(--s1);border:1.5px solid var(--b);border-radius:13px;padding:13px;margin-bottom:10px}
+.cfg-hd{font-size:12px;font-weight:800;display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.cfg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.cfg-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.cfg-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.cfg-in{width:100%;background:var(--s2);border:1.5px solid var(--b);
+  border-radius:9px;color:var(--text);font-size:13px;padding:9px 11px;outline:none;resize:vertical}
+.cfg-in:focus{border-color:var(--purple)}
+.save-btn{width:100%;padding:13px;border-radius:13px;background:var(--green);
+  color:#061a10;font-size:14px;font-weight:800;margin-bottom:8px}
+.save-btn:active{opacity:.85}
+.del-btn{width:100%;padding:11px;border-radius:13px;
+  background:rgba(248,113,113,.08);border:1.5px solid rgba(248,113,113,.22);
+  color:var(--red);font-size:13px;font-weight:700}
+.del-btn:active{background:var(--red);color:#fff}
 
-/* ── TOAST ── */
-#toast{position:fixed;bottom:80px;left:50%;
-  transform:translateX(-50%) translateY(20px);
-  padding:10px 18px;border-radius:12px;font-size:13px;font-weight:700;
-  background:var(--s4);border:1px solid var(--border);
-  white-space:nowrap;z-index:9999;opacity:0;
-  transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;
-  box-shadow:0 6px 24px rgba(0,0,0,.5)}
+/* TOAST */
+#toast{position:fixed;bottom:72px;left:50%;
+  transform:translateX(-50%) translateY(18px);
+  padding:8px 15px;border-radius:10px;font-size:12px;font-weight:700;
+  background:var(--s4);border:1px solid var(--b);
+  white-space:nowrap;z-index:999;opacity:0;pointer-events:none;
+  transition:all .28s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 5px 20px rgba(0,0,0,.55)}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{border-color:rgba(52,211,153,.4);color:var(--green)}
-#toast.err{border-color:rgba(248,113,113,.4);color:var(--red)}
-#toast.info{border-color:rgba(167,139,250,.4);color:var(--purple)}
+#toast.err{border-color:rgba(248,113,113,.4);color:var(--red);animation:shake .3s ease}
+#toast.info{border-color:rgba(167,139,250,.35);color:var(--purple)}
 </style>
 </head>
 <body>
@@ -240,233 +287,199 @@ button,input,textarea{font-family:inherit}
   <!-- HEADER -->
   <div class="hdr">
     <div class="hdr-logo">🗳️</div>
-    <div>
-      <div class="hdr-title">Hệ Thống Kiểm Phiếu</div>
-      <div class="hdr-sub">HĐND 3 cấp · Không cần internet</div>
+    <div class="hdr-info">
+      <div class="hdr-title">Kiểm Phiếu Bầu Cử</div>
+      <div class="hdr-sub">Offline · HĐND 3 cấp</div>
     </div>
+    <div class="hdr-badge" id="hdr-badge">Chưa quét</div>
   </div>
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab on" id="tab-scan" onclick="goPage('scan')">
-      <span class="tab-icon">📷</span>Quét phiếu
-    </button>
-    <button class="tab" id="tab-result" onclick="goPage('result')">
-      <span class="tab-icon">📊</span>Kết quả
-    </button>
-    <button class="tab" id="tab-setup" onclick="goPage('setup')">
-      <span class="tab-icon">⚙️</span>Cấu hình
-    </button>
+    <button class="tab on" id="tab-scan" onclick="goPage('scan')"><span class="ti">📷</span>Quét</button>
+    <button class="tab" id="tab-result" onclick="goPage('result')"><span class="ti">📊</span>Kết quả</button>
+    <button class="tab" id="tab-setup" onclick="goPage('setup')"><span class="ti">⚙️</span>Cấu hình</button>
   </div>
 
-  <!-- PAGE SCAN -->
+  <!-- ══ PAGE SCAN ══ -->
   <div class="page on" id="page-scan">
 
-    <!-- Camera -->
-    <div class="cam-wrap" id="cam-wrap" style="flex:1;min-height:0">
+    <!-- Camera area (full width, scoreboard overlays right half) -->
+    <div class="cam-area" id="cam-area">
       <video id="vid" autoplay playsinline muted></video>
-      <canvas id="clr-canvas" width="80" height="50" style="display:none"></canvas>
+      <canvas id="clr-cvs" width="80" height="50"></canvas>
       <div class="no-cam" id="no-cam" style="display:none">
-        <div class="no-cam-icon">📷</div>
-        <div>Camera không khả dụng<br>Vào <b>Cài đặt Safari → Camera</b><br>→ Cho phép</div>
+        <div class="no-cam-ic">📷</div>
+        <div>Camera không khả dụng<br><b>Safari → Cài đặt → Camera → Cho phép</b></div>
       </div>
-      <!-- frame -->
-      <div class="cam-frame">
-        <div class="frame-box" id="frame-box">
+      <!-- Frame guide (left ~46%) -->
+      <div class="cam-guide">
+        <div class="guide-box" id="guide-box">
           <div class="corner tl"></div><div class="corner tr"></div>
           <div class="corner bl"></div><div class="corner br"></div>
           <div class="scan-line"></div>
         </div>
       </div>
-      <!-- pill -->
+      <!-- Color pill -->
       <div class="cpill" id="cpill">
         <div class="cpill-dot" id="cpill-dot"></div>
         <span id="cpill-txt">Chờ phiếu…</span>
       </div>
+      <!-- SCOREBOARD (right 54%, slides in) -->
+      <div class="sb hidden" id="sb">
+        <div class="sb-hdr">
+          <div class="sb-cap-row">
+            <div class="sb-dot" id="sb-dot"></div>
+            <div class="sb-cap-name" id="sb-name">—</div>
+          </div>
+          <div class="sb-meta">
+            <div class="sb-sub" id="sb-sub">Tap tên bị gạch</div>
+            <div class="sb-badge sb-ok" id="sb-badge">—</div>
+          </div>
+        </div>
+        <div class="sb-body" id="sb-body">
+          <div class="sb-idle">
+            <div class="sb-idle-ic">📋</div>
+            <div class="sb-idle-txt">Đặt phiếu vào khung để bắt đầu</div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /cam-area -->
+
+    <!-- FOOTER idle -->
+    <div class="sf" id="sf-idle">
+      <div class="sf-row1">
+        <button class="btn-start" onclick="startScan()">▶ Bắt đầu quét</button>
+        <button class="btn-undo-idle" id="undo-idle" onclick="undo()" style="display:none;width:100%">↩ Hoàn tác phiếu vừa ghi</button>
+      </div>
     </div>
 
-    <!-- Footer -->
-    <div class="scan-footer" id="scan-footer-idle">
-      <button class="btn-start" id="btn-start" onclick="startScan()">
-        ▶ Bắt đầu quét
-      </button>
-      <button class="btn-undo" id="btn-undo-idle" onclick="undo()" style="display:none">
-        ↩ Hoàn tác phiếu vừa nhập
-      </button>
-    </div>
-    <div class="scan-footer" id="scan-footer-active" style="display:none">
+    <!-- FOOTER active -->
+    <div class="sf" id="sf-active" style="display:none">
+      <div class="sf-row2">
+        <button class="btn-next" id="btn-next" onclick="nextBallot()" disabled>⏭ Phiếu tiếp</button>
+        <button class="btn-undo-act" id="undo-act" onclick="undo()" style="display:none">↩</button>
+        <button class="btn-stop" onclick="stopScan()">⏹</button>
+      </div>
       <div class="status-row">
-        <div class="status-dot"></div>
-        <div class="status-txt" id="status-txt">Đặt phiếu vào khung…</div>
-        <div class="status-count" id="status-count">0 phiếu</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn-stop" style="flex:1" onclick="stopScan()">⏹ Kết thúc</button>
-        <button id="btn-undo-active" onclick="undo()" style="display:none;flex-shrink:0;padding:13px 16px;border-radius:14px;background:rgba(167,139,250,.1);border:1.5px solid rgba(167,139,250,.3);color:var(--purple);font-size:13px;font-weight:700;cursor:pointer">↩ Hoàn tác</button>
+        <div class="s-dot"></div>
+        <div class="s-txt" id="s-txt">Đặt phiếu vào khung…</div>
+        <div class="s-cnt" id="s-cnt">0 phiếu</div>
       </div>
     </div>
 
-    <!-- Stats -->
+    <!-- STATS -->
     <div class="stats-bar">
-      <div class="stat-box">
-        <div class="stat-n" id="s-total" style="color:var(--text)">0</div>
-        <div class="stat-l">Tổng phiếu</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-n" id="s-valid" style="color:var(--green)">0</div>
-        <div class="stat-l">Hợp lệ</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-n" id="s-inv" style="color:var(--red)">0</div>
-        <div class="stat-l">Không HL</div>
-      </div>
+      <div class="stat-box"><div class="stat-n" id="st-tot" style="color:var(--text)">0</div><div class="stat-l">Tổng phiếu</div></div>
+      <div class="stat-box"><div class="stat-n" id="st-ok" style="color:var(--green)">0</div><div class="stat-l">Hợp lệ</div></div>
+      <div class="stat-box"><div class="stat-n" id="st-inv" style="color:var(--red)">0</div><div class="stat-l">Không HL</div></div>
     </div>
 
-    <!-- Recent -->
-    <div class="recent-wrap" id="recent-wrap" style="display:none">
-      <div class="sec-hd">
-        <div class="sec-hd-txt">Gần đây</div>
-        <div class="sec-hd-line"></div>
-      </div>
-      <div id="recent-list"></div>
+    <!-- RECENT LOG -->
+    <div class="recent" id="recent" style="display:none">
+      <div class="sec-hd"><div class="sec-hd-t">Gần đây</div><div class="sec-hd-l"></div></div>
+      <div id="log-list"></div>
     </div>
 
-  </div><!-- /page-scan -->
+  </div>
 
-  <!-- PAGE RESULT -->
+  <!-- ══ PAGE RESULT ══ -->
   <div class="page" id="page-result">
-    <div class="page-scroll">
+    <div class="scroll">
       <div class="rtabs">
-        <button class="rtab on" id="rt-abc" onclick="switchRTab('abc')">A → Z</button>
-        <button class="rtab" id="rt-rank" onclick="switchRTab('rank')">Cao → Thấp</button>
+        <button class="rtab on" id="rt-abc" onclick="switchRT('abc')">A → Z</button>
+        <button class="rtab" id="rt-rank" onclick="switchRT('rank')">Cao → Thấp</button>
       </div>
+      <div class="log-summary" id="log-summary"></div>
       <div id="result-body"></div>
       <button class="export-btn" onclick="doExport()">📄 Xuất biên bản .txt</button>
     </div>
   </div>
 
-  <!-- PAGE SETUP -->
+  <!-- ══ PAGE SETUP ══ -->
   <div class="page" id="page-setup">
-    <div class="page-scroll">
-
+    <div class="scroll">
       <div class="cfg-card">
         <div class="cfg-hd"><div class="cfg-dot" style="background:var(--pink)"></div>Phiếu HỒNG — Quốc Hội</div>
-        <div class="cfg-row">
-          <div><div class="cfg-label">Tổng ứng viên</div><input type="number" class="cfg-input" id="qh-total" value="5" min="1"></div>
-          <div><div class="cfg-label">Số ghế (lấy)</div><input type="number" class="cfg-input" id="qh-lay" value="3" min="1"></div>
+        <div class="cfg-2">
+          <div><div class="cfg-lbl">Tổng ứng viên</div><input type="number" class="cfg-in" id="qh-total" value="5" min="1"></div>
+          <div><div class="cfg-lbl">Số ghế (lấy)</div><input type="number" class="cfg-in" id="qh-lay" value="3" min="1"></div>
         </div>
-        <div class="cfg-label">Danh sách ứng viên (mỗi dòng 1 tên, theo A→Z)</div>
-        <textarea class="cfg-input" id="qh-names" rows="5"
-          placeholder="Lê Hoàng Hải&#10;Nguyễn Hồng Phong&#10;Đặng Doãn Thành&#10;Hoàng Thị Thắm&#10;Bùi Xuân Thống"></textarea>
+        <div class="cfg-lbl">Danh sách ứng viên (mỗi dòng 1 tên)</div>
+        <textarea class="cfg-in" id="qh-names" rows="5" placeholder="Lê Hoàng Hải&#10;Nguyễn Hồng Phong&#10;Đặng Doãn Thành&#10;Hoàng Thị Thắm&#10;Bùi Xuân Thống"></textarea>
       </div>
-
       <div class="cfg-card">
         <div class="cfg-hd"><div class="cfg-dot" style="background:var(--blue)"></div>Phiếu XANH — HĐND Tỉnh</div>
-        <div class="cfg-row">
-          <div><div class="cfg-label">Tổng ứng viên</div><input type="number" class="cfg-input" id="tinh-total" value="5" min="1"></div>
-          <div><div class="cfg-label">Số ghế (lấy)</div><input type="number" class="cfg-input" id="tinh-lay" value="3" min="1"></div>
+        <div class="cfg-2">
+          <div><div class="cfg-lbl">Tổng ứng viên</div><input type="number" class="cfg-in" id="tinh-total" value="5" min="1"></div>
+          <div><div class="cfg-lbl">Số ghế (lấy)</div><input type="number" class="cfg-in" id="tinh-lay" value="3" min="1"></div>
         </div>
-        <div class="cfg-label">Danh sách ứng viên</div>
-        <textarea class="cfg-input" id="tinh-names" rows="5"
-          placeholder="Mai Thị Thùy Dung&#10;Nguyễn Thị Hồng&#10;Nguyễn Kim Long&#10;Phạm Thành Nam&#10;Nguyễn Thanh Tú"></textarea>
+        <div class="cfg-lbl">Danh sách ứng viên</div>
+        <textarea class="cfg-in" id="tinh-names" rows="5" placeholder="Mai Thị Thùy Dung&#10;Nguyễn Thị Hồng&#10;Nguyễn Kim Long&#10;Phạm Thành Nam&#10;Nguyễn Thanh Tú"></textarea>
       </div>
-
       <div class="cfg-card">
         <div class="cfg-hd"><div class="cfg-dot" style="background:var(--yellow)"></div>Phiếu VÀNG — HĐND Xã</div>
-        <div class="cfg-row">
-          <div><div class="cfg-label">Tổng ứng viên</div><input type="number" class="cfg-input" id="xa-total" value="8" min="1"></div>
-          <div><div class="cfg-label">Số ghế (lấy)</div><input type="number" class="cfg-input" id="xa-lay" value="5" min="1"></div>
+        <div class="cfg-2">
+          <div><div class="cfg-lbl">Tổng ứng viên</div><input type="number" class="cfg-in" id="xa-total" value="8" min="1"></div>
+          <div><div class="cfg-lbl">Số ghế (lấy)</div><input type="number" class="cfg-in" id="xa-lay" value="5" min="1"></div>
         </div>
-        <div class="cfg-label">Danh sách ứng viên</div>
-        <textarea class="cfg-input" id="xa-names" rows="8"
-          placeholder="Dương Thị Thái An&#10;Trịnh Văn Duy&#10;Phan Thanh Hà&#10;Lê Ngọc Hiếu&#10;Nguyễn Xuân Linh&#10;Lê Đình Minh&#10;Lê Thị Ngọc Nga&#10;Đinh Thị Vân"></textarea>
+        <div class="cfg-lbl">Danh sách ứng viên</div>
+        <textarea class="cfg-in" id="xa-names" rows="8" placeholder="Dương Thị Thái An&#10;Trịnh Văn Duy&#10;Phan Thanh Hà&#10;Lê Ngọc Hiếu&#10;Nguyễn Xuân Linh&#10;Lê Đình Minh&#10;Lê Thị Ngọc Nga&#10;Đinh Thị Vân"></textarea>
       </div>
-
       <button class="save-btn" onclick="saveSetup()">💾 Lưu cấu hình</button>
       <button class="del-btn" onclick="clearData()">🗑️ Xóa toàn bộ kết quả</button>
     </div>
   </div>
 
-</div><!-- /app -->
-
-<!-- MODAL NHẬP PHIẾU -->
-<div class="modal-bg" id="modal" style="display:none" onclick="modalBgClick(event)">
-  <div class="modal">
-    <div class="modal-hdr">
-      <div class="modal-cap-dot" id="modal-dot"></div>
-      <div style="flex:1">
-        <div class="modal-title" id="modal-title"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
-          <div class="modal-sub" id="modal-sub"></div>
-          <div class="validity" id="modal-validity"></div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-body">
-      <div class="modal-tip">👆 Nhấn vào tên người bị <b>gạch</b> trên phiếu. Tên không nhấn = được bầu.</div>
-      <div id="modal-cands"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Bỏ qua</button>
-      <button class="btn-confirm" id="btn-confirm" onclick="confirmBallot()">✓ Ghi nhận phiếu</button>
-    </div>
-  </div>
 </div>
-
 <div id="toast"></div>
 
 <script>
-// ══════════ STATE ══════════
+// ══════════ CONFIG ══════════
 const CFG = {
-  qh:   {colorHex:"#ff5c95",colorName:"Hồng", label:"Quốc Hội",  total:5,lay:3,
-         names:["Lê Hoàng Hải","Nguyễn Hồng Phong","Đặng Doãn Thành","Hoàng Thị Thắm","Bùi Xuân Thống"]},
-  tinh: {colorHex:"#38bdf8",colorName:"Xanh", label:"HĐND Tỉnh",total:5,lay:3,
-         names:["Mai Thị Thùy Dung","Nguyễn Thị Hồng","Nguyễn Kim Long","Phạm Thành Nam","Nguyễn Thanh Tú"]},
-  xa:   {colorHex:"#fbbf24",colorName:"Vàng", label:"HĐND Xã",  total:8,lay:5,
-         names:["Dương Thị Thái An","Trịnh Văn Duy","Phan Thanh Hà","Lê Ngọc Hiếu","Nguyễn Xuân Linh","Lê Đình Minh","Lê Thị Ngọc Nga","Đinh Thị Vân"]},
+  qh:  {hex:"#ff5c95",name:"Hồng", label:"Quốc Hội",  total:5,lay:3,
+        names:["Lê Hoàng Hải","Nguyễn Hồng Phong","Đặng Doãn Thành","Hoàng Thị Thắm","Bùi Xuân Thống"]},
+  tinh:{hex:"#38bdf8",name:"Xanh", label:"HĐND Tỉnh",total:5,lay:3,
+        names:["Mai Thị Thùy Dung","Nguyễn Thị Hồng","Nguyễn Kim Long","Phạm Thành Nam","Nguyễn Thanh Tú"]},
+  xa:  {hex:"#fbbf24",name:"Vàng", label:"HĐND Xã",  total:8,lay:5,
+        names:["Dương Thị Thái An","Trịnh Văn Duy","Phan Thanh Hà","Lê Ngọc Hiếu","Nguyễn Xuân Linh","Lê Đình Minh","Lê Thị Ngọc Nga","Đinh Thị Vân"]},
 };
 
+// ══════════ STATE ══════════
 const S = {
   total:0, valid:0, invalid:0,
-  results:{qh:{},tinh:{},xa:{}},
-  history:[],
-  scanning:false,
-  rTab:"abc",
-  // scan state
-  stableCount:0, lastCap:null, cooldown:false, modalOpen:false,
-  // current modal
-  curCap:null, gachedSet:new Set(),
+  results: {qh:{},tinh:{},xa:{}},
+  // voteLog[cap][n] = số phiếu bầu đúng n người; voteLog[cap]['inv'] = không hợp lệ
+  voteLog: {qh:{inv:0},tinh:{inv:0},xa:{inv:0}},
+  history: [],
+  rTab: "abc",
+  // scan
+  scanning:false, stableCount:0, lastCap:null, cooldown:false,
+  // current ballot
+  activeCap:null, gachedSet:new Set(), committed:false,
 };
 
-// Init results
-function initResults(){
+function initState(){
   ["qh","tinh","xa"].forEach(c=>{
     CFG[c].names.forEach(n=>{ if(!(n in S.results[c])) S.results[c][n]=0; });
   });
 }
-initResults();
+initState();
 
 // ══════════ CAMERA ══════════
-let stream=null, detectInterval=null;
-
 async function startCamera(){
-  const vid=document.getElementById("vid");
-  const noCam=document.getElementById("no-cam");
+  const v=document.getElementById("vid"), nc=document.getElementById("no-cam");
   try{
-    stream=await navigator.mediaDevices.getUserMedia({
+    const stream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}}
     });
-    vid.srcObject=stream;
-    noCam.style.display="none";
-  }catch(e){
-    vid.style.display="none";
-    noCam.style.display="flex";
-  }
+    v.srcObject=stream; nc.style.display="none";
+  }catch(e){ v.style.display="none"; nc.style.display="flex"; }
 }
 
-function classifyRGB(data){
+function classifyRGB(d){
   let r=0,g=0,b=0,n=0;
-  for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
+  for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++;}
   r/=n;g/=n;b/=n;
   if((r+g+b)/3<75) return null;
   if(r>155&&r-g>25&&r-b>15) return "qh";
@@ -476,295 +489,242 @@ function classifyRGB(data){
 }
 
 function detectColor(){
-  const vid=document.getElementById("vid");
-  const cc=document.getElementById("clr-canvas");
-  if(!vid||!cc||vid.readyState<2) return null;
-  const ctx=cc.getContext("2d");
-  const vw=vid.videoWidth||320, vh=vid.videoHeight||240;
-  const sw=Math.round(vw*.5), sh=Math.round(vh*.45);
-  ctx.drawImage(vid, Math.round((vw-sw)/2), Math.round((vh-sh)/2), sw, sh, 0,0,80,50);
+  const v=document.getElementById("vid"), c=document.getElementById("clr-cvs");
+  if(!v||!c||v.readyState<2) return null;
+  const ctx=c.getContext("2d");
+  const vw=v.videoWidth||320, vh=v.videoHeight||240;
+  const sw=Math.round(vw*.45), sh=Math.round(vh*.4);
+  ctx.drawImage(v,Math.round((vw-sw)/2),Math.round((vh-sh)/2),sw,sh,0,0,80,50);
   return classifyRGB(ctx.getImageData(0,0,80,50).data);
 }
 
 // ══════════ SCAN LOOP ══════════
+let scanInt=null;
+
 function startScan(){
-  S.scanning=true;
-  S.stableCount=0; S.lastCap=null; S.cooldown=false;
-  document.getElementById("scan-footer-idle").style.display="none";
-  document.getElementById("scan-footer-active").style.display="block";
-  document.getElementById("frame-box").classList.add("scanning");
+  S.scanning=true; S.stableCount=0; S.lastCap=null; S.cooldown=false;
+  S.activeCap=null; S.committed=false; S.gachedSet=new Set();
+  document.getElementById("sf-idle").style.display="none";
+  document.getElementById("sf-active").style.display="block";
+  document.getElementById("guide-box").classList.add("scanning");
   setStatus("Đặt phiếu vào khung…");
-  detectInterval=setInterval(scanTick,100);
-  toast("▶ Bắt đầu quét — đặt phiếu vào khung","ok");
+  scanInt=setInterval(scanTick,100);
+  toast("▶ Đặt phiếu vào khung camera","ok");
 }
 
 function stopScan(){
-  S.scanning=false;
-  clearInterval(detectInterval);
-  document.getElementById("scan-footer-idle").style.display="block";
-  document.getElementById("scan-footer-active").style.display="none";
-  document.getElementById("frame-box").classList.remove("scanning","det","lock");
-  setPill(null);
+  S.scanning=false; clearInterval(scanInt);
+  document.getElementById("sf-idle").style.display="block";
+  document.getElementById("sf-active").style.display="none";
+  document.getElementById("guide-box").classList.remove("scanning","det","lock");
+  hideSb(); setPill(null); S.activeCap=null;
   toast(`⏹ Đã dừng · ${S.total} phiếu`,"info");
 }
 
 function scanTick(){
-  if(S.cooldown||S.modalOpen) return;
+  if(S.cooldown) return;
   const cap=detectColor();
+  const gb=document.getElementById("guide-box");
 
-  if(cap===S.lastCap&&cap!==null){ S.stableCount++; }
+  if(cap===S.lastCap&&cap!==null) S.stableCount++;
   else{ S.stableCount=1; S.lastCap=cap; }
 
-  const fb=document.getElementById("frame-box");
   if(cap){
     setPill(cap);
-    fb.classList.add("det"); fb.classList.remove("lock");
-    setStatus(`Phiếu ${CFG[cap].colorName} — giữ nguyên…`);
+    gb.classList.add("det"); gb.classList.remove("lock");
   }else{
-    setPill(null);
-    fb.classList.remove("det","lock");
-    setStatus("Đặt phiếu vào khung…");
-    S.stableCount=0;
+    setPill(null); gb.classList.remove("det","lock"); S.stableCount=0;
+    // Paper removed after commit → reset ready for next
+    if(S.committed){
+      S.activeCap=null; S.committed=false; S.gachedSet=new Set();
+      hideSb(); setStatus("Đặt phiếu tiếp theo…");
+      document.getElementById("btn-next").disabled=true;
+    }
   }
 
-  // Stable 6 frames (~0.6s) → open modal
   if(S.stableCount>=6&&cap){
-    S.stableCount=0;
-    fb.classList.add("lock");
-    beep_short();
-    openModal(cap);
+    S.stableCount=0; gb.classList.add("lock");
+    if(!S.committed){
+      if(cap!==S.activeCap){
+        S.activeCap=cap; S.gachedSet=new Set();
+        openSb(cap); beepShort();
+      }
+    }
   }
 }
 
-function setPill(cap){
-  const dot=document.getElementById("cpill-dot");
-  const txt=document.getElementById("cpill-txt");
-  if(!cap){ dot.style.background="#555"; txt.textContent="Chờ phiếu…"; }
-  else{ dot.style.background=CFG[cap].colorHex; txt.textContent=`Phiếu ${CFG[cap].colorName} — ${CFG[cap].label}`; }
+// ══════════ SCOREBOARD ══════════
+function openSb(cap){
+  const c=CFG[cap];
+  document.getElementById("sb-dot").style.background=c.hex;
+  document.getElementById("sb-name").textContent=c.label;
+  renderSbBody(cap);
+  updateSbMeta(cap);
+  document.getElementById("sb").classList.remove("hidden");
+  document.getElementById("btn-next").disabled=false;
+  setStatus(`Phiếu ${c.name} — tap tên bị gạch`);
 }
 
-function setStatus(t){ document.getElementById("status-txt").textContent=t; }
+function hideSb(){
+  document.getElementById("sb").classList.add("hidden");
+}
 
-// ══════════ MODAL ══════════
-function openModal(cap){
-  S.modalOpen=true; S.curCap=cap; S.gachedSet=new Set();
-  const c=CFG[cap];
-
-  document.getElementById("modal-dot").style.background=c.colorHex;
-  document.getElementById("modal-title").textContent=c.label;
-  renderModalSub();
-
-  // Render candidates
-  const container=document.getElementById("modal-cands");
-  container.innerHTML="";
+function renderSbBody(cap){
+  const c=CFG[cap], body=document.getElementById("sb-body");
+  body.innerHTML="";
   c.names.forEach((name,i)=>{
-    const btn=document.createElement("button");
-    btn.className="cand-btn";
-    btn.id="cand-"+i;
-    btn.innerHTML=`
-      <div class="cand-idx">${String(i+1).padStart(2,"0")}</div>
-      <div class="cand-name">${name}</div>
-      <div class="cand-tag tag-bau" id="tag-${i}">Bầu</div>`;
-    btn.onclick=()=>toggleGach(i,name);
-    container.appendChild(btn);
+    const gach=S.gachedSet.has(name);
+    const row=document.createElement("div");
+    row.className="sbr "+(gach?"gach":"voted");
+    row.id="sbr-"+i;
+    row.onclick=()=>tapCand(cap,i,name);
+    row.innerHTML=`
+      <div class="sbr-name" id="sbn-${i}">${name}</div>
+      <div class="sbr-st ${gach?"st-g":"st-v"}" id="sbs-${i}">${gach?"✕":"✓"}</div>
+      <div class="sbr-votes" id="sbv-${i}">${S.results[cap][name]||0}</div>`;
+    body.appendChild(row);
   });
-
-  renderModalSub();
-  document.getElementById("modal").style.display="flex";
-  // cooldown while modal open
-  S.cooldown=true;
 }
 
-function toggleGach(i, name){
-  if(S.gachedSet.has(name)) S.gachedSet.delete(name);
-  else S.gachedSet.add(name);
-
-  const btn=document.getElementById("cand-"+i);
-  const tag=document.getElementById("tag-"+i);
-  if(S.gachedSet.has(name)){
-    btn.classList.add("gach");
-    tag.textContent="Gạch"; tag.className="cand-tag tag-gach";
-  }else{
-    btn.classList.remove("gach");
-    tag.textContent="Bầu"; tag.className="cand-tag tag-bau";
-  }
-  renderModalSub();
+function tapCand(cap,i,name){
+  if(S.committed) return;
+  S.gachedSet.has(name)?S.gachedSet.delete(name):S.gachedSet.add(name);
+  const gach=S.gachedSet.has(name);
+  const row=document.getElementById("sbr-"+i);
+  const st=document.getElementById("sbs-"+i);
+  row.className="sbr "+(gach?"gach":"voted");
+  st.className="sbr-st "+(gach?"st-g":"st-v");
+  st.textContent=gach?"✕":"✓";
+  updateSbMeta(cap);
 }
 
-function renderModalSub(){
-  const c=CFG[S.curCap];
-  const bau=c.names.length - S.gachedSet.size;
-  const valid=(bau>0&&bau<=c.lay);
-  document.getElementById("modal-sub").textContent=`Được bầu: ${bau} / ${c.lay} ghế`;
-  const v=document.getElementById("modal-validity");
-  v.className="validity "+(valid?"ok":"bad");
-  v.textContent=valid?"✓ Hợp lệ":"✗ Không HL";
-  document.getElementById("btn-confirm").disabled=false;
+function updateSbMeta(cap){
+  const c=CFG[cap], bau=c.names.length-S.gachedSet.size;
+  const valid=bau>0&&bau<=c.lay;
+  document.getElementById("sb-sub").textContent=`Bầu: ${bau}/${c.lay} ghế`;
+  const b=document.getElementById("sb-badge");
+  b.className="sb-badge "+(valid?"sb-ok":"sb-bad");
+  b.textContent=valid?"✓ Hợp lệ":"✗ Không HL";
 }
 
-function closeModal(){
-  document.getElementById("modal").style.display="none";
-  S.modalOpen=false;
-  // resume scan after 1.5s
-  setTimeout(()=>{ S.cooldown=false; S.stableCount=0; },1500);
-  setStatus("Đặt phiếu tiếp theo…");
-  document.getElementById("frame-box").classList.remove("lock");
-}
-
-function modalBgClick(e){
-  if(e.target.id==="modal") closeModal();
-}
-
-function confirmBallot(){
-  const cap=S.curCap;
+// ══════════ NEXT BALLOT ══════════
+function nextBallot(){
+  const cap=S.activeCap; if(!cap||S.committed) return;
   const c=CFG[cap];
-  const bau=c.names.length - S.gachedSet.size;
-  const valid=(bau>0&&bau<=c.lay);
+  const bau=c.names.length-S.gachedSet.size;
+  const valid=bau>0&&bau<=c.lay;
+  const snapGached=[...S.gachedSet];
 
   S.total++;
-  document.getElementById("modal").style.display="none";
-  S.modalOpen=false;
-
   if(valid){
     S.valid++;
-    c.names.forEach(n=>{
+    c.names.forEach(n=>{ if(!S.gachedSet.has(n)) S.results[cap][n]=(S.results[cap][n]||0)+1; });
+    if(!(bau in S.voteLog[cap])) S.voteLog[cap][bau]=0;
+    S.voteLog[cap][bau]++;
+    beep(1);
+    toast(`✅ Phiếu ${c.name} · ${bau} bầu`,"ok");
+    // Flash updated vote counts
+    c.names.forEach((n,i)=>{
       if(!S.gachedSet.has(n)){
-        if(!(n in S.results[cap])) S.results[cap][n]=0;
-        S.results[cap][n]++;
+        const el=document.getElementById("sbv-"+i);
+        if(el){ el.textContent=S.results[cap][n]; el.classList.remove("vf"); void el.offsetWidth; el.classList.add("vf"); }
       }
     });
-    beep(1);
-    toast(`✅ Phiếu ${c.colorName} · ${bau} bầu`,"ok");
   }else{
     S.invalid++;
+    S.voteLog[cap].inv=(S.voteLog[cap].inv||0)+1;
     beep(2);
-    toast(`❌ Không hợp lệ · ${bau} bầu / ${c.lay} ghế`,"err");
+    toast(`❌ Không hợp lệ · ${bau} bầu (cần 1–${c.lay})`,"err");
   }
 
-  // History
-  S.history.unshift({
-    num:S.total, cap, valid, votes:bau,
-    color:c.colorHex, label:c.label,
-    gached:[...S.gachedSet]
-  });
+  S.history.unshift({num:S.total,cap,valid,votes:bau,gached:snapGached,
+    hex:c.hex,label:c.label,names:c.names});
+  S.committed=true;
 
-  updateStats();
-  renderRecent();
-  updateUndoBtns();
-  document.getElementById("status-count").textContent=S.total+" phiếu";
-
-  setTimeout(()=>{ S.cooldown=false; S.stableCount=0; document.getElementById("frame-box").classList.remove("lock"); },1800);
-  setStatus("✓ Xong — đặt phiếu tiếp theo…");
+  updateStats(); renderLogList(); updateUndoBtns();
+  document.getElementById("s-cnt").textContent=S.total+" phiếu";
+  document.getElementById("btn-next").disabled=true;
+  setStatus("✓ Rút phiếu ra → đặt phiếu tiếp theo…");
+  const b=document.getElementById("hdr-badge");
+  b.textContent=`#${S.total} ${valid?"✓":"✗"}`;
+  b.style.background=valid?"rgba(52,211,153,.15)":"rgba(248,113,113,.12)";
+  b.style.color=valid?"var(--green)":"var(--red)";
 }
 
 // ══════════ UNDO ══════════
 function undo(){
   if(!S.history.length) return;
-  const last=S.history[0];
-  S.history.shift();
+  const last=S.history.shift();
   S.total=Math.max(0,S.total-1);
   if(last.valid){
     S.valid=Math.max(0,S.valid-1);
-    const c=CFG[last.cap];
-    c.names.forEach(n=>{
-      if(!last.gached.includes(n)&&S.results[last.cap][n]>0)
-        S.results[last.cap][n]--;
-    });
+    last.names.forEach(n=>{ if(!last.gached.includes(n)&&S.results[last.cap][n]>0) S.results[last.cap][n]--; });
+    if((S.voteLog[last.cap][last.votes]||0)>0) S.voteLog[last.cap][last.votes]--;
   }else{
     S.invalid=Math.max(0,S.invalid-1);
+    if((S.voteLog[last.cap].inv||0)>0) S.voteLog[last.cap].inv--;
   }
-  updateStats();
-  renderRecent();
-  updateUndoBtns();
-  document.getElementById("status-count").textContent=S.total+" phiếu";
-  toast(`↩ Đã xóa phiếu #${last.num}`,"info");
-  beep(1);
+  if(S.activeCap===last.cap) renderSbBody(last.cap);
+  updateStats(); renderLogList(); updateUndoBtns();
+  document.getElementById("s-cnt").textContent=S.total+" phiếu";
+  toast(`↩ Đã xóa phiếu #${last.num}`,"info"); beep(1);
 }
 
 function updateUndoBtns(){
   const show=S.history.length>0;
-  document.getElementById("btn-undo-idle").style.display=show?"block":"none";
-  document.getElementById("btn-undo-active").style.display=show?"block":"none";
-  if(show){
-    document.getElementById("btn-undo-idle").textContent=`↩ Hoàn tác phiếu #${S.history[0]?.num}`;
-    document.getElementById("btn-undo-active").textContent=`↩ #${S.history[0]?.num}`;
-  }
+  const ui=document.getElementById("undo-idle"), ua=document.getElementById("undo-act");
+  ui.style.display=show?"block":"none"; ua.style.display=show?"flex":"none";
+  if(show) ui.textContent=`↩ Hoàn tác phiếu #${S.history[0].num}`;
 }
 
 // ══════════ STATS ══════════
 function updateStats(){
-  function bump(id,val){
-    const el=document.getElementById(id);
-    el.textContent=val;
-    el.classList.remove("bump");
-    void el.offsetWidth;
-    el.classList.add("bump");
-  }
-  bump("s-total",S.total);
-  bump("s-valid",S.valid);
-  bump("s-inv",S.invalid);
+  function bump(id,v){ const el=document.getElementById(id); el.textContent=v; el.classList.remove("vf"); void el.offsetWidth; el.classList.add("vf"); }
+  bump("st-tot",S.total); bump("st-ok",S.valid); bump("st-inv",S.invalid);
 }
 
-function renderRecent(){
-  const wrap=document.getElementById("recent-wrap");
-  const list=document.getElementById("recent-list");
+function renderLogList(){
+  const wrap=document.getElementById("recent"), list=document.getElementById("log-list");
   if(!S.history.length){wrap.style.display="none";return;}
-  wrap.style.display="block";
-  list.innerHTML="";
+  wrap.style.display="block"; list.innerHTML="";
   S.history.slice(0,6).forEach(h=>{
-    const d=document.createElement("div");
-    d.className="recent-item";
-    d.innerHTML=`
-      <span class="r-num">#${h.num}</span>
-      <span class="r-dot" style="background:${h.color}"></span>
-      <span class="r-cap">${h.label} · ${h.votes} bầu</span>
-      <span class="r-icon">${h.valid?"✅":"❌"}</span>`;
+    const d=document.createElement("div"); d.className="log-item";
+    d.innerHTML=`<span class="log-num">#${h.num}</span>
+      <span class="log-dot" style="background:${h.hex}"></span>
+      <span class="log-cap">${h.label}</span>
+      <span class="log-v">${h.votes} bầu</span>
+      <span class="log-ic">${h.valid?"✅":"❌"}</span>`;
     list.appendChild(d);
   });
 }
 
-// ══════════ RESULT ══════════
+// ══════════ RESULT PAGE ══════════
 function renderResult(){
-  const body=document.getElementById("result-body");
-  body.innerHTML="";
+  renderLogSummary();
+  const body=document.getElementById("result-body"); body.innerHTML="";
   const bC={qh:"#ff5c95",tinh:"#38bdf8",xa:"#fbbf24"};
   ["qh","tinh","xa"].forEach(cap=>{
-    const names=Object.keys(S.results[cap]);
-    if(!names.length) return;
+    const names=Object.keys(S.results[cap]); if(!names.length) return;
     let sorted=names.map(n=>({name:n,votes:S.results[cap][n]}));
-    const rs=[...sorted].sort((a,b)=>b.votes-a.votes);
-    const winners=new Set(rs.slice(0,CFG[cap].lay).map(x=>x.name));
+    const byVotes=[...sorted].sort((a,b)=>b.votes-a.votes);
+    const winners=new Set(byVotes.slice(0,CFG[cap].lay).map(x=>x.name));
     const maxV=Math.max(...sorted.map(s=>s.votes),1);
     if(S.rTab==="rank") sorted.sort((a,b)=>b.votes-a.votes);
     else sorted.sort((a,b)=>a.name.localeCompare(b.name,"vi"));
-
-    const sec=document.createElement("div");
-    sec.className="cap-sec";
-    sec.innerHTML=`
-      <div class="cap-hd">
-        <div class="cap-dot" style="background:${CFG[cap].colorHex}"></div>
-        <div class="cap-name">${CFG[cap].label}</div>
-        <div class="cap-line"></div>
-        <div class="cap-badge" style="background:${bC[cap]}22;color:${bC[cap]}">Lấy ${CFG[cap].lay}/${CFG[cap].total}</div>
-      </div>`;
-
+    const sec=document.createElement("div"); sec.className="cap-sec";
+    sec.innerHTML=`<div class="cap-hd">
+      <div class="cap-dot2" style="background:${CFG[cap].hex}"></div>
+      <div class="cap-nm">${CFG[cap].label}</div><div class="cap-line"></div>
+      <div class="cap-badge" style="background:${bC[cap]}22;color:${bC[cap]}">Lấy ${CFG[cap].lay}/${CFG[cap].total}</div>
+    </div>`;
     sorted.forEach((s,i)=>{
       const rp=S.rTab==="rank"?i+1:null;
-      const rkClass=rp===1?"rk1":rp===2?"rk2":rp===3?"rk3":"rk_";
-      const pct=Math.round(s.votes/maxV*100);
-      const isWin=winners.has(s.name);
-      const item=document.createElement("div");
-      item.className="r-item";
-      item.innerHTML=`
-        <div class="r-rank ${rkClass}">${rp||"—"}</div>
+      const rc=rp===1?"rk1":rp===2?"rk2":rp===3?"rk3":"rk_";
+      const item=document.createElement("div"); item.className="r-item";
+      item.innerHTML=`<div class="r-rank ${rc}">${rp||"—"}</div>
         <div class="r-info">
-          <div class="r-name-row">
-            <span class="r-nm">${s.name}</span>
-            ${isWin?'<span class="r-win">Trúng cử</span>':""}
-          </div>
-          <div class="r-bar-wrap">
-            <div class="r-bar" style="width:${pct}%;background:${bC[cap]}"></div>
-          </div>
+          <div class="r-nm-row"><span class="r-nm">${s.name}</span>${winners.has(s.name)?'<span class="r-win">Trúng cử</span>':""}</div>
+          <div class="r-bar-wrap"><div class="r-bar" style="width:${Math.round(s.votes/maxV*100)}%;background:${bC[cap]}"></div></div>
         </div>
         <div class="r-votes">${s.votes}</div>`;
       sec.appendChild(item);
@@ -773,7 +733,31 @@ function renderResult(){
   });
 }
 
-function switchRTab(t){
+function renderLogSummary(){
+  const el=document.getElementById("log-summary");
+  const cC={qh:"#ff5c95",tinh:"#38bdf8",xa:"#fbbf24"};
+  let html=`<div class="ls-title">📋 Tổng hợp theo số người được bầu</div>`;
+  let any=false;
+  ["qh","tinh","xa"].forEach(cap=>{
+    const log=S.voteLog[cap], lay=CFG[cap].lay;
+    const tot=Object.values(log).reduce((a,b)=>a+b,0);
+    if(!tot) return; any=true;
+    html+=`<div class="ls-cap">
+      <div class="ls-cap-hd"><div class="ls-cap-dot" style="background:${cC[cap]}"></div>
+      <div class="ls-cap-name" style="color:${cC[cap]}">${CFG[cap].label}</div></div>`;
+    for(let i=1;i<=lay;i++){
+      const cnt=log[i]||0;
+      if(cnt>0) html+=`<div class="ls-row"><span class="ls-lbl">Bầu ${i} người</span><span class="ls-val ls-hi">${cnt} phiếu</span></div>`;
+    }
+    const inv=log.inv||0;
+    if(inv>0) html+=`<div class="ls-row"><span class="ls-lbl">Không hợp lệ</span><span class="ls-val ls-warn">${inv} phiếu</span></div>`;
+    html+=`</div>`;
+  });
+  if(!any) html+=`<div style="font-size:12px;color:var(--muted);text-align:center;padding:6px">Chưa có dữ liệu</div>`;
+  el.innerHTML=html;
+}
+
+function switchRT(t){
   S.rTab=t;
   document.getElementById("rt-abc").className="rtab"+(t==="abc"?" on":"");
   document.getElementById("rt-rank").className="rtab"+(t==="rank"?" on":"");
@@ -783,19 +767,28 @@ function switchRTab(t){
 // ══════════ EXPORT ══════════
 function doExport(){
   let txt=`BIÊN BẢN KIỂM PHIẾU BẦU CỬ\nNgày: ${new Date().toLocaleDateString("vi-VN")}\nTổng: ${S.total} | Hợp lệ: ${S.valid} | Không HL: ${S.invalid}\n\n`;
+  txt+=`=== TỔNG HỢP THEO SỐ NGƯỜI ĐƯỢC BẦU ===\n`;
   ["qh","tinh","xa"].forEach(cap=>{
-    const names=Object.keys(S.results[cap]);if(!names.length)return;
+    const log=S.voteLog[cap], lay=CFG[cap].lay;
+    txt+=`${CFG[cap].label}:\n`;
+    for(let i=1;i<=lay;i++){ if((log[i]||0)>0) txt+=`  Bầu ${i} người: ${log[i]} phiếu\n`; }
+    if((log.inv||0)>0) txt+=`  Không hợp lệ: ${log.inv} phiếu\n`;
+  });
+  txt+="\n";
+  ["qh","tinh","xa"].forEach(cap=>{
+    const names=Object.keys(S.results[cap]); if(!names.length) return;
     txt+=`=== ${CFG[cap].label.toUpperCase()} (Lấy ${CFG[cap].lay}/${CFG[cap].total}) ===\n[A→Z]\n`;
     [...names].sort((a,b)=>a.localeCompare(b,"vi")).forEach(n=>{txt+=`  ${n}: ${S.results[cap][n]}\n`;});
     txt+=`[Cao→Thấp]\n`;
-    [...names].sort((a,b)=>S.results[cap][b]-S.results[cap][a]).forEach((n,i)=>{txt+=`  ${i<CFG[cap].lay?"★":" "} ${n}: ${S.results[cap][n]}\n`;});
+    [...names].sort((a,b)=>S.results[cap][b]-S.results[cap][a]).forEach((n,i)=>{
+      txt+=`  ${i<CFG[cap].lay?"★":" "} ${n}: ${S.results[cap][n]}\n`;
+    });
     txt+="\n";
   });
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain;charset=utf-8"}));
   a.download=`bien-ban-${new Date().toISOString().slice(0,10)}.txt`;
-  a.click();
-  toast("📄 Đã xuất biên bản","ok");
+  a.click(); toast("📄 Đã xuất biên bản","ok");
 }
 
 // ══════════ SETUP ══════════
@@ -809,26 +802,28 @@ function loadSetupUI(){
 
 function saveSetup(){
   ["qh","tinh","xa"].forEach(c=>{
-    const total=parseInt(document.getElementById(`${c}-total`).value)||5;
-    const lay=parseInt(document.getElementById(`${c}-lay`).value)||3;
     const names=document.getElementById(`${c}-names`).value.split("\n").map(n=>n.trim()).filter(Boolean);
-    CFG[c].total=total; CFG[c].lay=lay; CFG[c].names=names;
-    const nr={};
-    names.forEach(n=>{nr[n]=S.results[c][n]||0;});
-    S.results[c]=nr;
+    CFG[c].total=parseInt(document.getElementById(`${c}-total`).value)||5;
+    CFG[c].lay=parseInt(document.getElementById(`${c}-lay`).value)||3;
+    CFG[c].names=names;
+    const nr={}; names.forEach(n=>{nr[n]=S.results[c][n]||0;}); S.results[c]=nr;
   });
   toast("💾 Đã lưu cấu hình","ok");
 }
 
 function clearData(){
-  if(!confirm("Xóa toàn bộ kết quả kiểm phiếu?")) return;
+  if(!confirm("Xóa toàn bộ kết quả?")) return;
   S.total=S.valid=S.invalid=0; S.history=[];
-  ["qh","tinh","xa"].forEach(c=>{Object.keys(S.results[c]).forEach(k=>{S.results[c][k]=0;});});
-  updateStats(); renderRecent(); updateUndoBtns();
+  ["qh","tinh","xa"].forEach(c=>{
+    Object.keys(S.results[c]).forEach(k=>{S.results[c][k]=0;});
+    S.voteLog[c]={inv:0};
+  });
+  updateStats(); renderLogList(); updateUndoBtns();
+  const b=document.getElementById("hdr-badge"); b.textContent="Chưa quét"; b.style.background=""; b.style.color="";
   toast("🗑️ Đã xóa","err");
 }
 
-// ══════════ NAV ══════════
+// ══════════ HELPERS ══════════
 function goPage(p){
   ["scan","result","setup"].forEach(x=>{
     document.getElementById(`page-${x}`).classList.toggle("on",x===p);
@@ -837,47 +832,39 @@ function goPage(p){
   if(p==="result") renderResult();
 }
 
-// ══════════ BEEP ══════════
+function setPill(cap){
+  const dot=document.getElementById("cpill-dot"), txt=document.getElementById("cpill-txt");
+  if(!cap){dot.style.background="#444";txt.textContent="Chờ phiếu…";}
+  else{dot.style.background=CFG[cap].hex;txt.textContent=`Phiếu ${CFG[cap].name} — ${CFG[cap].label}`;}
+}
+
+function setStatus(t){ document.getElementById("s-txt").textContent=t; }
+
 function beep(n){
   try{
-    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
     const ctx=new AC();
-    const play=(d,f,dur)=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=f;
-      g.gain.setValueAtTime(.3,ctx.currentTime+d);
-      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d+dur);
-      o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+dur);
-    };
-    if(n===1)play(0,1320,.14);
-    else{play(0,440,.12);play(.22,330,.15);}
-    setTimeout(()=>ctx.close(),800);
+    const p=(d,f,dur)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=f;g.gain.setValueAtTime(.28,ctx.currentTime+d);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d+dur);o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+dur);};
+    if(n===1)p(0,1320,.13); else{p(0,440,.11);p(.2,330,.14);}
+    setTimeout(()=>ctx.close(),700);
   }catch(e){}
 }
-
-function beep_short(){
+function beepShort(){
   try{
-    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-    const ctx=new AC();
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);
-    o.frequency.value=880;
-    g.gain.setValueAtTime(.15,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.08);
-    o.start(ctx.currentTime);o.stop(ctx.currentTime+.08);
-    setTimeout(()=>ctx.close(),300);
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    const ctx=new AC(),o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);o.frequency.value=880;
+    g.gain.setValueAtTime(.15,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.06);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+.06);
+    setTimeout(()=>ctx.close(),250);
   }catch(e){}
 }
 
-// ══════════ TOAST ══════════
 let _tt;
 function toast(msg,cls=""){
-  const el=document.getElementById("toast");
-  clearTimeout(_tt);
-  el.textContent=msg;
-  el.className="show "+cls;
-  _tt=setTimeout(()=>{el.className="";},3000);
+  const el=document.getElementById("toast"); clearTimeout(_tt);
+  el.textContent=msg; el.className="show "+cls;
+  _tt=setTimeout(()=>{el.className="";},2800);
 }
 
 // ══════════ BOOT ══════════
