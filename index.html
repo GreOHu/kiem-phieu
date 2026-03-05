@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Kiểm Phiếu Bầu Cử 2026</title>
+<title>Kiểm Phiếu 2026</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 :root{
@@ -12,101 +12,101 @@
   --gold:#f6c90e;--pink:#ff7b9c;--blue:#58a6ff;--green:#3fb950;--red:#f85149;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--text);}
 
-/* HEADER */
-.hdr{background:var(--card);border-bottom:2px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.hdr-title{font-size:15px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.hdr{background:var(--card);border-bottom:2px solid var(--border);padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.hdr-title{font-size:15px;font-weight:800;}
 .hdr-title span{color:var(--gold);}
 .hdr-btns{display:flex;gap:6px;}
-.btn-sm{background:var(--border);color:var(--text);border:none;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
-.btn-sm-gold{background:linear-gradient(135deg,#f6c90e,#e8a000);color:#0d1117;}
-.btn-sm-red{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.3);}
+.btn-sm{background:var(--border);color:var(--text);border:none;border-radius:7px;
+  padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-gold{background:linear-gradient(135deg,#f6c90e,#e8a000);color:#0d1117;}
+.btn-red{background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.25);}
 
-/* STATS */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 10px 4px;}
 .stat{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:9px 6px;text-align:center;}
 .stat-n{font-size:24px;font-weight:800;line-height:1;}
 .stat-l{font-size:10px;color:var(--muted);font-weight:600;margin-top:3px;}
 .c-gold{color:var(--gold);}.c-green{color:var(--green);}.c-red{color:var(--red);}
 
-/* UNIT SELECTOR */
-.unit-bar{margin:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.unit-bar{margin:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 12px;}
 .unit-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;}
 .unit-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
-.unit-btn{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 3px;text-align:center;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);transition:all .15s;}
-.unit-btn.active{background:rgba(246,201,14,.12);border-color:var(--gold);color:var(--gold);}
-.unit-active-info{margin-top:8px;font-size:11px;color:var(--text);font-weight:600;display:flex;align-items:center;gap:6px;}
-.unit-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+.unit-btn{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 3px;
+  text-align:center;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);transition:all .15s;}
+.unit-btn.active{background:rgba(246,201,14,.13);border-color:var(--gold);color:var(--gold);}
 
-/* STATUS */
-.status-bar{margin:0 10px 6px;padding:9px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:9px;}
+.status-bar{margin:0 10px 6px;padding:9px 12px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;display:flex;align-items:center;gap:9px;}
 .status-bar.ok{border-color:var(--green);background:rgba(63,185,80,.07);}
 .status-bar.err{border-color:var(--red);background:rgba(248,81,73,.07);}
-.status-bar.detect{border-color:var(--gold);background:rgba(246,201,14,.06);}
+.status-bar.scan{border-color:var(--gold);background:rgba(246,201,14,.06);}
+.status-bar.ready{border-color:var(--blue);background:rgba(88,166,255,.06);}
 .st-ico{font-size:18px;flex-shrink:0;}
 .st-t{font-size:13px;font-weight:700;}.st-s{font-size:11px;color:var(--muted);}
 
-/* CAMERA */
-.cam-wrap{margin:0 10px 6px;border-radius:12px;overflow:hidden;background:var(--card);border:1px solid var(--border);}
-.cam-lbl{padding:6px 10px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;justify-content:space-between;}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite;display:inline-block;margin-right:5px;}
+.cam-wrap{margin:0 10px 6px;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);}
+.cam-top{background:var(--card);padding:5px 10px;display:flex;align-items:center;justify-content:space-between;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pulse 1.5s infinite;}
 .dot.live{background:var(--green);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.cam-lbl-t{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+.color-pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--border);color:var(--muted);transition:background .3s;}
+
 .vid-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;}
 #video{width:100%;height:100%;object-fit:cover;display:block;}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
 #canvas{display:none;}
-/* Focus frame */
-.fc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:76%;border:1.5px solid rgba(255,255,255,.18);border-radius:8px;pointer-events:none;}
-.fc::before,.fc::after,.fc-br::before,.fc-br::after{content:'';position:absolute;width:18px;height:18px;}
-.fc::before{top:-2px;left:-2px;border-top:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:4px 0 0 0;}
-.fc::after{bottom:-2px;left:-2px;border-bottom:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:0 0 0 4px;}
-.fc-br{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70%;height:76%;pointer-events:none;}
-.fc-br::before{top:-2px;right:-2px;border-top:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 4px 0 0;}
-.fc-br::after{bottom:-2px;right:-2px;border-bottom:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 0 4px 0;}
-.color-bar{position:absolute;bottom:0;left:0;right:0;padding:8px 10px;background:linear-gradient(transparent,rgba(0,0,0,.9));display:flex;align-items:center;gap:9px;}
-.swatch{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.5);flex-shrink:0;transition:background .3s;}
-.color-t{font-size:12px;font-weight:700;}.color-s{font-size:10px;color:rgba(255,255,255,.6);}
-.btn-cam{display:block;width:calc(100% - 20px);margin:0 10px 6px;padding:11px;background:linear-gradient(135deg,#1f4068,#1b2a4a);border:1px solid var(--blue);border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.fc,.fc2{position:absolute;top:10%;left:5%;width:90%;height:80%;pointer-events:none;}
+.fc::before,.fc::after,.fc2::before,.fc2::after{content:'';position:absolute;width:20px;height:20px;}
+.fc::before{top:0;left:0;border-top:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:4px 0 0 0;}
+.fc::after{bottom:0;left:0;border-bottom:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:0 0 0 4px;}
+.fc2::before{top:0;right:0;border-top:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 4px 0 0;}
+.fc2::after{bottom:0;right:0;border-bottom:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 0 4px 0;}
+.scan-line{position:absolute;left:5%;width:90%;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  animation:scanMove 2s linear infinite;display:none;pointer-events:none;}
+.scan-line.active{display:block;}
+@keyframes scanMove{0%{top:10%}100%{top:90%}}
 
-/* BALLOT PANEL */
-.ballot-panel{margin:0 10px 6px;background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;display:none;}
-.ballot-panel.show{display:block;}
-.bp-header{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.bp-title{font-size:13px;font-weight:800;}
-.bp-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-.bp-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.btn-cam{display:block;width:calc(100% - 20px);margin:0 10px 6px;padding:11px;
+  background:linear-gradient(135deg,#1a3a5c,#1b2a4a);border:1px solid var(--blue);
+  border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+.freeze-panel{margin:0 10px 6px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:none;}
+.freeze-panel.show{display:block;}
+.fp-hdr{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.fp-title{font-size:13px;font-weight:800;}
+.fp-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
 .badge-qh{background:rgba(255,123,156,.15);color:var(--pink);}
 .badge-tinh{background:rgba(88,166,255,.15);color:var(--blue);}
 .badge-xa{background:rgba(246,201,14,.15);color:var(--gold);}
 
-.cand-list{padding:5px 0;}
-.cand-btn{display:flex;align-items:center;width:100%;padding:10px 13px;background:none;border:none;cursor:pointer;font-family:inherit;border-bottom:1px solid rgba(48,54,61,.5);transition:background .12s;text-align:left;}
-.cand-btn:last-child{border-bottom:none;}
-.cand-btn:active{background:rgba(255,255,255,.04);}
-.cand-btn.crossed{background:rgba(248,81,73,.07);}
-.cand-num{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;margin-right:10px;}
-.cand-btn.crossed .cand-num{background:rgba(248,81,73,.18);color:var(--red);}
-.cand-name-txt{flex:1;font-size:13px;font-weight:500;color:var(--text);}
-.cand-btn.crossed .cand-name-txt{color:var(--red);text-decoration:line-through;opacity:.7;}
-.cand-status{font-size:17px;flex-shrink:0;}
+.result-list{padding:4px 0;}
+.r-row{display:flex;align-items:center;padding:9px 13px;border-bottom:1px solid rgba(48,54,61,.4);}
+.r-row:last-child{border-bottom:none;}
+.r-row.voted{background:rgba(63,185,80,.06);}
+.r-row.crossed{background:rgba(248,81,73,.06);}
+.r-num{width:22px;font-size:11px;font-weight:700;color:var(--muted);}
+.r-name{flex:1;font-size:13px;font-weight:500;}
+.r-row.crossed .r-name{color:var(--red);text-decoration:line-through;opacity:.65;}
+.r-row.voted .r-name{color:var(--green);}
+.r-ico{font-size:16px;flex-shrink:0;}
 
-.confirm-wrap{padding:10px 13px;border-top:1px solid var(--border);}
-.validity-msg{font-size:11px;text-align:center;margin-bottom:8px;font-weight:600;}
+.validity-msg{font-size:11px;text-align:center;margin-bottom:8px;font-weight:600;padding:6px 13px 0;}
 .validity-msg.ok{color:var(--green);}.validity-msg.err{color:var(--red);}
-.btn-confirm{width:100%;padding:13px;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .2s;}
-.btn-confirm.ok{background:linear-gradient(135deg,#238636,#196127);color:white;}
-.btn-confirm.err{background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.3);cursor:not-allowed;}
+.confirm-btns{display:flex;gap:8px;padding:8px 13px 11px;}
+.btn-confirm-ok{flex:1;padding:13px;border:none;border-radius:10px;font-size:14px;font-weight:800;
+  cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#238636,#196127);color:white;}
+.btn-rescan{padding:13px 14px;border-radius:10px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;background:rgba(88,166,255,.12);color:var(--blue);border:1px solid rgba(88,166,255,.25);}
 
-/* UNDO button */
-.undo-wrap{padding:0 10px 6px;display:none;}
+.undo-wrap{margin:0 10px 6px;display:none;}
 .undo-wrap.show{display:block;}
-.btn-undo{width:100%;padding:10px;background:rgba(255,123,156,.1);border:1px solid rgba(255,123,156,.3);border-radius:10px;color:var(--pink);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;}
-.undo-info{font-size:10px;opacity:.7;}
+.btn-undo{width:100%;padding:10px;background:rgba(255,123,156,.08);border:1px solid rgba(255,123,156,.25);
+  border-radius:10px;color:var(--pink);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 
-/* SCOREBOARD */
 .score-section{margin:0 10px 6px;}
-.score-layout{display:flex;flex-direction:column;gap:0;}
 .tabs{display:flex;background:var(--card);border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:none;}
 .tab{flex:1;padding:8px 4px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);transition:all .15s;}
 .tab.active{color:var(--text);}
@@ -122,15 +122,14 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .bump{animation:bump .4s ease-out;}
 @keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.5);color:var(--green)}100%{transform:scale(1)}}
 
-/* BOTTOM */
-.btm{padding:8px 10px 28px;display:flex;gap:8px;}
-.btn-reset{padding:11px 14px;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:10px;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
-.btn-result-main{flex:1;padding:11px;background:linear-gradient(135deg,#f6c90e,#e8a000);border:none;border-radius:10px;color:#0d1117;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+.btm{padding:8px 10px 28px;}
+.btn-result-main{width:100%;padding:12px;background:linear-gradient(135deg,#f6c90e,#e8a000);border:none;
+  border-radius:10px;color:#0d1117;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
 
-/* RESULT PAGE */
 #result-page{display:none;}
 #result-page.show{display:block;}
-.res-hdr{padding:11px 13px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.res-hdr{padding:11px 13px;background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .res-hdr h2{font-size:15px;font-weight:800;}
 .res-body{padding:10px;}
 .res-section{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:10px;}
@@ -140,34 +139,31 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .res-name{flex:1;font-size:12px;}
 .res-n{font-size:19px;font-weight:800;color:var(--gold);}
 .res-bar-w{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:3px;}
-.res-bar{height:3px;background:linear-gradient(90deg,var(--gold),#e8a000);border-radius:2px;transition:width 1s;}
-
-/* Phân phối phiếu */
-.dist-row{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(48,54,61,.35);gap:10px;}
+.res-bar{height:3px;background:linear-gradient(90deg,var(--gold),#e8a000);border-radius:2px;}
+.dist-row{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(48,54,61,.3);gap:10px;}
 .dist-row:last-child{border-bottom:none;}
-.dist-lbl{width:90px;font-size:11px;color:var(--muted);font-weight:600;}
+.dist-lbl{width:110px;font-size:11px;color:var(--muted);font-weight:600;}
 .dist-bar-w{flex:1;height:14px;background:rgba(255,255,255,.05);border-radius:7px;overflow:hidden;}
-.dist-bar{height:100%;border-radius:7px;transition:width .8s;}
-.dist-bar.b1{background:linear-gradient(90deg,#58a6ff,#1f6feb);}
-.dist-bar.b2{background:linear-gradient(90deg,#3fb950,#238636);}
-.dist-bar.b3{background:linear-gradient(90deg,#f6c90e,#e8a000);}
-.dist-bar.b4{background:linear-gradient(90deg,#ff7b9c,#d44d6e);}
-.dist-bar.b5{background:linear-gradient(90deg,#bd93f9,#6e40c9);}
-.dist-bar.b0{background:rgba(139,148,158,.3);}
-.dist-bar.binvalid{background:rgba(248,81,73,.5);}
-.dist-n{width:30px;text-align:right;font-size:12px;font-weight:700;color:var(--text);}
-
+.dist-bar{height:100%;border-radius:7px;}
+.b1{background:linear-gradient(90deg,#58a6ff,#1f6feb);}
+.b2{background:linear-gradient(90deg,#3fb950,#238636);}
+.b3{background:linear-gradient(90deg,#f6c90e,#e8a000);}
+.b4{background:linear-gradient(90deg,#ff7b9c,#d44d6e);}
+.b5{background:linear-gradient(90deg,#bd93f9,#6e40c9);}
+.b0{background:rgba(139,148,158,.3);}
+.binvalid{background:rgba(248,81,73,.5);}
+.dist-n{width:30px;text-align:right;font-size:12px;font-weight:700;}
 .hidden{display:none!important;}
 </style>
 </head>
 <body>
-<div id="main-app">
 
+<div id="main-app">
   <div class="hdr">
     <div class="hdr-title">🗳️ Kiểm <span>Phiếu</span> 2026</div>
     <div class="hdr-btns">
-      <button class="btn-sm btn-sm-red" onclick="resetAll()">🗑️</button>
-      <button class="btn-sm btn-sm-gold" onclick="showResult()">📊 Kết quả</button>
+      <button class="btn-sm btn-red" onclick="resetAll()">🗑️ Reset</button>
+      <button class="btn-sm btn-gold" onclick="showResult()">📊 Kết quả</button>
     </div>
   </div>
 
@@ -177,78 +173,49 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
     <div class="stat"><div class="stat-n c-red" id="invalidCount">0</div><div class="stat-l">Không HL</div></div>
   </div>
 
-  <!-- Chọn đơn vị bầu cử cấp xã -->
   <div class="unit-bar">
     <div class="unit-lbl">📍 Đơn vị bầu cử cấp xã</div>
-    <div class="unit-grid">
-      <button class="unit-btn active" id="unit-btn-1" onclick="selectUnit(1)">Số 01</button>
-      <button class="unit-btn" id="unit-btn-2" onclick="selectUnit(2)">Số 02</button>
-      <button class="unit-btn" id="unit-btn-3" onclick="selectUnit(3)">Số 03</button>
-      <button class="unit-btn" id="unit-btn-4" onclick="selectUnit(4)">Số 04</button>
-      <button class="unit-btn" id="unit-btn-5" onclick="selectUnit(5)">Số 05</button>
-    </div>
-    <div class="unit-active-info">
-      <div class="unit-dot"></div>
-      <span id="unitActiveLabel">Đơn vị 01 — 8 đại biểu xã</span>
-    </div>
+    <div class="unit-grid" id="unitGrid"></div>
   </div>
 
-  <div class="status-bar detect" id="statusBar">
-    <div class="st-ico">📷</div>
-    <div>
-      <div class="st-t" id="statusTitle">Đưa phiếu vào camera</div>
-      <div class="st-s" id="statusSub">App tự nhận màu và hiện danh sách</div>
-    </div>
+  <div class="status-bar scan" id="statusBar">
+    <div class="st-ico" id="stIco">📷</div>
+    <div><div class="st-t" id="statusTitle">Bật camera và đưa phiếu vào</div>
+    <div class="st-s" id="statusSub">Nhận màu → tự quét → tự cộng phiếu</div></div>
   </div>
 
-  <!-- Camera -->
   <div class="cam-wrap">
-    <div class="cam-lbl">
-      <span><span class="dot" id="camDot"></span>Camera nhận màu</span>
-      <span id="colorInfo" style="font-size:11px;color:var(--muted)">Chưa phát hiện</span>
+    <div class="cam-top">
+      <span class="cam-lbl-t"><span class="dot" id="camDot"></span>Camera quét phiếu</span>
+      <span class="color-pill" id="colorPill">Chưa nhận</span>
     </div>
     <div class="vid-wrap">
       <video id="video" autoplay playsinline muted></video>
       <canvas id="canvas"></canvas>
-      <div class="fc"></div>
-      <div class="fc-br"></div>
-      <div class="color-bar">
-        <div class="swatch" id="colorSwatch" style="background:#333"></div>
-        <div>
-          <div class="color-t" id="colorLabel">Chưa phát hiện phiếu</div>
-          <div class="color-s" id="colorSub">Đưa phiếu vào khung vàng</div>
-        </div>
-      </div>
+      <canvas id="overlay"></canvas>
+      <div class="fc"></div><div class="fc2"></div>
+      <div class="scan-line" id="scanLine"></div>
     </div>
   </div>
-
   <button class="btn-cam" id="btnCamera" onclick="startCamera()">📷 Bật Camera</button>
 
-  <!-- Ballot panel -->
-  <div class="ballot-panel" id="ballotPanel">
-    <div class="bp-header">
-      <div>
-        <div class="bp-title" id="bpTitle">Phiếu Bầu</div>
-        <div class="bp-sub" id="bpSub">Tap vào tên bị gạch trên phiếu</div>
-      </div>
-      <div class="bp-badge" id="bpBadge">Bầu 3/5</div>
+  <div class="freeze-panel" id="freezePanel">
+    <div class="fp-hdr">
+      <div class="fp-title" id="fpTitle">Kết quả quét</div>
+      <div class="fp-badge" id="fpBadge">Bầu ?/?</div>
     </div>
-    <div class="cand-list" id="candList"></div>
-    <div class="confirm-wrap">
-      <div class="validity-msg" id="validityMsg"></div>
-      <button class="btn-confirm" id="btnConfirm" onclick="confirmBallot()">✅ Xác nhận phiếu này</button>
+    <div class="result-list" id="resultList"></div>
+    <div class="validity-msg" id="validityMsg"></div>
+    <div class="confirm-btns">
+      <button class="btn-rescan" onclick="rescan()">🔄 Quét lại</button>
+      <button class="btn-confirm-ok" id="btnConfirm" onclick="confirmBallot()">✅ Xác nhận</button>
     </div>
   </div>
 
-  <!-- Undo -->
   <div class="undo-wrap" id="undoWrap">
-    <button class="btn-undo" onclick="undoLast()">
-      ↩️ Xóa lần cộng gần nhất
-      <span class="undo-info" id="undoInfo"></span>
-    </button>
+    <button class="btn-undo" onclick="undoLast()">↩️ Xóa lần cộng gần nhất — <span id="undoInfo"></span></button>
   </div>
 
-  <!-- Scoreboard -->
   <div class="score-section">
     <div class="tabs">
       <div class="tab tab-qh active" onclick="switchTab('qh')">🏛️ Quốc Hội</div>
@@ -265,10 +232,8 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
   <div class="btm">
     <button class="btn-result-main" onclick="showResult()">📊 Xem kết quả đầy đủ</button>
   </div>
-
 </div>
 
-<!-- RESULT PAGE -->
 <div id="result-page">
   <div class="res-hdr">
     <h2>📊 Kết Quả Kiểm Phiếu</h2>
@@ -276,19 +241,14 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
   </div>
   <div class="res-body">
     <div style="color:var(--muted);font-size:12px;text-align:center;padding:4px 0 10px" id="resultSub"></div>
-
-    <!-- Quốc Hội -->
     <div class="res-section">
       <div class="res-sec-hdr" style="color:var(--pink)">🏛️ Quốc Hội Khóa XVI (Hồng — Bầu 3/5)</div>
       <div id="result-rows-qh"></div>
     </div>
-    <!-- Phân phối QH -->
     <div class="res-section">
       <div class="res-sec-hdr" style="color:var(--pink)">📊 Phân phối phiếu Quốc Hội</div>
       <div id="dist-qh"></div>
     </div>
-
-    <!-- Tỉnh -->
     <div class="res-section">
       <div class="res-sec-hdr" style="color:var(--blue)">🏢 HĐND Tỉnh Đồng Nai XI (Xanh — Bầu 3/5)</div>
       <div id="result-rows-tinh"></div>
@@ -297,8 +257,6 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
       <div class="res-sec-hdr" style="color:var(--blue)">📊 Phân phối phiếu Tỉnh</div>
       <div id="dist-tinh"></div>
     </div>
-
-    <!-- Xã -->
     <div class="res-section">
       <div class="res-sec-hdr" style="color:var(--gold)">🏘️ HĐND Xã Trị An XIII (Vàng — Bầu 5/8)</div>
       <div id="result-rows-xa"></div>
@@ -307,8 +265,6 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
       <div class="res-sec-hdr" style="color:var(--gold)">📊 Phân phối phiếu Xã</div>
       <div id="dist-xa"></div>
     </div>
-
-    <!-- Tổng hợp -->
     <div class="res-section">
       <div class="res-sec-hdr">📋 Tổng hợp</div>
       <div id="result-summary"></div>
@@ -318,48 +274,51 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 </div>
 
 <script>
-// ===== DỮ LIỆU ĐẠI BIỂU =====
-const QH_CANDIDATES = [
-  'Lê Hoàng Hải','Nguyễn Hồng Phong','Đặng Doãn Thành','Hoàng Thị Thắm','Bùi Xuân Thống'
-];
-const TINH_CANDIDATES = [
-  'Mai Thị Thùy Dung','Nguyễn Thị Hồng','Nguyễn Kim Long','Phạm Thành Nam','Nguyễn Thanh Tú'
-];
-const XA_BY_UNIT = {
-  1: ['Nguyễn Xuân Đang','Trần Thị Giang','Trần Thị Ngọc Linh','Nguyễn Văn Mạnh','Nguyễn Thành Tín','Nguyễn Thanh Tú','Nguyễn Thị Thu Vân','Vũ Đức Vân'],
-  2: ['Nguyễn Cung','Nguyễn Thị Dung','Trần Thị Giang','Trần Thanh Hải','Doãn Hồng Lan','Lê Trung Nghĩa','Hoàng Đình Nhân','Nguyễn Thị Tâm'],
-  3: ['Chiêm Thanh Điền','Lê Thị Thùy Dung','Nguyễn Văn Hoa','Trần Thị Kim Lan','Lê Tùng Lâm','Nguyễn Thị Minh','Nguyễn Văn Thanh','Lê Minh Vẹn'],
-  4: ['Nguyễn Hải Bằng','Nguyễn Thị Thùy Dung','Trần Mạnh Hùng','Trần Thị Huyên','Nguyễn Tư Khánh','Nguyễn Đình Thắng','Nguyễn Minh Tuấn','Nguyễn Văn Trung'],
-  5: ['Dương Thị Thái An','Trịnh Văn Duy','Phan Thanh Hà','Lê Ngọc Hiếu','Nguyễn Xuân Linh','Lê Đình Minh','Lê Thị Ngọc Nga','Đinh Thị Vân']
+// ============================================================
+// DỮ LIỆU
+// ============================================================
+const QH   = ['Lê Hoàng Hải','Nguyễn Hồng Phong','Đặng Doãn Thành','Hoàng Thị Thắm','Bùi Xuân Thống'];
+const TINH = ['Mai Thị Thùy Dung','Nguyễn Thị Hồng','Nguyễn Kim Long','Phạm Thành Nam','Nguyễn Thanh Tú'];
+const XA   = {
+  1:['Nguyễn Xuân Đang','Trần Thị Giang','Trần Thị Ngọc Linh','Nguyễn Văn Mạnh','Nguyễn Thành Tín','Nguyễn Thanh Tú','Nguyễn Thị Thu Vân','Vũ Đức Vân'],
+  2:['Nguyễn Cung','Nguyễn Thị Dung','Trần Thị Giang','Trần Thanh Hải','Doãn Hồng Lan','Lê Trung Nghĩa','Hoàng Đình Nhân','Nguyễn Thị Tâm'],
+  3:['Chiêm Thanh Điền','Lê Thị Thùy Dung','Nguyễn Văn Hoa','Trần Thị Kim Lan','Lê Tùng Lâm','Nguyễn Thị Minh','Nguyễn Văn Thanh','Lê Minh Vẹn'],
+  4:['Nguyễn Hải Bằng','Nguyễn Thị Thùy Dung','Trần Mạnh Hùng','Trần Thị Huyên','Nguyễn Tư Khánh','Nguyễn Đình Thắng','Nguyễn Minh Tuấn','Nguyễn Văn Trung'],
+  5:['Dương Thị Thái An','Trịnh Văn Duy','Phan Thanh Hà','Lê Ngọc Hiếu','Nguyễn Xuân Linh','Lê Đình Minh','Lê Thị Ngọc Nga','Đinh Thị Vân']
 };
 
-let currentUnit = 1;
-
-function buildBallots(){
+function buildBallots(u){
   return {
-    qh: {
-      name:'Quốc Hội', colorName:'Hồng', maxVotes:3, totalCands:5,
-      badgeClass:'badge-qh', candidates:[...QH_CANDIDATES]
-    },
-    tinh: {
-      name:'HĐND Tỉnh', colorName:'Xanh', maxVotes:3, totalCands:5,
-      badgeClass:'badge-tinh', candidates:[...TINH_CANDIDATES]
-    },
-    xa: {
-      name:'HĐND Xã (Đơn vị '+currentUnit+')', colorName:'Vàng', maxVotes:5, totalCands:8,
-      badgeClass:'badge-xa', candidates:[...XA_BY_UNIT[currentUnit]]
-    }
+    qh:   {name:'Quốc Hội',         colorName:'Hồng', maxVotes:3, badgeClass:'badge-qh',   candidates:[...QH]},
+    tinh: {name:'HĐND Tỉnh',        colorName:'Xanh', maxVotes:3, badgeClass:'badge-tinh', candidates:[...TINH]},
+    xa:   {name:'HĐND Xã Đ.vị '+u, colorName:'Vàng', maxVotes:5, badgeClass:'badge-xa',   candidates:[...XA[u]]}
   };
 }
 
-let BALLOTS = buildBallots();
+// ============================================================
+// STATE
+// ============================================================
+let currentUnit = 1, BALLOTS = buildBallots(1);
+let votes={}, stats={total:0,valid:0,invalid:0}, ballotLog=[], undoStack=[];
+let stream=null, scanInterval=null, currentTab='qh';
 
-let votes = {}, stats = {total:0,valid:0,invalid:0}, ballotLog = [];
-let stream = null, scanInterval = null;
-let currentType = null, crossedSet = new Set(), currentTab = 'qh';
-let lastDetectedType = null, lastDetectedTime = 0;
-// Lưu snapshot để undo
-let undoStack = []; // [{votes, stats, ballotLog, entry}]
+// Máy trạng thái quét
+const ST = {DETECTING:'detecting', LOCKING:'locking', FROZEN:'frozen'};
+let scanState = ST.DETECTING;
+let lockedType = null, lockCount = 0, lastColorType = null;
+const LOCK_NEEDED = 5;   // số frame màu ổn định trước khi phân tích
+let frozenResult = null;
+let cooldownUntil = 0;
+
+// Load saved
+try{
+  const d = JSON.parse(localStorage.getItem('kp26')||'{}');
+  if(d.votes) votes=d.votes;
+  if(d.stats) stats=d.stats;
+  if(d.ballotLog) ballotLog=d.ballotLog;
+  if(d.undoStack) undoStack=d.undoStack;
+  if(d.currentUnit){ currentUnit=d.currentUnit; BALLOTS=buildBallots(currentUnit); }
+}catch(e){}
 
 function initVotes(){
   ['qh','tinh','xa'].forEach(t=>{
@@ -367,383 +326,477 @@ function initVotes(){
     BALLOTS[t].candidates.forEach(n=>{ if(votes[t][n]===undefined) votes[t][n]=0; });
   });
 }
-
-// Load saved
-try{
-  const d = JSON.parse(localStorage.getItem('kiemPhieu26_v2')||'{}');
-  if(d.votes) votes = d.votes;
-  if(d.stats) stats = d.stats;
-  if(d.ballotLog) ballotLog = d.ballotLog;
-  if(d.currentUnit){ currentUnit = d.currentUnit; BALLOTS = buildBallots(); }
-  if(d.undoStack) undoStack = d.undoStack;
-}catch(e){}
-
 initVotes();
-renderAllRows(); updateStats(); updateUndoUI();
-// Restore unit button UI
-selectUnit(currentUnit, true);
 
-function saveData(){
-  localStorage.setItem('kiemPhieu26_v2', JSON.stringify({votes,stats,ballotLog,currentUnit,undoStack}));
-}
-
-// ===== CHỌN ĐƠN VỊ =====
-function selectUnit(n, silent){
-  currentUnit = n;
-  BALLOTS = buildBallots();
-  initVotes();
-  document.querySelectorAll('.unit-btn').forEach((b,i)=>b.classList.toggle('active', i+1===n));
-  document.getElementById('unitActiveLabel').textContent = 'Đơn vị 0'+n+' — '+XA_BY_UNIT[n].map(x=>x.split(' ').pop()).join(', ').substring(0,60)+'...';
-  if(!silent){
-    // Nếu panel xã đang mở, reload
-    if(currentType==='xa') openBallotPanel('xa');
-    renderAllRows();
-    saveData();
+// ============================================================
+// INIT UI
+// ============================================================
+(function(){
+  const g=document.getElementById('unitGrid');
+  g.innerHTML='';
+  for(let i=1;i<=5;i++){
+    const b=document.createElement('button');
+    b.className='unit-btn'+(i===currentUnit?' active':'');
+    b.id='unit-btn-'+i;
+    b.textContent='Số 0'+i;
+    b.onclick=()=>selectUnit(i);
+    g.appendChild(b);
   }
+})();
+renderAllRows(); updateStats(); updateUndoUI();
+
+function selectUnit(n){
+  currentUnit=n; BALLOTS=buildBallots(n); initVotes();
+  document.querySelectorAll('.unit-btn').forEach((b,i)=>b.classList.toggle('active',i+1===n));
+  renderAllRows(); saveData();
+}
+function saveData(){
+  try{ localStorage.setItem('kp26',JSON.stringify({votes,stats,ballotLog,undoStack,currentUnit})); }catch(e){}
 }
 
-// ===== CAMERA =====
+// ============================================================
+// CAMERA
+// ============================================================
 async function startCamera(){
   try{
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}});
-    document.getElementById('video').srcObject = stream;
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:960}}
+    });
+    const vid=document.getElementById('video');
+    vid.srcObject=stream;
+    vid.onloadedmetadata=()=>resizeOverlay();
     document.getElementById('btnCamera').classList.add('hidden');
     document.getElementById('camDot').classList.add('live');
-    scanInterval = setInterval(detectColor, 400);
+    scanState=ST.DETECTING;
+    scanInterval=setInterval(scanFrame,300);
+    setStatus('scan','📷 Đang quét...','Đưa phiếu vào khung — nhận màu tự động');
   }catch(e){ alert('Không mở được camera: '+e.message); }
 }
 
-function detectColor(){
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  if(!video.videoWidth) return;
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-
-  // Lấy mẫu vùng trung tâm lớn hơn để ổn định hơn (120x120)
-  const cx = Math.floor(canvas.width/2), cy = Math.floor(canvas.height/2), sz = 120;
-  const x0 = Math.max(0, cx-sz/2), y0 = Math.max(0, cy-sz/2);
-  const id = ctx.getImageData(x0, y0, sz, sz);
-  let r=0,g=0,b=0,cnt=0;
-  for(let i=0;i<id.data.length;i+=4){
-    if(id.data[i+3]<50) continue;
-    r+=id.data[i]; g+=id.data[i+1]; b+=id.data[i+2]; cnt++;
-  }
-  if(!cnt) return;
-  r=Math.round(r/cnt); g=Math.round(g/cnt); b=Math.round(b/cnt);
-
-  document.getElementById('colorSwatch').style.background = 'rgb('+r+','+g+','+b+')';
-  const det = classifyColor(r,g,b);
-  const info = document.getElementById('colorInfo');
-
-  if(det){
-    const names = {qh:'🌸 Hồng - QH',tinh:'🔵 Xanh - Tỉnh',xa:'🟡 Vàng - Xã'};
-    info.textContent = names[det];
-    document.getElementById('colorLabel').textContent = 'Phiếu '+BALLOTS[det].colorName+' — '+BALLOTS[det].name;
-    document.getElementById('colorSub').textContent = 'Đã nhận diện! Xem danh sách bên dưới';
-    const now = Date.now();
-    if(det!==lastDetectedType || (now-lastDetectedTime>8000 && currentType===null)){
-      lastDetectedType = det; lastDetectedTime = now;
-      openBallotPanel(det);
-    }
-  } else {
-    info.textContent = 'Chưa nhận';
-    document.getElementById('colorLabel').textContent = 'Chưa phát hiện phiếu';
-    document.getElementById('colorSub').textContent = 'Đặt phiếu vào khung vàng';
-  }
+function resizeOverlay(){
+  const vid=document.getElementById('video');
+  const ov=document.getElementById('overlay');
+  ov.width=vid.videoWidth||vid.offsetWidth;
+  ov.height=vid.videoHeight||vid.offsetHeight;
 }
 
-// ===== NHẬN DIỆN MÀU (dải rộng) =====
-function classifyColor(r,g,b){
-  // Hồng/Đỏ nhạt = Quốc Hội
-  // Điều kiện: r cao, g thấp-trung, b thấp-trung; r nổi trội so với g và b
-  if(r > 160 && g < r-30 && b < r-20 && r-g > 25 && r-b > 20
-     && !(g > 160 && b < 100)){  // loại màu vàng
-    // Phân biệt hồng vs vàng: vàng có g rất cao
-    if(g > r - 40 && g > 140) return null; // có thể vàng
-    return 'qh'; // hồng
+// ============================================================
+// VÒNG LẶP QUÉT CHÍNH
+// ============================================================
+function scanFrame(){
+  if(scanState===ST.FROZEN) return;
+  const video=document.getElementById('video');
+  const canvas=document.getElementById('canvas');
+  if(!video.videoWidth) return;
+
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0);
+
+  // Bước 1: nhận diện màu
+  const type=detectColor(ctx,canvas.width,canvas.height);
+  updateColorPill(type);
+
+  if(!type){
+    lockCount=0; lastColorType=null;
+    clearOverlay();
+    if(Date.now()>cooldownUntil)
+      setStatus('scan','📷 Đưa phiếu vào khung','Hồng = QH · Xanh = Tỉnh · Vàng = Xã');
+    return;
   }
-  // Xanh lam/Xanh dương = Tỉnh
-  // b nổi trội
-  if(b > r+20 && b > g-10 && b > 110){
-    return 'tinh';
+
+  if(Date.now()<cooldownUntil){ clearOverlay(); return; }
+
+  // Bước 2: ổn định qua N frame
+  if(type===lastColorType){ lockCount++; } else { lastColorType=type; lockCount=1; }
+
+  if(lockCount<LOCK_NEEDED){
+    document.getElementById('scanLine').classList.add('active');
+    setStatus('scan','🔒 Khóa phiếu '+BALLOTS[type].colorName+'...','Giữ nguyên — '+lockCount+'/'+LOCK_NEEDED);
+    return;
   }
-  // Vàng/Vàng nâu = Xã
-  // r cao, g cao (gần bằng r), b thấp
-  if(r > 150 && g > 120 && b < g-30 && b < r-40 && r-b > 50){
-    return 'xa';
+
+  // Bước 3: đủ frame → phân tích gạch
+  document.getElementById('scanLine').classList.remove('active');
+  lockedType=type;
+  scanState=ST.FROZEN;
+  const result=analyzeStrikes(ctx,canvas.width,canvas.height,type);
+  frozenResult={type,...result};
+  showFreezePanel(frozenResult);
+}
+
+// ============================================================
+// NHẬN DIỆN MÀU — trung bình vùng trung tâm rộng
+// ============================================================
+function detectColor(ctx,W,H){
+  // Lấy mẫu vùng rộng: 30% → 70% ngang, 20% → 80% dọc
+  const sx=Math.floor(W*0.30), sy=Math.floor(H*0.20);
+  const sw=Math.floor(W*0.40), sh=Math.floor(H*0.60);
+  const id=ctx.getImageData(sx,sy,sw,sh);
+  let r=0,g=0,b=0,n=0;
+  for(let i=0;i<id.data.length;i+=4){
+    if(id.data[i+3]<20) continue;
+    r+=id.data[i]; g+=id.data[i+1]; b+=id.data[i+2]; n++;
   }
-  // Hồng nhạt / pastel pink
-  if(r > 200 && g > 140 && g < 200 && b > 140 && b < 200 && r > g+20 && r > b+20){
-    return 'qh';
-  }
+  if(!n) return null;
+  r/=n; g/=n; b/=n;
+  return classifyRGB(r,g,b);
+}
+
+function classifyRGB(r,g,b){
+  // VÀNG: r cao, g cao (~r±50), b thấp hẳn
+  if(r>130 && g>100 && b<110 && (r-b)>50 && (g-b)>25 && Math.abs(r-g)<60) return 'xa';
+  // HỒNG: r nổi trội so với g và b
+  if(r>155 && r>g+25 && r>b+20 && g<185) return 'qh';
+  // Pastel hồng nhạt
+  if(r>195 && g>145 && b>145 && r>g+18 && r>b+12) return 'qh';
+  // XANH LAM: b nổi trội
+  if(b>r+18 && b>95) return 'tinh';
+  // Xanh lục biến thể tỉnh
+  if(g>r+18 && g>b+8 && g>120) return 'tinh';
   return null;
 }
 
-// ===== BALLOT PANEL =====
-function openBallotPanel(type){
-  currentType = type;
-  crossedSet = new Set();
-  const B = BALLOTS[type];
-  document.getElementById('bpTitle').textContent = 'Phiếu '+B.name;
-  document.getElementById('bpSub').textContent = 'Tap vào tên bị gạch — phiếu '+B.colorName+' ('+B.candidates.length+' ứng cử viên)';
-  const badge = document.getElementById('bpBadge');
-  badge.textContent = 'Bầu '+B.maxVotes+'/'+B.candidates.length;
-  badge.className = 'bp-badge '+B.badgeClass;
-  renderCandList(); updateValidity();
-  document.getElementById('ballotPanel').classList.add('show');
-  document.getElementById('ballotPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
-  setStatus('detect','Phiếu '+B.colorName+' — '+B.name,'Tap tên bị gạch rồi nhấn Xác nhận');
-  switchTab(type);
-}
+// ============================================================
+// PHÂN TÍCH GẠCH NGANG
+//
+// Nguyên lý:
+//  - Phiếu nằm trong khung: top 10%, left 5%, 90% rộng, 80% cao
+//  - Bỏ ~15% đầu và ~10% cuối (header/footer phiếu, không có ứng viên)
+//  - Chia phần còn lại thành N hàng đều nhau
+//  - Mỗi hàng: lấy dải giữa (30%–70% chiều cao hàng)
+//    quét từng cột ngang, đếm số cột có pixel ĐỦ TỐI hơn nền
+//    nếu ≥ 45% số cột → có đường gạch ngang → bị gạch
+// ============================================================
+function analyzeStrikes(ctx,W,H,type){
+  const numCands = BALLOTS[type].candidates.length;
 
-function renderCandList(){
-  if(!currentType) return;
-  const cands = BALLOTS[currentType].candidates;
-  document.getElementById('candList').innerHTML = cands.map((n,i)=>`
-    <button class="cand-btn${crossedSet.has(i)?' crossed':''}" onclick="toggleCross(${i})">
-      <div class="cand-num">${i+1}</div>
-      <div class="cand-name-txt">${n}</div>
-      <div class="cand-status">${crossedSet.has(i)?'✖':'✔'}</div>
-    </button>`).join('');
-}
+  // Vùng phiếu
+  const bx=Math.floor(W*0.05), bw=Math.floor(W*0.90);
+  const by=Math.floor(H*0.10), bh=Math.floor(H*0.80);
 
-function toggleCross(idx){
-  if(crossedSet.has(idx)) crossedSet.delete(idx);
-  else crossedSet.add(idx);
-  renderCandList(); updateValidity();
-}
+  // Bỏ header (~15%) và footer (~8%) của phiếu
+  const contentTop  = by + Math.floor(bh*0.15);
+  const contentBot  = by + Math.floor(bh*0.92);
+  const contentH    = contentBot - contentTop;
+  const rowH        = contentH / numCands;
 
-function updateValidity(){
-  if(!currentType) return;
-  const B = BALLOTS[currentType];
-  const voted = B.candidates.length - crossedSet.size;
-  const msgEl = document.getElementById('validityMsg');
-  const btnEl = document.getElementById('btnConfirm');
-  if(voted===0){
-    msgEl.textContent='⚠️ Phiếu trắng — không hợp lệ';
-    msgEl.className='validity-msg err';
-    btnEl.textContent='❌ Phiếu không hợp lệ (trắng)';
-    btnEl.className='btn-confirm err';
-  } else if(voted>B.maxVotes){
-    msgEl.textContent='⚠️ Bầu '+voted+' người — vượt quá '+B.maxVotes;
-    msgEl.className='validity-msg err';
-    btnEl.textContent='❌ Phiếu không hợp lệ (bầu quá '+B.maxVotes+')';
-    btnEl.className='btn-confirm err';
-  } else {
-    msgEl.textContent='✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes+' người';
-    msgEl.className='validity-msg ok';
-    btnEl.textContent='✅ Xác nhận — '+voted+' người được bầu';
-    btnEl.className='btn-confirm ok';
+  // Đo màu nền phiếu từ vùng header (thường trống không có mực)
+  const bgPatch = ctx.getImageData(bx+10, by+4, 60, Math.floor(bh*0.12));
+  let bgR=0,bgG=0,bgB=0,bgN=0;
+  for(let i=0;i<bgPatch.data.length;i+=4){
+    bgR+=bgPatch.data[i]; bgG+=bgPatch.data[i+1]; bgB+=bgPatch.data[i+2]; bgN++;
   }
+  bgR/=bgN; bgG/=bgN; bgB/=bgN;
+  const bgLum=(bgR+bgG+bgB)/3;
+
+  // Ngưỡng: pixel tối hơn nền ít nhất DARK_DIFF đơn vị độ sáng
+  const DARK_DIFF = 55;
+  // Tỉ lệ cột "có pixel tối" tối thiểu để kết luận có gạch ngang
+  const STRIKE_RATIO = 0.42;
+
+  const crossed = new Set();
+
+  for(let row=0; row<numCands; row++){
+    const ry0 = Math.floor(contentTop + row*rowH + rowH*0.28);
+    const ry1 = Math.floor(contentTop + row*rowH + rowH*0.72);
+    const rh  = Math.max(1, ry1-ry0);
+
+    const id = ctx.getImageData(bx, ry0, bw, rh);
+    let darkCols = 0;
+
+    for(let x=0; x<bw; x++){
+      let darkPx=0;
+      for(let y=0; y<rh; y++){
+        const idx=(y*bw+x)*4;
+        const lum=(id.data[idx]+id.data[idx+1]+id.data[idx+2])/3;
+        if(bgLum-lum > DARK_DIFF) darkPx++;
+      }
+      // Ít nhất 30% pixel dọc trong cột này tối → cột có mực
+      if(darkPx >= Math.ceil(rh*0.30)) darkCols++;
+    }
+
+    if(darkCols/bw >= STRIKE_RATIO) crossed.add(row);
+  }
+
+  const votedNames = BALLOTS[type].candidates.filter((_,i)=>!crossed.has(i));
+
+  // Vẽ overlay
+  drawOverlay(W,H,numCands,crossed,bx,by,bw,bh,contentTop,contentBot);
+
+  return {crossed, votedNames};
+}
+
+// ============================================================
+// VẼ OVERLAY
+// ============================================================
+function drawOverlay(W,H,numCands,crossed,bx,by,bw,bh,contentTop,contentBot){
+  const ov=document.getElementById('overlay');
+  const vid=document.getElementById('video');
+  const dW=vid.offsetWidth||W, dH=vid.offsetHeight||H;
+  ov.width=dW; ov.height=dH;
+  const sx=dW/W, sy=dH/H;
+  const ctx2=ov.getContext('2d');
+  ctx2.clearRect(0,0,dW,dH);
+
+  const contentH=contentBot-contentTop;
+  const rowH=contentH/numCands;
+
+  for(let row=0; row<numCands; row++){
+    const rx=bx*sx;
+    const ry=(contentTop+row*rowH)*sy;
+    const rw=bw*sx;
+    const rh2=rowH*sy;
+    const isCrossed=crossed.has(row);
+
+    ctx2.fillStyle=isCrossed?'rgba(248,81,73,0.22)':'rgba(63,185,80,0.15)';
+    ctx2.fillRect(rx,ry,rw,rh2);
+
+    ctx2.strokeStyle=isCrossed?'rgba(248,81,73,0.75)':'rgba(63,185,80,0.45)';
+    ctx2.lineWidth=1.5;
+    ctx2.strokeRect(rx+1,ry+1,rw-2,rh2-2);
+
+    const fs=Math.min(rh2*0.62,16);
+    ctx2.font='bold '+fs+'px sans-serif';
+    ctx2.textBaseline='middle';
+
+    // Số thứ tự bên trái
+    ctx2.fillStyle='rgba(255,255,255,0.8)';
+    ctx2.textAlign='left';
+    ctx2.fillText(row+1, rx+5, ry+rh2/2);
+
+    // Icon trạng thái bên phải
+    ctx2.fillStyle=isCrossed?'rgba(248,81,73,0.95)':'rgba(63,185,80,0.95)';
+    ctx2.textAlign='right';
+    ctx2.fillText(isCrossed?'✖':'✔', rx+rw-5, ry+rh2/2);
+  }
+}
+
+function clearOverlay(){
+  const ov=document.getElementById('overlay');
+  ov.getContext('2d').clearRect(0,0,ov.width,ov.height);
+}
+
+// ============================================================
+// FREEZE PANEL
+// ============================================================
+function showFreezePanel(result){
+  const B=BALLOTS[result.type];
+  const voted=result.votedNames.length;
+
+  document.getElementById('fpTitle').textContent='Phiếu '+B.name+' ('+B.colorName+')';
+  const badge=document.getElementById('fpBadge');
+  badge.textContent='Bầu '+B.maxVotes+'/'+B.candidates.length;
+  badge.className='fp-badge '+B.badgeClass;
+
+  document.getElementById('resultList').innerHTML=B.candidates.map((n,i)=>{
+    const isCrossed=result.crossed.has(i);
+    return `<div class="r-row ${isCrossed?'crossed':'voted'}">
+      <div class="r-num">${i+1}</div>
+      <div class="r-name">${n}</div>
+      <div class="r-ico">${isCrossed?'✖':'✔'}</div>
+    </div>`;
+  }).join('');
+
+  const msgEl=document.getElementById('validityMsg');
+  const btnEl=document.getElementById('btnConfirm');
+  if(voted===0){
+    msgEl.textContent='⚠️ Phiếu trắng — không hợp lệ'; msgEl.className='validity-msg err';
+    btnEl.textContent='❌ Ghi nhận phiếu không hợp lệ';
+  } else if(voted>B.maxVotes){
+    msgEl.textContent='⚠️ Bầu '+voted+' người — vượt quá '+B.maxVotes+' (không hợp lệ)'; msgEl.className='validity-msg err';
+    btnEl.textContent='❌ Ghi nhận phiếu không hợp lệ';
+  } else {
+    msgEl.textContent='✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes+' người'; msgEl.className='validity-msg ok';
+    btnEl.textContent='✅ Xác nhận — '+voted+' người được bầu';
+  }
+
+  document.getElementById('freezePanel').classList.add('show');
+  document.getElementById('freezePanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+  setStatus('ready','🔍 Xem kết quả quét','Kiểm tra → Xác nhận hoặc Quét lại');
+  switchTab(result.type);
+}
+
+function rescan(){
+  frozenResult=null; scanState=ST.DETECTING; lockCount=0; lastColorType=null; lockedType=null;
+  clearOverlay();
+  document.getElementById('freezePanel').classList.remove('show');
+  document.getElementById('scanLine').classList.remove('active');
+  setStatus('scan','🔄 Quét lại — đưa phiếu vào khung','');
 }
 
 function confirmBallot(){
-  if(!currentType) return;
-  const B = BALLOTS[currentType];
-  const total = B.candidates.length;
-  const voted = total - crossedSet.size;
+  if(!frozenResult) return;
+  const {type,votedNames,crossed}=frozenResult;
+  const B=BALLOTS[type];
+  const voted=votedNames.length;
+  const isValid=voted>0 && voted<=B.maxVotes;
 
-  // Snapshot trước khi cộng
-  const snapshot = {
-    votes: JSON.parse(JSON.stringify(votes)),
-    stats: {...stats},
-    ballotLog: [...ballotLog]
-  };
+  const snap={votes:JSON.parse(JSON.stringify(votes)), stats:{...stats}, ballotLog:[...ballotLog]};
 
-  if(voted===0 || voted>B.maxVotes){
+  if(!isValid){
     stats.total++; stats.invalid++;
-    const msg = voted===0?'Phiếu trắng':'Bầu quá '+B.maxVotes+' người';
-    setStatus('err','❌ Phiếu không hợp lệ', msg);
     beep(2);
-    const entry = {type:currentType,votedFor:[],crossed:[...crossedSet],valid:false,count:voted,time:new Date().toISOString()};
-    ballotLog.push(entry);
-    undoStack.push({snapshot, entry, desc:'❌ KHL ('+BALLOTS[currentType].name+')'});
+    ballotLog.push({type,votedFor:[],count:voted,valid:false,time:new Date().toISOString()});
+    undoStack.push({snap, desc:'❌ KHL '+B.name+' ('+voted+')'});
+    setStatus('err','❌ Phiếu không hợp lệ', voted===0?'Phiếu trắng':'Bầu quá '+B.maxVotes+' người');
   } else {
     stats.total++; stats.valid++;
-    const votedNames = [];
-    B.candidates.forEach((n,i)=>{ if(!crossedSet.has(i)){ votes[currentType][n]++; votedNames.push(n); } });
+    votedNames.forEach(n=>{ votes[type][n]=(votes[type][n]||0)+1; });
     renderAllRows();
-    votedNames.forEach(n=>bumpVote(currentType,n));
-    setStatus('ok','✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes+' người', B.name);
+    votedNames.forEach(n=>bumpVote(type,n));
     beep(1);
-    const entry = {type:currentType,votedFor:votedNames,crossed:[...crossedSet],valid:true,count:voted,time:new Date().toISOString()};
-    ballotLog.push(entry);
-    undoStack.push({snapshot, entry, desc:'✅ '+BALLOTS[currentType].name+' ('+voted+' người)'});
+    ballotLog.push({type,votedFor:votedNames,count:voted,valid:true,time:new Date().toISOString()});
+    undoStack.push({snap, desc:'✅ '+B.name+' ('+voted+' người)'});
+    setStatus('ok','✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes,B.name);
   }
 
-  // Giới hạn undo stack 20 mục
   if(undoStack.length>20) undoStack.shift();
   updateStats(); saveData(); updateUndoUI();
 
-  setTimeout(()=>{
-    document.getElementById('ballotPanel').classList.remove('show');
-    currentType=null; crossedSet=new Set(); lastDetectedType=null;
-    setStatus('detect','Đưa phiếu tiếp theo vào camera','App tự nhận màu và hiện danh sách');
-  },1200);
+  // Cooldown 3s
+  cooldownUntil=Date.now()+3000;
+  document.getElementById('freezePanel').classList.remove('show');
+  frozenResult=null; scanState=ST.DETECTING; lockCount=0; lastColorType=null; lockedType=null;
+  setTimeout(()=>{ clearOverlay(); setStatus('scan','📷 Phiếu tiếp theo...','Đưa phiếu mới vào khung'); }, 3000);
 }
 
-// ===== UNDO =====
+// ============================================================
+// UNDO
+// ============================================================
 function undoLast(){
   if(!undoStack.length){ alert('Không có gì để xóa.'); return; }
-  if(!confirm('Xóa lần cộng gần nhất?')) return;
-  const last = undoStack.pop();
-  votes = last.snapshot.votes;
-  stats = last.snapshot.stats;
-  ballotLog = last.snapshot.ballotLog;
+  if(!confirm('Xóa lần cộng gần nhất?\n'+undoStack[undoStack.length-1].desc)) return;
+  const last=undoStack.pop();
+  votes=last.snap.votes; stats=last.snap.stats; ballotLog=last.snap.ballotLog;
   renderAllRows(); updateStats(); saveData(); updateUndoUI();
-  setStatus('detect','↩️ Đã xóa: '+last.desc,'Tiếp tục quét phiếu');
+  setStatus('scan','↩️ Đã xóa: '+last.desc,'Tiếp tục quét');
 }
-
 function updateUndoUI(){
-  const wrap = document.getElementById('undoWrap');
-  const info = document.getElementById('undoInfo');
+  const w=document.getElementById('undoWrap');
   if(undoStack.length){
-    wrap.classList.add('show');
-    info.textContent = '— '+undoStack[undoStack.length-1].desc;
+    w.classList.add('show');
+    document.getElementById('undoInfo').textContent=undoStack[undoStack.length-1].desc;
   } else {
-    wrap.classList.remove('show');
+    w.classList.remove('show');
   }
 }
 
-// ===== SCOREBOARD =====
+// ============================================================
+// SCOREBOARD / RESULT
+// ============================================================
 function renderAllRows(){
   ['qh','tinh','xa'].forEach(t=>{
-    const c = document.getElementById('rows-'+t);
-    const sorted = [...BALLOTS[t].candidates].sort((a,b)=>(votes[t][b]||0)-(votes[t][a]||0));
-    c.innerHTML = sorted.map((n,i)=>`
+    const sorted=[...BALLOTS[t].candidates].sort((a,b)=>(votes[t][b]||0)-(votes[t][a]||0));
+    document.getElementById('rows-'+t).innerHTML=sorted.map((n,i)=>`
       <div class="score-row">
         <div class="score-rank">${i+1}</div>
         <div class="score-name">${n}</div>
-        <div class="score-v" id="v-${t}-${n.replace(/\s+/g,'_')}">${votes[t][n]||0}</div>
+        <div class="score-v" id="v-${t}-${i}">${votes[t][n]||0}</div>
       </div>`).join('');
+    // Lưu map index→name để bump
+    if(!window._scoreMap) window._scoreMap={};
+    window._scoreMap[t]=sorted;
   });
 }
-
-function bumpVote(t,n){
-  const el = document.getElementById('v-'+t+'-'+n.replace(/\s+/g,'_'));
+function bumpVote(t,name){
+  if(!window._scoreMap||!window._scoreMap[t]) return;
+  const idx=window._scoreMap[t].indexOf(name);
+  if(idx<0) return;
+  const el=document.getElementById('v-'+t+'-'+idx);
   if(!el) return;
-  el.textContent = votes[t][n]||0;
+  el.textContent=votes[t][name]||0;
   el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
 }
-
 function updateStats(){
-  document.getElementById('totalCount').textContent = stats.total;
-  document.getElementById('validCount').textContent = stats.valid;
-  document.getElementById('invalidCount').textContent = stats.invalid;
+  document.getElementById('totalCount').textContent=stats.total;
+  document.getElementById('validCount').textContent=stats.valid;
+  document.getElementById('invalidCount').textContent=stats.invalid;
 }
-
 function switchTab(t){
-  currentTab = t;
+  currentTab=t;
   document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
   document.querySelector('.tab-'+t).classList.add('active');
-  ['qh','tinh','xa'].forEach(x=>document.getElementById('rows-'+x).classList.toggle('hidden', x!==t));
+  ['qh','tinh','xa'].forEach(x=>document.getElementById('rows-'+x).classList.toggle('hidden',x!==t));
 }
-
 function setStatus(type,title,sub){
-  const bar = document.getElementById('statusBar');
-  bar.className = 'status-bar'+(type==='ok'?' ok':type==='err'?' err':' detect');
-  document.getElementById('statusTitle').textContent = title;
-  document.getElementById('statusSub').textContent = sub;
+  document.getElementById('statusBar').className='status-bar '+({'ok':'ok','err':'err','scan':'scan','ready':'ready'}[type]||'scan');
+  document.getElementById('stIco').textContent={'ok':'✅','err':'❌','scan':'🔍','ready':'📋'}[type]||'📷';
+  document.getElementById('statusTitle').textContent=title;
+  document.getElementById('statusSub').textContent=sub||'';
 }
-
+function updateColorPill(type){
+  const p=document.getElementById('colorPill');
+  if(type==='qh')       {p.style.background='#b0405a';p.style.color='#fff';p.textContent='🌸 Hồng — QH';}
+  else if(type==='tinh'){p.style.background='#1a5cb0';p.style.color='#fff';p.textContent='🔵 Xanh — Tỉnh';}
+  else if(type==='xa')  {p.style.background='#9c7d00';p.style.color='#fff';p.textContent='🟡 Vàng — Xã';}
+  else                  {p.style.background='var(--border)';p.style.color='var(--muted)';p.textContent='Chưa nhận';}
+}
 function beep(times){
   try{
-    const ctx = new(window.AudioContext||window.webkitAudioContext)();
-    for(let i=0;i<times;i++){
-      setTimeout(()=>{
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.frequency.value = times===1?880:330;
-        g.gain.setValueAtTime(0.4,ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
-        o.start(ctx.currentTime); o.stop(ctx.currentTime+0.35);
-      },i*420);
-    }
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    for(let i=0;i<times;i++) setTimeout(()=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g);g.connect(ac.destination);
+      o.frequency.value=times===1?880:330;
+      g.gain.setValueAtTime(0.4,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.35);
+      o.start(ac.currentTime);o.stop(ac.currentTime+0.35);
+    },i*420);
   }catch(e){}
 }
 
-// ===== RESULT =====
 function showResult(){
   document.getElementById('main-app').style.display='none';
   document.getElementById('result-page').classList.add('show');
-  document.getElementById('resultSub').textContent =
-    'Tổng: '+stats.total+' phiếu · Hợp lệ: '+stats.valid+' · Không HL: '+stats.invalid;
-
-  // Bảng điểm ứng viên
+  document.getElementById('resultSub').textContent='Tổng: '+stats.total+' · Hợp lệ: '+stats.valid+' · Không HL: '+stats.invalid;
   ['qh','tinh','xa'].forEach(t=>{
-    const c = document.getElementById('result-rows-'+t);
-    const sorted = [...BALLOTS[t].candidates].sort((a,b)=>(votes[t][b]||0)-(votes[t][a]||0));
-    const maxVal = Math.max(...sorted.map(n=>votes[t][n]||0), 1);
-    c.innerHTML = sorted.map((n,i)=>`
+    const sorted=[...BALLOTS[t].candidates].sort((a,b)=>(votes[t][b]||0)-(votes[t][a]||0));
+    const mx=Math.max(...sorted.map(n=>votes[t][n]||0),1);
+    document.getElementById('result-rows-'+t).innerHTML=sorted.map((n,i)=>`
       <div class="res-row">
-        <div style="flex:1">
-          <div class="res-name">${i+1}. ${n}</div>
-          <div class="res-bar-w"><div class="res-bar" style="width:${Math.round((votes[t][n]||0)/maxVal*100)}%"></div></div>
-        </div>
+        <div style="flex:1"><div class="res-name">${i+1}. ${n}</div>
+          <div class="res-bar-w"><div class="res-bar" style="width:${Math.round((votes[t][n]||0)/mx*100)}%"></div></div></div>
         <div class="res-n">${votes[t][n]||0}</div>
       </div>`).join('');
   });
+  renderDist('qh',3); renderDist('tinh',3); renderDist('xa',5);
 
-  // Phân phối phiếu
-  renderDistribution('qh', 3, 5);
-  renderDistribution('tinh', 3, 5);
-  renderDistribution('xa', 5, 8);
-
-  // Tổng hợp
-  const qhBallots = ballotLog.filter(b=>b.type==='qh');
-  const tinhBallots = ballotLog.filter(b=>b.type==='tinh');
-  const xaBallots = ballotLog.filter(b=>b.type==='xa');
-  const sum = [
-    {l:'🏛️ Quốc Hội — tổng phiếu', v:qhBallots.length},
-    {l:'   ✅ Hợp lệ', v:qhBallots.filter(b=>b.valid).length},
-    {l:'   ❌ Không hợp lệ', v:qhBallots.filter(b=>!b.valid).length, red:true},
-    {l:'🏢 Tỉnh — tổng phiếu', v:tinhBallots.length},
-    {l:'   ✅ Hợp lệ', v:tinhBallots.filter(b=>b.valid).length},
-    {l:'   ❌ Không hợp lệ', v:tinhBallots.filter(b=>!b.valid).length, red:true},
-    {l:'🏘️ Xã — tổng phiếu', v:xaBallots.length},
-    {l:'   ✅ Hợp lệ', v:xaBallots.filter(b=>b.valid).length},
-    {l:'   ❌ Không hợp lệ', v:xaBallots.filter(b=>!b.valid).length, red:true},
-    {l:'📊 TỔNG TẤT CẢ', v:stats.total, bold:true},
-  ];
-  document.getElementById('result-summary').innerHTML = sum.map(s=>
-    '<div class="res-row"><div class="res-name"'
-    +(s.red?' style="color:var(--red)"':s.bold?' style="font-weight:800"':'')+'>'+s.l+'</div>'
-    +'<div class="res-n"'+(s.red?' style="color:var(--red)"':s.bold?' style="color:var(--green)"':'')+'>'+s.v+'</div></div>'
-  ).join('');
+  const S=type=>ballotLog.filter(b=>b.type===type);
+  document.getElementById('result-summary').innerHTML=[
+    {l:'🏛️ Quốc Hội tổng',v:S('qh').length},
+    {l:'   ✅ Hợp lệ',v:S('qh').filter(b=>b.valid).length},
+    {l:'   ❌ Không hợp lệ',v:S('qh').filter(b=>!b.valid).length,red:true},
+    {l:'🏢 Tỉnh tổng',v:S('tinh').length},
+    {l:'   ✅ Hợp lệ',v:S('tinh').filter(b=>b.valid).length},
+    {l:'   ❌ Không hợp lệ',v:S('tinh').filter(b=>!b.valid).length,red:true},
+    {l:'🏘️ Xã tổng',v:S('xa').length},
+    {l:'   ✅ Hợp lệ',v:S('xa').filter(b=>b.valid).length},
+    {l:'   ❌ Không hợp lệ',v:S('xa').filter(b=>!b.valid).length,red:true},
+    {l:'📊 TỔNG TẤT CẢ',v:stats.total,bold:true},
+  ].map(s=>`<div class="res-row">
+    <div class="res-name"${s.red?' style="color:var(--red)"':s.bold?' style="font-weight:800"':''}>${s.l}</div>
+    <div class="res-n"${s.red?' style="color:var(--red)"':s.bold?' style="color:var(--green)"':''}>${s.v}</div>
+  </div>`).join('');
 }
 
-function renderDistribution(type, maxVotes, totalCands){
-  const ballots = ballotLog.filter(b=>b.type===type);
-  const total = ballots.length;
-  const container = document.getElementById('dist-'+type);
-  if(!total){ container.innerHTML='<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Chưa có phiếu nào</div>'; return; }
-
-  // Đếm theo số người được bầu
-  const dist = {};
-  ballots.forEach(b=>{
-    const k = b.valid ? b.count : (b.count===0?'blank':'over');
-    dist[k] = (dist[k]||0)+1;
-  });
-
-  const rows = [];
-  // Phiếu hợp lệ: 1 đến maxVotes người
-  for(let i=1; i<=maxVotes; i++){
-    rows.push({key:i, label:'Bầu '+i+' người', count:dist[i]||0, cls:'b'+i});
-  }
-  // Phiếu trắng
-  rows.push({key:'blank', label:'Phiếu trắng (0)', count:dist['blank']||0, cls:'b0'});
-  // Bầu quá
-  rows.push({key:'over', label:'Bầu quá '+maxVotes+' người', count:dist['over']||0, cls:'binvalid'});
-
-  const maxCount = Math.max(...rows.map(r=>r.count), 1);
-  container.innerHTML = rows.map(r=>`
-    <div class="dist-row">
-      <div class="dist-lbl">${r.label}</div>
-      <div class="dist-bar-w"><div class="dist-bar ${r.cls}" style="width:${Math.round(r.count/maxCount*100)}%"></div></div>
-      <div class="dist-n">${r.count}</div>
-    </div>`).join('');
+function renderDist(type,maxVotes){
+  const bl=ballotLog.filter(b=>b.type===type);
+  const el=document.getElementById('dist-'+type);
+  if(!bl.length){ el.innerHTML='<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Chưa có phiếu</div>'; return; }
+  const dist={};
+  bl.forEach(b=>{ const k=b.valid?b.count:(b.count===0?'blank':'over'); dist[k]=(dist[k]||0)+1; });
+  const rows=[];
+  for(let i=1;i<=maxVotes;i++) rows.push({l:'Bầu '+i+' người',c:dist[i]||0,cls:'b'+i});
+  rows.push({l:'Phiếu trắng (0)',c:dist['blank']||0,cls:'b0'});
+  rows.push({l:'Bầu quá '+maxVotes,c:dist['over']||0,cls:'binvalid'});
+  const mx=Math.max(...rows.map(r=>r.c),1);
+  el.innerHTML=rows.map(r=>`<div class="dist-row">
+    <div class="dist-lbl">${r.l}</div>
+    <div class="dist-bar-w"><div class="dist-bar ${r.cls}" style="width:${Math.round(r.c/mx*100)}%"></div></div>
+    <div class="dist-n">${r.c}</div>
+  </div>`).join('');
 }
 
 function hideResult(){
@@ -752,14 +805,16 @@ function hideResult(){
 }
 
 function resetAll(){
-  if(!confirm('Xóa toàn bộ dữ liệu kiểm phiếu?')) return;
-  localStorage.removeItem('kiemPhieu26_v2');
+  if(!confirm('Xóa toàn bộ dữ liệu?')) return;
+  localStorage.removeItem('kp26');
   votes={}; stats={total:0,valid:0,invalid:0}; ballotLog=[]; undoStack=[];
-  BALLOTS=buildBallots(); initVotes();
-  currentType=null; crossedSet=new Set(); lastDetectedType=null;
-  document.getElementById('ballotPanel').classList.remove('show');
+  BALLOTS=buildBallots(currentUnit); initVotes();
+  frozenResult=null; scanState=ST.DETECTING; lockCount=0; lastColorType=null; lockedType=null;
+  clearOverlay();
+  document.getElementById('freezePanel').classList.remove('show');
+  document.getElementById('scanLine').classList.remove('active');
   renderAllRows(); updateStats(); updateUndoUI(); hideResult();
-  setStatus('detect','Đã reset — Đưa phiếu vào camera','App tự nhận màu và hiện danh sách');
+  setStatus('scan','✅ Đã reset — đưa phiếu vào khung','');
 }
 </script>
 </body>
