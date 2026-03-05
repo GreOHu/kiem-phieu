@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kiểm Phiếu">
+<meta name="theme-color" content="#0d0d1a">
+<title>Kiểm Phiếu Bầu Cử</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body,#root{height:100%;overflow:hidden}
+body{font-family:-apple-system,'Be Vietnam Pro',system-ui,sans-serif;background:#0d0d1a;color:#eeeef8}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes ping{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{box-shadow:0 0 0 6px rgba(52,211,153,0)}}
+@keyframes sline{0%{top:8%}100%{top:90%}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+input,textarea,select,button{font-family:inherit}
+::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback}=React;
+
+const DEFAULT_CFG={
+  qh:{colorHex:"#ff5c95",colorName:"Hồng",label:"Quốc Hội",total:5,lay:3,
+    names:["Lê Hoàng Hải","Nguyễn Hồng Phong","Đặng Doãn Thành","Hoàng Thị Thắm","Bùi Xuân Thống"]},
+  tinh:{colorHex:"#38bdf8",colorName:"Xanh",label:"HĐND Tỉnh",total:5,lay:3,
+    names:["Mai Thị Thùy Dung","Nguyễn Thị Hồng","Nguyễn Kim Long","Phạm Thành Nam","Nguyễn Thanh Tú"]},
+  xa:{colorHex:"#fbbf24",colorName:"Vàng",label:"HĐND Xã",total:8,lay:5,
+    names:["Dương Thị Thái An","Trịnh Văn Duy","Phan Thanh Hà","Lê Ngọc Hiếu","Nguyễn Xuân Linh","Lê Đình Minh","Lê Thị Ngọc Nga","Đinh Thị Vân"]},
+};
+
+function classifyRGB(data){
+  let r=0,g=0,b=0,n=0;
+  for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
+  r/=n;g/=n;b/=n;
+  if((r+g+b)/3<80)return null;
+  if(r>155&&r-g>25&&r-b>15)return"qh";
+  if(b>115&&b>r+12)return"tinh";
+  if(r>155&&g>135&&b<115&&g-b>35)return"xa";
+  return null;
+}
+
+function beep(n){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    const ctx=new AC();
+    const play=(d,f,dur)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;
+      g.gain.setValueAtTime(.35,ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d+dur);
+      o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+dur);
+    };
+    if(n===1)play(0,1320,.14);
+    else{play(0,440,.12);play(.22,330,.15);}
+    setTimeout(()=>ctx.close(),800);
+  }catch(e){}
+}
+
+function App(){
+  const[page,setPage]=useState("scan");
+  const[cfg,setCfg]=useState(DEFAULT_CFG);
+  const[results,setResults]=useState({qh:{},tinh:{},xa:{}});
+  const[history,setHistory]=useState([]);
+  const[total,setTotal]=useState(0);
+  const[validCount,setValidCount]=useState(0);
+  const[invalidCount,setInvalidCount]=useState(0);
+  const[rTab,setRTab]=useState("abc");
+  const[toastState,setToastState]=useState({msg:"",cls:"",show:false});
+  const[scanning,setScanning]=useState(false);
+  const[showAI,setShowAI]=useState(false);
+  const[camError,setCamError]=useState(false);
+  const[cornerState,setCornerState]=useState("idle");
+  const[pillText,setPillText]=useState("Chờ phiếu…");
+  const[statusText,setStatusText]=useState("Đặt phiếu vào khung…");
+  const[setupData,setSetupData]=useState({
+    qh:{total:"5",lay:"3",names:"Lê Hoàng Hải\nNguyễn Hồng Phong\nĐặng Doãn Thành\nHoàng Thị Thắm\nBùi Xuân Thống"},
+    tinh:{total:"5",lay:"3",names:"Mai Thị Thùy Dung\nNguyễn Thị Hồng\nNguyễn Kim Long\nPhạm Thành Nam\nNguyễn Thanh Tú"},
+    xa:{total:"8",lay:"5",names:"Dương Thị Thái An\nTrịnh Văn Duy\nPhan Thanh Hà\nLê Ngọc Hiếu\nNguyễn Xuân Linh\nLê Đình Minh\nLê Thị Ngọc Nga\nĐinh Thị Vân"},
+  });
+
+  const videoRef=useRef(null);
+  const camCanvasRef=useRef(null);
+  const colorCanvasRef=useRef(null);
+  const intervalRef=useRef(null);
+  const cooldownRef=useRef(false);
+  const aiLockRef=useRef(false);
+  const stableRef=useRef(0);
+  const lastCapRef=useRef(null);
+  const cfgRef=useRef(cfg);
+  const totalRef=useRef(0);
+  const STABLE_NEEDED=6;
+  const COOLDOWN_MS=2800;
+
+  useEffect(()=>{cfgRef.current=cfg;},[cfg]);
+  useEffect(()=>{totalRef.current=total;},[total]);
+
+  useEffect(()=>{
+    setResults(prev=>{
+      const nr={qh:{},tinh:{},xa:{}};
+      ["qh","tinh","xa"].forEach(c=>{
+        cfg[c].names.forEach(n=>{nr[c][n]=prev[c]?.[n]||0;});
+      });
+      return nr;
+    });
+  },[cfg]);
+
+  const showToast=useCallback((msg,cls="")=>{
+    setToastState({msg,cls,show:true});
+    setTimeout(()=>setToastState(t=>({...t,show:false})),3200);
+  },[]);
+
+  // Start camera
+  useEffect(()=>{
+    let stream=null;
+    async function startCam(){
+      try{
+        stream=await navigator.mediaDevices.getUserMedia({
+          video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}}
+        });
+        if(videoRef.current){videoRef.current.srcObject=stream;}
+        setCamError(false);
+      }catch(e){setCamError(true);}
+    }
+    startCam();
+    return()=>{if(stream)stream.getTracks().forEach(t=>t.stop());};
+  },[]);
+
+  function detectColor(){
+    const v=videoRef.current,cc=colorCanvasRef.current;
+    if(!v||!cc||v.readyState<2)return null;
+    const ctx=cc.getContext("2d");
+    const vw=v.videoWidth||320,vh=v.videoHeight||240;
+    const sw=Math.round(vw*.5),sh=Math.round(vh*.45);
+    const sx=Math.round((vw-sw)/2),sy=Math.round((vh-sh)/2);
+    ctx.drawImage(v,sx,sy,sw,sh,0,0,80,50);
+    return classifyRGB(ctx.getImageData(0,0,80,50).data);
+  }
+
+  const scanTick=useCallback(()=>{
+    if(aiLockRef.current||cooldownRef.current)return;
+    const cap=detectColor();
+    if(cap===lastCapRef.current&&cap!==null){stableRef.current++;}
+    else{stableRef.current=1;lastCapRef.current=cap;}
+    if(cap){
+      setPillText(`Phiếu ${cfgRef.current[cap].colorName} — ${cfgRef.current[cap].label}`);
+      setCornerState("detected");
+      setStatusText(`Phiếu ${cfgRef.current[cap].colorName} — giữ nguyên…`);
+    }else{
+      setPillText("Chờ phiếu…");
+      setCornerState("idle");
+      setStatusText("Đặt phiếu vào khung…");
+      stableRef.current=0;
+    }
+    if(stableRef.current>=STABLE_NEEDED&&cap){
+      stableRef.current=0;
+      setCornerState("locked");
+      setStatusText("📸 Đang gửi AI…");
+      captureAndSend(cap);
+    }
+  },[]);
+
+  function startScanning(){
+    setScanning(true);
+    setStatusText("Đặt phiếu vào khung…");
+    intervalRef.current=setInterval(scanTick,100);
+    showToast("▶ Bắt đầu quét — đặt phiếu vào khung","ok");
+  }
+
+  function stopScanning(){
+    setScanning(false);
+    clearInterval(intervalRef.current);
+    setCornerState("idle");
+    setPillText("Chờ phiếu…");
+    showToast(`⏹ Đã dừng · ${totalRef.current} phiếu`,"");
+  }
+
+  function captureAndSend(cap){
+    const v=videoRef.current,c=camCanvasRef.current;
+    if(!v||!c)return;
+    c.width=v.videoWidth||640;c.height=v.videoHeight||480;
+    c.getContext("2d").drawImage(v,0,0);
+    sendToAI(c.toDataURL("image/jpeg",.85),cap);
+  }
+
+  async function sendToAI(dataUrl,detectedCap){
+    aiLockRef.current=true;cooldownRef.current=true;
+    setShowAI(true);
+    const c=cfgRef.current;
+    const hint=detectedCap?`Màu camera: ${c[detectedCap].colorName} (${c[detectedCap].label}).`:"Màu chưa rõ.";
+    const prompt=`Phân tích phiếu bầu cử VN. ${hint}
+HỒNG=Quốc hội(${c.qh.total}UV,lấy ${c.qh.lay}): ${c.qh.names.join(",")}
+XANH=HĐND Tỉnh(${c.tinh.total}UV,lấy ${c.tinh.lay}): ${c.tinh.names.join(",")}
+VÀNG=HĐND Xã(${c.xa.total}UV,lấy ${c.xa.lay}): ${c.xa.names.join(",")}
+Tên bị GẠCH=không bầu. Không gạch=được bầu.
+Không hợp lệ: bầu=0, bầu>số ghế, phiếu trắng.
+Trả JSON duy nhất không markdown:
+{"cap":"qh|tinh|xa","danh_sach":[{"ten":"...","bi_gach":true/false}],"so_phieu_bau":N,"hop_le":true/false,"ly_do":""}`;
+    try{
+      const b64=dataUrl.split(",")[1];
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+            {type:"text",text:prompt}
+          ]}]})
+      });
+      const data=await res.json();
+      const raw=(data.content||[]).map(b=>b.text||"").join("");
+      let result;
+      try{result=JSON.parse(raw.replace(/```json|```/g,"").trim());}
+      catch(e){
+        const fc=detectedCap||"qh";
+        result={cap:fc,danh_sach:c[fc].names.map(n=>({ten:n,bi_gach:false})),so_phieu_bau:c[fc].lay,hop_le:true,ly_do:""};
+      }
+      processResult(result);
+    }catch(e){showToast("⚠️ Lỗi kết nối AI","err");}
+    setShowAI(false);aiLockRef.current=false;
+    setTimeout(()=>{cooldownRef.current=false;},COOLDOWN_MS);
+  }
+
+  function processResult(r){
+    const cap=r.cap;if(!cap||!cfgRef.current[cap])return;
+    const c=cfgRef.current[cap];
+    setTotal(p=>p+1);
+    if(r.hop_le){
+      setValidCount(p=>p+1);
+      setResults(prev=>{
+        const nr={...prev,[cap]:{...prev[cap]}};
+        (r.danh_sach||[]).forEach(cd=>{if(!cd.bi_gach){nr[cap][cd.ten]=(nr[cap][cd.ten]||0)+1;}});
+        return nr;
+      });
+      beep(1);
+      showToast(`✅ Phiếu ${c.colorName} · ${r.so_phieu_bau} bầu`,"ok");
+    }else{
+      setInvalidCount(p=>p+1);
+      beep(2);
+      showToast(`❌ KHÔNG HỢP LỆ · ${r.ly_do||""}`,"err");
+    }
+    setHistory(prev=>[{
+      num:prev.length>0?prev[0].num+1:1,
+      cap,valid:r.hop_le,votes:r.so_phieu_bau,
+      color:cfgRef.current[cap].colorHex,
+      label:cfgRef.current[cap].colorName,
+      danh_sach:r.danh_sach||[]
+    },...prev]);
+    setStatusText("✓ Xong — đặt phiếu tiếp theo…");
+  }
+
+  function undoLast(){
+    if(history.length===0)return;
+    const last=history[0];
+    setHistory(p=>p.slice(1));
+    setTotal(p=>Math.max(0,p-1));
+    if(last.valid){
+      setValidCount(p=>Math.max(0,p-1));
+      setResults(prev=>{
+        const nr={...prev,[last.cap]:{...prev[last.cap]}};
+        (last.danh_sach||[]).forEach(cd=>{
+          if(!cd.bi_gach&&nr[last.cap][cd.ten])nr[last.cap][cd.ten]--;
+        });
+        return nr;
+      });
+    }else{setInvalidCount(p=>Math.max(0,p-1));}
+    showToast(`↩ Đã xóa phiếu #${last.num}`,"");
+    beep(1);
+  }
+
+  function saveSetup(){
+    const newCfg={...cfg};
+    ["qh","tinh","xa"].forEach(c=>{
+      const names=setupData[c].names.split("\n").map(n=>n.trim()).filter(Boolean);
+      newCfg[c]={...newCfg[c],total:parseInt(setupData[c].total)||5,lay:parseInt(setupData[c].lay)||3,names};
+    });
+    setCfg(newCfg);
+    showToast("💾 Đã lưu cấu hình","ok");
+  }
+
+  function clearData(){
+    if(!confirm("Xóa toàn bộ kết quả kiểm phiếu?"))return;
+    setTotal(0);setValidCount(0);setInvalidCount(0);setHistory([]);
+    setResults({qh:{},tinh:{},xa:{}});
+    showToast("🗑️ Đã xóa","err");
+  }
+
+  function doExport(){
+    let txt=`BIÊN BẢN KIỂM PHIẾU BẦU CỬ\nNgày: ${new Date().toLocaleDateString("vi-VN")}\nTổng: ${total} | Hợp lệ: ${validCount} | Không HL: ${invalidCount}\n\n`;
+    ["qh","tinh","xa"].forEach(cap=>{
+      const names=Object.keys(results[cap]);if(!names.length)return;
+      txt+=`=== ${cfg[cap].label.toUpperCase()} (Lấy ${cfg[cap].lay}/${cfg[cap].total}) ===\n[A→Z]\n`;
+      [...names].sort((a,b)=>a.localeCompare(b,"vi")).forEach(n=>{txt+=`  ${n}: ${results[cap][n]}\n`;});
+      txt+=`[Cao→Thấp]\n`;
+      [...names].sort((a,b)=>results[cap][b]-results[cap][a]).forEach((n,i)=>{txt+=`  ${i<cfg[cap].lay?"★":" "} ${n}: ${results[cap][n]}\n`;});
+      txt+="\n";
+    });
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain;charset=utf-8"}));
+    a.download=`bien-ban-${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+  }
+
+  // ── Colors ──
+  const cornerColor=cornerState==="locked"?"#fbbf24":cornerState==="detected"?"#34d399":"rgba(255,255,255,0.6)";
+  const capColors={qh:"#ff5c95",tinh:"#38bdf8",xa:"#fbbf24"};
+
+  // ── Result section ──
+  function ResultSection({cap}){
+    const names=Object.keys(results[cap]);if(!names.length)return null;
+    let sorted=names.map(n=>({name:n,votes:results[cap][n]}));
+    const rs=[...sorted].sort((a,b)=>b.votes-a.votes);
+    const winners=new Set(rs.slice(0,cfg[cap].lay).map(x=>x.name));
+    const maxV=Math.max(...sorted.map(s=>s.votes),1);
+    if(rTab==="rank")sorted.sort((a,b)=>b.votes-a.votes);
+    else sorted.sort((a,b)=>a.name.localeCompare(b.name,"vi"));
+    return(
+      <div style={{marginBottom:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+          <div style={{width:12,height:12,borderRadius:"50%",background:cfg[cap].colorHex,flexShrink:0}}/>
+          <div style={{fontSize:12,fontWeight:800,textTransform:"uppercase",letterSpacing:".8px"}}>{cfg[cap].label}</div>
+          <div style={{flex:1,height:1,background:"rgba(255,255,255,0.07)"}}/>
+          <div style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,background:capColors[cap]+"22",color:capColors[cap]}}>Lấy {cfg[cap].lay}/{cfg[cap].total}</div>
+        </div>
+        {sorted.map((s,i)=>{
+          const rp=rTab==="rank"?i+1:null;
+          const rkBg=rp===1?"rgba(251,191,36,.2)":rp===2?"rgba(209,209,209,.15)":rp===3?"rgba(180,120,60,.15)":"#1a1a35";
+          const rkColor=rp===1?"#fbbf24":rp===2?"#d1d1d1":rp===3?"#c97e3a":"#6868a0";
+          const pct=Math.round(s.votes/maxV*100);
+          const isWin=winners.has(s.name);
+          return(
+            <div key={s.name} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:11,background:"#13132a",border:"1px solid rgba(255,255,255,0.07)",marginBottom:5}}>
+              <div style={{width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,background:rkBg,color:rkColor,flexShrink:0,fontFamily:"monospace"}}>{rp||"—"}</div>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                  <span style={{fontSize:13,fontWeight:500}}>{s.name}</span>
+                  {isWin&&<span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:20,background:"rgba(167,139,250,.15)",color:"#a78bfa"}}>Trúng cử</span>}
+                </div>
+                <div style={{height:3,background:"#222240",borderRadius:2,marginTop:4}}>
+                  <div style={{height:"100%",borderRadius:2,width:pct+"%",background:capColors[cap],minWidth:4,transition:"width .5s"}}/>
+                </div>
+              </div>
+              <div style={{fontFamily:"monospace",fontSize:15,fontWeight:700}}>{s.votes}</div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // ── Setup card ──
+  function SetupCard({cap,col,title}){
+    return(
+      <div style={{background:"#13132a",border:"1.5px solid rgba(255,255,255,0.07)",borderRadius:14,padding:14,marginBottom:12}}>
+        <div style={{fontSize:12,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+          <div style={{width:13,height:13,borderRadius:"50%",background:col,flexShrink:0}}/>
+          {title}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+          {[["total","Tổng ứng viên"],["lay","Số ghế (lấy)"]].map(([k,lb])=>(
+            <div key={k}>
+              <div style={{fontSize:10,fontWeight:700,color:"#6868a0",textTransform:"uppercase",letterSpacing:".8px",marginBottom:4}}>{lb}</div>
+              <input type="number" min="1"
+                style={{width:"100%",background:"#1a1a35",border:"1.5px solid rgba(255,255,255,0.07)",borderRadius:10,color:"#eeeef8",fontSize:13,padding:"9px 12px",outline:"none"}}
+                value={setupData[cap][k]}
+                onChange={e=>setSetupData(p=>({...p,[cap]:{...p[cap],[k]:e.target.value}}))}/>
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:10,fontWeight:700,color:"#6868a0",textTransform:"uppercase",letterSpacing:".8px",marginBottom:4}}>Danh sách ứng viên (mỗi dòng 1 tên)</div>
+        <textarea
+          style={{width:"100%",background:"#1a1a35",border:"1.5px solid rgba(255,255,255,0.07)",borderRadius:10,color:"#eeeef8",fontSize:13,padding:"9px 12px",outline:"none",resize:"vertical",minHeight:100}}
+          value={setupData[cap].names}
+          onChange={e=>setSetupData(p=>({...p,[cap]:{...p[cap],names:e.target.value}}))}/>
+      </div>
+    );
+  }
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",background:"#0d0d1a",color:"#eeeef8",overflow:"hidden"}}>
+
+      {/* HEADER */}
+      <div style={{flexShrink:0,background:"#13132a",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"10px 14px",paddingTop:"max(10px,env(safe-area-inset-top))",display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:22}}>🗳️</span>
+        <div style={{flex:1}}>
+          <div style={{fontSize:14,fontWeight:800}}>Hệ Thống Kiểm Phiếu</div>
+          <div style={{fontSize:10,color:"#6868a0",marginTop:1}}>HĐND 3 cấp · Quốc hội · Tỉnh · Xã</div>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div style={{flexShrink:0,display:"flex",background:"#13132a",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
+        {[["scan","📷","Quét phiếu"],["result","📊","Kết quả"],["setup","⚙️","Cấu hình"]].map(([p,ic,lb])=>(
+          <button key={p} onClick={()=>setPage(p)} style={{flex:1,padding:"9px 4px",fontSize:11,fontWeight:700,color:page===p?"#eeeef8":"#6868a0",background:"transparent",border:"none",borderBottom:page===p?"2px solid #34d399":"2px solid transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <span style={{fontSize:16,lineHeight:1}}>{ic}</span>{lb}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ PAGE SCAN ══ */}
+      {page==="scan"&&(
+        <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
+
+          {/* Camera zone */}
+          <div style={{flexShrink:0,position:"relative",background:"#000",flex:1,minHeight:0,overflow:"hidden"}}>
+            <video ref={videoRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+            <canvas ref={camCanvasRef} style={{display:"none"}}/>
+            <canvas ref={colorCanvasRef} width={80} height={50} style={{display:"none"}}/>
+
+            {camError&&(
+              <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,color:"#6868a0",fontSize:12,background:"#0d0d1a"}}>
+                <div style={{fontSize:48}}>📷</div>
+                <div style={{textAlign:"center",lineHeight:1.6}}>Camera không khả dụng<br/>Hãy cấp quyền camera<br/>cho trang web này</div>
+              </div>
+            )}
+
+            {/* Frame */}
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+              <div style={{position:"relative",width:"75%",aspectRatio:"1.55",borderRadius:10,boxShadow:"0 0 0 2000px rgba(0,0,0,0.45)"}}>
+                {/* Corners */}
+                {[["tl","top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:4px 0 0 0"],
+                  ["tr","top:-2px;right:-2px;border-width:3px 3px 0 0;border-radius:0 4px 0 0"],
+                  ["bl","bottom:-2px;left:-2px;border-width:0 0 3px 3px;border-radius:0 0 0 4px"],
+                  ["br","bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 4px 0"]
+                ].map(([k,s])=>(
+                  <div key={k} style={{position:"absolute",width:20,height:20,borderColor:cornerColor,borderStyle:"solid",transition:"border-color .3s",...Object.fromEntries(s.split(";").filter(Boolean).map(x=>{const[prop,...v]=x.trim().split(":");return[prop.trim().replace(/-([a-z])/g,(_,c)=>c.toUpperCase()),v.join(":").trim()];}))}}/>
+                ))}
+                {/* Scan line */}
+                {scanning&&<div style={{position:"absolute",left:8,right:8,height:2,background:"linear-gradient(90deg,transparent,#34d399 50%,transparent)",borderRadius:2,animation:"sline 1.8s ease-in-out infinite",top:"8%"}}/>}
+              </div>
+            </div>
+
+            {/* Pill */}
+            <div style={{position:"absolute",top:10,left:"50%",transform:"translateX(-50%)",padding:"4px 14px",borderRadius:20,fontSize:11,fontWeight:700,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",zIndex:2}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:cornerState==="idle"?"#666":cfg[lastCapRef.current||"qh"]?.colorHex||"#666",transition:"background .3s"}}/>
+              <span>{pillText}</span>
+            </div>
+
+            {/* AI overlay */}
+            {showAI&&(
+              <div style={{position:"absolute",inset:0,zIndex:10,background:"rgba(10,10,28,0.8)",backdropFilter:"blur(4px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
+                <div style={{width:38,height:38,border:"3px solid rgba(255,255,255,0.1)",borderTopColor:"#a78bfa",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>
+                <div style={{fontSize:12,fontWeight:600,color:"#9898c0"}}>AI đang phân tích…</div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{flexShrink:0,background:"#13132a",borderTop:"1px solid rgba(255,255,255,0.07)",padding:"10px 14px",paddingBottom:"max(10px,env(safe-area-inset-bottom))"}}>
+            {!scanning?(
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <button onClick={startScanning} style={{width:"100%",padding:15,borderRadius:14,background:"#34d399",color:"#061a10",fontSize:15,fontWeight:800,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  ▶ Bắt đầu quét liên tục
+                </button>
+                {history.length>0&&(
+                  <button onClick={undoLast} style={{width:"100%",padding:11,borderRadius:12,background:"rgba(167,139,250,0.1)",border:"1.5px solid rgba(167,139,250,0.3)",color:"#a78bfa",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                    ↩ Hoàn tác phiếu #{history[0]?.num} vừa quét
+                  </button>
+                )}
+              </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:12,background:"#1a1a35",border:"1px solid rgba(255,255,255,0.07)"}}>
+                  <div style={{width:10,height:10,borderRadius:"50%",background:"#34d399",animation:"ping 1.5s ease-in-out infinite",flexShrink:0}}/>
+                  <div style={{fontSize:12,fontWeight:600,color:"#9898c0",flex:1}}>{statusText}</div>
+                  <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,color:"#34d399"}}>{total} phiếu</div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={stopScanning} style={{flex:1,padding:13,borderRadius:14,background:"rgba(248,113,113,0.1)",border:"1.5px solid rgba(248,113,113,0.3)",color:"#f87171",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+                    ⏹ Kết thúc
+                  </button>
+                  {history.length>0&&(
+                    <button onClick={undoLast} style={{flexShrink:0,padding:"13px 16px",borderRadius:14,background:"rgba(167,139,250,0.1)",border:"1.5px solid rgba(167,139,250,0.3)",color:"#a78bfa",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                      ↩ #{history[0]?.num}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div style={{flexShrink:0,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,padding:"10px 14px",background:"#0d0d1a",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+            {[[total,"Tổng phiếu","#eeeef8"],[validCount,"Hợp lệ","#34d399"],[invalidCount,"Không HL","#f87171"]].map(([v,l,c],i)=>(
+              <div key={i} style={{background:"#13132a",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
+                <div style={{fontSize:24,fontWeight:800,fontFamily:"monospace",lineHeight:1,color:c}}>{v}</div>
+                <div style={{fontSize:10,color:"#6868a0",marginTop:3}}>{l}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Recent */}
+          {history.length>0&&(
+            <div style={{padding:"8px 14px 10px",background:"#0d0d1a",maxHeight:140,overflowY:"auto",flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <div style={{fontSize:10,fontWeight:700,color:"#6868a0",textTransform:"uppercase",letterSpacing:1}}>Gần đây</div>
+                <div style={{flex:1,height:1,background:"rgba(255,255,255,0.07)"}}/>
+              </div>
+              {history.slice(0,5).map((h,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 12px",borderRadius:10,background:"#13132a",border:"1px solid rgba(255,255,255,0.07)",marginBottom:5,animation:"fadeIn .3s ease"}}>
+                  <span style={{fontFamily:"monospace",fontSize:10,color:"#6868a0",width:24}}>#{h.num}</span>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:h.color,flexShrink:0,display:"inline-block"}}/>
+                  <span style={{fontSize:11,fontWeight:600,flex:1}}>{h.label} · {h.votes} bầu</span>
+                  <span style={{fontSize:14}}>{h.valid?"✅":"❌"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ PAGE RESULT ══ */}
+      {page==="result"&&(
+        <div style={{flex:1,overflowY:"auto"}}>
+          <div style={{padding:"12px 14px 100px"}}>
+            <div style={{display:"flex",gap:6,marginBottom:14}}>
+              {[["abc","A → Z"],["rank","Cao → Thấp"]].map(([t,lb])=>(
+                <button key={t} onClick={()=>setRTab(t)} style={{padding:"6px 14px",borderRadius:20,fontSize:11,fontWeight:700,border:"1.5px solid"+(rTab===t?" #a78bfa":" rgba(255,255,255,0.07)"),background:rTab===t?"#a78bfa":"transparent",color:rTab===t?"#fff":"#6868a0",cursor:"pointer"}}>
+                  {lb}
+                </button>
+              ))}
+            </div>
+            {["qh","tinh","xa"].map(cap=><ResultSection key={cap} cap={cap}/>)}
+            <button onClick={doExport} style={{width:"100%",padding:14,borderRadius:14,background:"#a78bfa",color:"#fff",fontSize:14,fontWeight:800,border:"none",cursor:"pointer",marginTop:4}}>
+              📄 Xuất biên bản .txt
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══ PAGE SETUP ══ */}
+      {page==="setup"&&(
+        <div style={{flex:1,overflowY:"auto"}}>
+          <div style={{padding:"12px 14px 100px"}}>
+            <SetupCard cap="qh" col="#ff5c95" title="Phiếu HỒNG — Quốc Hội"/>
+            <SetupCard cap="tinh" col="#38bdf8" title="Phiếu XANH — HĐND Tỉnh"/>
+            <SetupCard cap="xa" col="#fbbf24" title="Phiếu VÀNG — HĐND Xã"/>
+            <button onClick={saveSetup} style={{width:"100%",padding:14,borderRadius:14,background:"#34d399",color:"#061a10",fontSize:14,fontWeight:800,border:"none",cursor:"pointer",marginBottom:8}}>
+              💾 Lưu cấu hình
+            </button>
+            <button onClick={clearData} style={{width:"100%",padding:13,borderRadius:14,background:"rgba(248,113,113,0.1)",border:"1.5px solid rgba(248,113,113,0.25)",color:"#f87171",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+              🗑️ Xóa toàn bộ kết quả
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST */}
+      <div style={{position:"fixed",bottom:80,left:"50%",transform:toastState.show?"translateX(-50%) translateY(0)":"translateX(-50%) translateY(16px)",padding:"10px 18px",borderRadius:12,fontSize:13,fontWeight:700,background:"#222240",border:"1px solid rgba(255,255,255,0.07)",color:toastState.cls==="ok"?"#34d399":toastState.cls==="err"?"#f87171":"#eeeef8",opacity:toastState.show?1:0,transition:"all .3s cubic-bezier(.34,1.56,.64,1)",pointerEvents:"none",whiteSpace:"nowrap",zIndex:9999,boxShadow:"0 6px 24px rgba(0,0,0,0.4)"}}>
+        {toastState.msg}
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
