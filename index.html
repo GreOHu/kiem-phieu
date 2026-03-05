@@ -46,33 +46,39 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .st-ico{font-size:18px;flex-shrink:0;}
 .st-t{font-size:13px;font-weight:700;}.st-s{font-size:11px;color:var(--muted);}
 
+/* Camera */
 .cam-wrap{margin:0 10px 6px;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border);}
-.cam-top{background:var(--card);padding:5px 10px;display:flex;align-items:center;justify-content:space-between;}
+.cam-top{background:var(--card);padding:6px 10px;display:flex;align-items:center;justify-content:space-between;}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pulse 1.5s infinite;}
 .dot.live{background:var(--green);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.cam-lbl-t{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
-.color-pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--border);color:var(--muted);transition:background .3s;}
+.cam-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+.type-pill{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;background:var(--border);color:var(--muted);transition:all .3s;}
 
-.vid-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;}
+.vid-wrap{position:relative;width:100%;aspect-ratio:3/4;background:#000;}
 #video{width:100%;height:100%;object-fit:cover;display:block;}
 #overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
 #canvas{display:none;}
-.fc,.fc2{position:absolute;top:10%;left:5%;width:90%;height:80%;pointer-events:none;}
-.fc::before,.fc::after,.fc2::before,.fc2::after{content:'';position:absolute;width:20px;height:20px;}
-.fc::before{top:0;left:0;border-top:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:4px 0 0 0;}
-.fc::after{bottom:0;left:0;border-bottom:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:0 0 0 4px;}
-.fc2::before{top:0;right:0;border-top:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 4px 0 0;}
-.fc2::after{bottom:0;right:0;border-bottom:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 0 4px 0;}
-.scan-line{position:absolute;left:5%;width:90%;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);
-  animation:scanMove 2s linear infinite;display:none;pointer-events:none;}
-.scan-line.active{display:block;}
-@keyframes scanMove{0%{top:10%}100%{top:90%}}
+
+/* Hướng dẫn đặt phiếu — frame cố định */
+.guide-frame{position:absolute;top:4%;left:3%;width:94%;height:92%;pointer-events:none;border:2px dashed rgba(246,201,14,0.4);border-radius:6px;}
+.guide-frame::before,.guide-frame::after,.gf2::before,.gf2::after{content:'';position:absolute;width:22px;height:22px;}
+.guide-frame::before{top:-2px;left:-2px;border-top:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:4px 0 0 0;}
+.guide-frame::after{bottom:-2px;left:-2px;border-bottom:3px solid var(--gold);border-left:3px solid var(--gold);border-radius:0 0 0 4px;}
+.gf2{position:absolute;top:4%;left:3%;width:94%;height:92%;pointer-events:none;}
+.gf2::before{top:-2px;right:-2px;border-top:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 4px 0 0;}
+.gf2::after{bottom:-2px;right:-2px;border-bottom:3px solid var(--gold);border-right:3px solid var(--gold);border-radius:0 0 4px 0;}
+
+.scan-line{position:absolute;left:3%;width:94%;height:2px;background:linear-gradient(90deg,transparent,rgba(246,201,14,0.9),transparent);
+  pointer-events:none;display:none;}
+.scan-line.active{display:block;animation:scanMove 1.8s ease-in-out infinite;}
+@keyframes scanMove{0%{top:4%}100%{top:94%}}
 
 .btn-cam{display:block;width:calc(100% - 20px);margin:0 10px 6px;padding:11px;
   background:linear-gradient(135deg,#1a3a5c,#1b2a4a);border:1px solid var(--blue);
   border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
 
+/* Freeze / Confirm panel */
 .freeze-panel{margin:0 10px 6px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:none;}
 .freeze-panel.show{display:block;}
 .fp-hdr{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
@@ -87,13 +93,13 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .r-row:last-child{border-bottom:none;}
 .r-row.voted{background:rgba(63,185,80,.06);}
 .r-row.crossed{background:rgba(248,81,73,.06);}
-.r-num{width:22px;font-size:11px;font-weight:700;color:var(--muted);}
+.r-num{width:22px;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;}
 .r-name{flex:1;font-size:13px;font-weight:500;}
-.r-row.crossed .r-name{color:var(--red);text-decoration:line-through;opacity:.65;}
+.r-row.crossed .r-name{color:var(--red);text-decoration:line-through;opacity:.7;}
 .r-row.voted .r-name{color:var(--green);}
 .r-ico{font-size:16px;flex-shrink:0;}
 
-.validity-msg{font-size:11px;text-align:center;margin-bottom:8px;font-weight:600;padding:6px 13px 0;}
+.validity-msg{font-size:11px;text-align:center;font-weight:600;padding:7px 13px 0;}
 .validity-msg.ok{color:var(--green);}.validity-msg.err{color:var(--red);}
 .confirm-btns{display:flex;gap:8px;padding:8px 13px 11px;}
 .btn-confirm-ok{flex:1;padding:13px;border:none;border-radius:10px;font-size:14px;font-weight:800;
@@ -106,6 +112,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .btn-undo{width:100%;padding:10px;background:rgba(255,123,156,.08);border:1px solid rgba(255,123,156,.25);
   border-radius:10px;color:var(--pink);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 
+/* Scoreboard */
 .score-section{margin:0 10px 6px;}
 .tabs{display:flex;background:var(--card);border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:none;}
 .tab{flex:1;padding:8px 4px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);transition:all .15s;}
@@ -126,6 +133,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .btn-result-main{width:100%;padding:12px;background:linear-gradient(135deg,#f6c90e,#e8a000);border:none;
   border-radius:10px;color:#0d1117;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
 
+/* Result page */
 #result-page{display:none;}
 #result-page.show{display:block;}
 .res-hdr{padding:11px 13px;background:var(--card);border-bottom:1px solid var(--border);
@@ -145,13 +153,8 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .dist-lbl{width:110px;font-size:11px;color:var(--muted);font-weight:600;}
 .dist-bar-w{flex:1;height:14px;background:rgba(255,255,255,.05);border-radius:7px;overflow:hidden;}
 .dist-bar{height:100%;border-radius:7px;}
-.b1{background:linear-gradient(90deg,#58a6ff,#1f6feb);}
-.b2{background:linear-gradient(90deg,#3fb950,#238636);}
-.b3{background:linear-gradient(90deg,#f6c90e,#e8a000);}
-.b4{background:linear-gradient(90deg,#ff7b9c,#d44d6e);}
-.b5{background:linear-gradient(90deg,#bd93f9,#6e40c9);}
-.b0{background:rgba(139,148,158,.3);}
-.binvalid{background:rgba(248,81,73,.5);}
+.b1{background:#58a6ff;}.b2{background:#3fb950;}.b3{background:#f6c90e;}.b4{background:#ff7b9c;}.b5{background:#bd93f9;}
+.b0{background:rgba(139,148,158,.3);}.binvalid{background:rgba(248,81,73,.5);}
 .dist-n{width:30px;text-align:right;font-size:12px;font-weight:700;}
 .hidden{display:none!important;}
 </style>
@@ -180,20 +183,21 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 
   <div class="status-bar scan" id="statusBar">
     <div class="st-ico" id="stIco">📷</div>
-    <div><div class="st-t" id="statusTitle">Bật camera và đưa phiếu vào</div>
-    <div class="st-s" id="statusSub">Nhận màu → tự quét → tự cộng phiếu</div></div>
+    <div><div class="st-t" id="statusTitle">Bật camera và đưa phiếu vào khung</div>
+    <div class="st-s" id="statusSub">Tự nhận loại phiếu → tự phát hiện gạch → tự cộng</div></div>
   </div>
 
   <div class="cam-wrap">
     <div class="cam-top">
-      <span class="cam-lbl-t"><span class="dot" id="camDot"></span>Camera quét phiếu</span>
-      <span class="color-pill" id="colorPill">Chưa nhận</span>
+      <span class="cam-label"><span class="dot" id="camDot"></span>Camera</span>
+      <span class="type-pill" id="typePill">Chưa nhận phiếu</span>
     </div>
     <div class="vid-wrap">
       <video id="video" autoplay playsinline muted></video>
       <canvas id="canvas"></canvas>
       <canvas id="overlay"></canvas>
-      <div class="fc"></div><div class="fc2"></div>
+      <div class="guide-frame"></div>
+      <div class="gf2"></div>
       <div class="scan-line" id="scanLine"></div>
     </div>
   </div>
@@ -202,13 +206,13 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
   <div class="freeze-panel" id="freezePanel">
     <div class="fp-hdr">
       <div class="fp-title" id="fpTitle">Kết quả quét</div>
-      <div class="fp-badge" id="fpBadge">Bầu ?/?</div>
+      <div class="fp-badge" id="fpBadge">?/?</div>
     </div>
     <div class="result-list" id="resultList"></div>
     <div class="validity-msg" id="validityMsg"></div>
     <div class="confirm-btns">
       <button class="btn-rescan" onclick="rescan()">🔄 Quét lại</button>
-      <button class="btn-confirm-ok" id="btnConfirm" onclick="confirmBallot()">✅ Xác nhận</button>
+      <button class="btn-confirm-ok" onclick="confirmBallot()">✅ Xác nhận</button>
     </div>
   </div>
 
@@ -241,41 +245,22 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
   </div>
   <div class="res-body">
     <div style="color:var(--muted);font-size:12px;text-align:center;padding:4px 0 10px" id="resultSub"></div>
-    <div class="res-section">
-      <div class="res-sec-hdr" style="color:var(--pink)">🏛️ Quốc Hội Khóa XVI (Hồng — Bầu 3/5)</div>
-      <div id="result-rows-qh"></div>
-    </div>
-    <div class="res-section">
-      <div class="res-sec-hdr" style="color:var(--pink)">📊 Phân phối phiếu Quốc Hội</div>
-      <div id="dist-qh"></div>
-    </div>
-    <div class="res-section">
-      <div class="res-sec-hdr" style="color:var(--blue)">🏢 HĐND Tỉnh Đồng Nai XI (Xanh — Bầu 3/5)</div>
-      <div id="result-rows-tinh"></div>
-    </div>
-    <div class="res-section">
-      <div class="res-sec-hdr" style="color:var(--blue)">📊 Phân phối phiếu Tỉnh</div>
-      <div id="dist-tinh"></div>
-    </div>
-    <div class="res-section">
-      <div class="res-sec-hdr" style="color:var(--gold)">🏘️ HĐND Xã Trị An XIII (Vàng — Bầu 5/8)</div>
-      <div id="result-rows-xa"></div>
-    </div>
-    <div class="res-section">
-      <div class="res-sec-hdr" style="color:var(--gold)">📊 Phân phối phiếu Xã</div>
-      <div id="dist-xa"></div>
-    </div>
-    <div class="res-section">
-      <div class="res-sec-hdr">📋 Tổng hợp</div>
-      <div id="result-summary"></div>
-    </div>
+    <div class="res-section"><div class="res-sec-hdr" style="color:var(--pink)">🏛️ Quốc Hội Khóa XVI (Phiếu Hồng — Bầu 3/5)</div><div id="result-rows-qh"></div></div>
+    <div class="res-section"><div class="res-sec-hdr" style="color:var(--pink)">📊 Phân phối QH</div><div id="dist-qh"></div></div>
+    <div class="res-section"><div class="res-sec-hdr" style="color:var(--blue)">🏢 HĐND Tỉnh ĐN XI (Phiếu Xanh — Bầu 3/5)</div><div id="result-rows-tinh"></div></div>
+    <div class="res-section"><div class="res-sec-hdr" style="color:var(--blue)">📊 Phân phối Tỉnh</div><div id="dist-tinh"></div></div>
+    <div class="res-section"><div class="res-sec-hdr" style="color:var(--gold)">🏘️ HĐND Xã Trị An XIII (Phiếu Vàng — Bầu 5/8)</div><div id="result-rows-xa"></div></div>
+    <div class="res-section"><div class="res-sec-hdr" style="color:var(--gold)">📊 Phân phối Xã</div><div id="dist-xa"></div></div>
+    <div class="res-section"><div class="res-sec-hdr">📋 Tổng hợp</div><div id="result-summary"></div></div>
     <div style="height:28px"></div>
   </div>
 </div>
 
 <script>
 // ============================================================
-// DỮ LIỆU
+// DỮ LIỆU ỨNG CỬ VIÊN
+// Thực tế: QH và XA đều phiếu TRẮNG. TINH = phiếu XANH.
+// Phân biệt QH(5 hàng) vs XA(8 hàng) bằng đếm hàng đều.
 // ============================================================
 const QH   = ['Lê Hoàng Hải','Nguyễn Hồng Phong','Đặng Doãn Thành','Hoàng Thị Thắm','Bùi Xuân Thống'];
 const TINH = ['Mai Thị Thùy Dung','Nguyễn Thị Hồng','Nguyễn Kim Long','Phạm Thành Nam','Nguyễn Thanh Tú'];
@@ -289,35 +274,31 @@ const XA   = {
 
 function buildBallots(u){
   return {
-    qh:   {name:'Quốc Hội',         colorName:'Hồng', maxVotes:3, badgeClass:'badge-qh',   candidates:[...QH]},
-    tinh: {name:'HĐND Tỉnh',        colorName:'Xanh', maxVotes:3, badgeClass:'badge-tinh', candidates:[...TINH]},
-    xa:   {name:'HĐND Xã Đ.vị '+u, colorName:'Vàng', maxVotes:5, badgeClass:'badge-xa',   candidates:[...XA[u]]}
+    qh:  {name:'Quốc Hội',          maxVotes:3, badgeClass:'badge-qh',   candidates:[...QH]},
+    tinh:{name:'HĐND Tỉnh',         maxVotes:3, badgeClass:'badge-tinh', candidates:[...TINH]},
+    xa:  {name:'HĐND Xã Đ.vị '+u,  maxVotes:5, badgeClass:'badge-xa',   candidates:[...XA[u]]}
   };
 }
 
 // ============================================================
 // STATE
 // ============================================================
-let currentUnit = 1, BALLOTS = buildBallots(1);
+let currentUnit=1, BALLOTS=buildBallots(1);
 let votes={}, stats={total:0,valid:0,invalid:0}, ballotLog=[], undoStack=[];
 let stream=null, scanInterval=null, currentTab='qh';
+let scanState='detecting'; // 'detecting' | 'locking' | 'frozen'
+let lockCount=0, lastDetType=null, lockedType=null;
+const LOCK_NEEDED=6;
+let frozenResult=null;
+let cooldownUntil=0;
 
-// Máy trạng thái quét
-const ST = {DETECTING:'detecting', LOCKING:'locking', FROZEN:'frozen'};
-let scanState = ST.DETECTING;
-let lockedType = null, lockCount = 0, lastColorType = null;
-const LOCK_NEEDED = 5;   // số frame màu ổn định trước khi phân tích
-let frozenResult = null;
-let cooldownUntil = 0;
-
-// Load saved
 try{
-  const d = JSON.parse(localStorage.getItem('kp26')||'{}');
+  const d=JSON.parse(localStorage.getItem('kp26')||'{}');
   if(d.votes) votes=d.votes;
   if(d.stats) stats=d.stats;
   if(d.ballotLog) ballotLog=d.ballotLog;
   if(d.undoStack) undoStack=d.undoStack;
-  if(d.currentUnit){ currentUnit=d.currentUnit; BALLOTS=buildBallots(currentUnit); }
+  if(d.currentUnit){currentUnit=d.currentUnit;BALLOTS=buildBallots(currentUnit);}
 }catch(e){}
 
 function initVotes(){
@@ -328,12 +309,9 @@ function initVotes(){
 }
 initVotes();
 
-// ============================================================
-// INIT UI
-// ============================================================
+// Build unit buttons
 (function(){
   const g=document.getElementById('unitGrid');
-  g.innerHTML='';
   for(let i=1;i<=5;i++){
     const b=document.createElement('button');
     b.className='unit-btn'+(i===currentUnit?' active':'');
@@ -364,174 +342,317 @@ async function startCamera(){
     });
     const vid=document.getElementById('video');
     vid.srcObject=stream;
-    vid.onloadedmetadata=()=>resizeOverlay();
+    vid.onloadedmetadata=resizeOverlay;
     document.getElementById('btnCamera').classList.add('hidden');
     document.getElementById('camDot').classList.add('live');
-    scanState=ST.DETECTING;
-    scanInterval=setInterval(scanFrame,300);
-    setStatus('scan','📷 Đang quét...','Đưa phiếu vào khung — nhận màu tự động');
+    scanState='detecting';
+    scanInterval=setInterval(scanFrame,350);
+    setStatus('scan','📷 Đang quét...','Đặt phiếu phẳng trong khung · Hồng=QH · Xanh=Tỉnh · Vàng=Xã');
   }catch(e){ alert('Không mở được camera: '+e.message); }
 }
 
 function resizeOverlay(){
-  const vid=document.getElementById('video');
-  const ov=document.getElementById('overlay');
-  ov.width=vid.videoWidth||vid.offsetWidth;
-  ov.height=vid.videoHeight||vid.offsetHeight;
+  const v=document.getElementById('video');
+  const o=document.getElementById('overlay');
+  o.width=v.videoWidth||v.offsetWidth;
+  o.height=v.videoHeight||v.offsetHeight;
 }
 
 // ============================================================
-// VÒNG LẶP QUÉT CHÍNH
+// VÒNG LẶP QUÉT
 // ============================================================
 function scanFrame(){
-  if(scanState===ST.FROZEN) return;
+  if(scanState==='frozen') return;
   const video=document.getElementById('video');
   const canvas=document.getElementById('canvas');
   if(!video.videoWidth) return;
-
   canvas.width=video.videoWidth;
   canvas.height=video.videoHeight;
   const ctx=canvas.getContext('2d');
   ctx.drawImage(video,0,0);
+  if(Date.now()<cooldownUntil){ clearOverlay(); return; }
 
-  // Bước 1: nhận diện màu
-  const type=detectColor(ctx,canvas.width,canvas.height);
-  updateColorPill(type);
+  // Bước 1: Nhận diện màu (Xanh = Tỉnh; Trắng = QH hoặc Xã)
+  const baseColor=detectBaseColor(ctx,canvas.width,canvas.height);
 
-  if(!type){
-    lockCount=0; lastColorType=null;
+  if(!baseColor){
+    lockCount=0; lastDetType=null;
     clearOverlay();
-    if(Date.now()>cooldownUntil)
-      setStatus('scan','📷 Đưa phiếu vào khung','Hồng = QH · Xanh = Tỉnh · Vàng = Xã');
+    updateTypePill(null,null);
+    setStatus('scan','📷 Đặt phiếu vào khung','🌸 Hồng=QH · 🔵 Xanh=Tỉnh · 🟡 Vàng=Xã');
     return;
   }
 
-  if(Date.now()<cooldownUntil){ clearOverlay(); return; }
-
-  // Bước 2: ổn định qua N frame
-  if(type===lastColorType){ lockCount++; } else { lastColorType=type; lockCount=1; }
+  // Bước 2: Nếu màu trắng → cần đếm hàng để phân biệt QH(5) vs XA(8)
+  // Nếu màu xanh → luôn là Tỉnh(5)
+  // Ổn định qua N frame
+  if(baseColor===lastDetType){ lockCount++; } else { lastDetType=baseColor; lockCount=1; }
 
   if(lockCount<LOCK_NEEDED){
     document.getElementById('scanLine').classList.add('active');
-    setStatus('scan','🔒 Khóa phiếu '+BALLOTS[type].colorName+'...','Giữ nguyên — '+lockCount+'/'+LOCK_NEEDED);
+    setStatus('scan','🔒 Đang khóa phiếu...','Giữ nguyên phiếu — '+lockCount+'/'+LOCK_NEEDED+' frame');
     return;
   }
 
-  // Bước 3: đủ frame → phân tích gạch
+  // Bước 3: phân tích ảnh
   document.getElementById('scanLine').classList.remove('active');
-  lockedType=type;
-  scanState=ST.FROZEN;
-  const result=analyzeStrikes(ctx,canvas.width,canvas.height,type);
-  frozenResult={type,...result};
-  showFreezePanel(frozenResult);
-}
+  scanState='frozen';
+  lockedType=baseColor;
 
-// ============================================================
-// NHẬN DIỆN MÀU — trung bình vùng trung tâm rộng
-// ============================================================
-function detectColor(ctx,W,H){
-  // Lấy mẫu vùng rộng: 30% → 70% ngang, 20% → 80% dọc
-  const sx=Math.floor(W*0.30), sy=Math.floor(H*0.20);
-  const sw=Math.floor(W*0.40), sh=Math.floor(H*0.60);
-  const id=ctx.getImageData(sx,sy,sw,sh);
-  let r=0,g=0,b=0,n=0;
-  for(let i=0;i<id.data.length;i+=4){
-    if(id.data[i+3]<20) continue;
-    r+=id.data[i]; g+=id.data[i+1]; b+=id.data[i+2]; n++;
+  const result=analyzeBallot(ctx,canvas.width,canvas.height,baseColor);
+  if(!result){
+    // Không tìm được hàng hợp lệ — thử lại
+    scanState='detecting'; lockCount=0; lastDetType=null;
+    setStatus('scan','⚠️ Chưa đọc được cấu trúc phiếu','Điều chỉnh góc · Đủ sáng · Phẳng hơn');
+    return;
   }
-  if(!n) return null;
-  r/=n; g/=n; b/=n;
-  return classifyRGB(r,g,b);
+
+  frozenResult=result;
+  showFreezePanel(result);
 }
 
-function classifyRGB(r,g,b){
-  // VÀNG: r cao, g cao (~r±50), b thấp hẳn
-  if(r>130 && g>100 && b<110 && (r-b)>50 && (g-b)>25 && Math.abs(r-g)<60) return 'xa';
-  // HỒNG: r nổi trội so với g và b
-  if(r>155 && r>g+25 && r>b+20 && g<185) return 'qh';
-  // Pastel hồng nhạt
-  if(r>195 && g>145 && b>145 && r>g+18 && r>b+12) return 'qh';
-  // XANH LAM: b nổi trội
-  if(b>r+18 && b>95) return 'tinh';
-  // Xanh lục biến thể tỉnh
-  if(g>r+18 && g>b+8 && g>120) return 'tinh';
+// ============================================================
+// NHẬN DIỆN MÀU NỀN PHIẾU THỰC TẾ
+//
+// Màu giấy gốc (dưới camera, chưa qua xử lý):
+//   HỒNG  → Quốc Hội  (5 ứng viên, bầu 3)
+//   XANH  → Tỉnh      (5 ứng viên, bầu 3)
+//   VÀNG  → Xã        (8 ứng viên, bầu 5)
+//
+// Đặc trưng RGB điển hình dưới ánh đèn thường:
+//   Hồng : R nổi trội, G và B thấp hơn R rõ rệt
+//           R>160, R-G>25, R-B>20
+//   Xanh : B nổi trội
+//           B>R+18, B>100
+//   Vàng : R và G đều cao, B thấp hẳn
+//           R>140, G>110, B<110, R-B>50, G-B>30
+//           (không phải hồng vì G cũng cao ~ R)
+//
+// Dải rộng để chịu ảnh sáng thay đổi:
+//   - Lấy mẫu vùng trung tâm 60%×60% (bỏ viền và góc)
+//   - Đếm tỉ lệ pixel thỏa điều kiện từng màu → màu nào > 30% thắng
+// ============================================================
+function detectBaseColor(ctx,W,H){
+  // Vùng mẫu: trung tâm 60% × 60%
+  const sx=Math.floor(W*0.20), sy=Math.floor(H*0.20);
+  const sw=Math.floor(W*0.60), sh=Math.floor(H*0.60);
+  const id=ctx.getImageData(sx,sy,sw,sh);
+  const d=id.data;
+
+  let n=0, pink=0, blue=0, yellow=0;
+  let sumR=0,sumG=0,sumB=0;
+
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]<30) continue;
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const lum=(r+g+b)/3;
+    if(lum<80 || lum>252) continue; // bỏ pixel quá tối (mực) và quá trắng (phản quang)
+    sumR+=r; sumG+=g; sumB+=b; n++;
+
+    // HỒNG: R nổi trội rõ, G và B thấp hơn đáng kể
+    if(r>150 && r-g>20 && r-b>18 && g<220) pink++;
+
+    // XANH: B nổi trội
+    if(b>r+15 && b>g-10 && b>90) blue++;
+
+    // VÀNG: R cao, G cao gần bằng R, B thấp hẳn
+    if(r>130 && g>100 && b<115 && r-b>45 && g-b>25 && Math.abs(r-g)<65) yellow++;
+  }
+
+  if(!n) return null;
+  const lum=(sumR+sumG+sumB)/(3*n);
+  if(lum<90) return null; // quá tối — không phải phiếu
+
+  const pinkPct  = pink/n;
+  const bluePct  = blue/n;
+  const yellowPct= yellow/n;
+
+  // Cập nhật pill debug để người dùng biết camera đang thấy gì
+  const pill=document.getElementById('typePill');
+  pill.setAttribute('data-raw',
+    `R=${Math.round(sumR/n)} G=${Math.round(sumG/n)} B=${Math.round(sumB/n)} | H=${(pinkPct*100).toFixed(0)}% X=${(bluePct*100).toFixed(0)}% V=${(yellowPct*100).toFixed(0)}%`);
+
+  const MIN=0.25; // ít nhất 25% pixel khớp mới kết luận
+  // Ưu tiên màu nào có tỉ lệ cao nhất và vượt ngưỡng tối thiểu
+  const best=Math.max(pinkPct,bluePct,yellowPct);
+  if(best<MIN) return null;
+  if(best===yellowPct && yellowPct>pinkPct+0.05) return 'xa';
+  if(best===bluePct   && bluePct  >pinkPct+0.05) return 'tinh';
+  if(best===pinkPct)                             return 'qh';
   return null;
 }
 
 // ============================================================
-// PHÂN TÍCH GẠCH NGANG
-//
-// Nguyên lý:
-//  - Phiếu nằm trong khung: top 10%, left 5%, 90% rộng, 80% cao
-//  - Bỏ ~15% đầu và ~10% cuối (header/footer phiếu, không có ứng viên)
-//  - Chia phần còn lại thành N hàng đều nhau
-//  - Mỗi hàng: lấy dải giữa (30%–70% chiều cao hàng)
-//    quét từng cột ngang, đếm số cột có pixel ĐỦ TỐI hơn nền
-//    nếu ≥ 45% số cột → có đường gạch ngang → bị gạch
+// PHÂN TÍCH PHIẾU:
+//  1. Tìm N hàng ứng viên (đoạn pixel tối có chiều cao >= 12px, đều nhau nhất)
+//  2. Nếu màu trắng: thử tìm nhóm 5 và 8 — CV nhỏ hơn thắng → biết QH hay XA
+//  3. Với mỗi hàng: phát hiện đường gạch ngang
 // ============================================================
-function analyzeStrikes(ctx,W,H,type){
-  const numCands = BALLOTS[type].candidates.length;
+function analyzeBallot(ctx,W,H,baseColor){
+  // Vùng scan: trong khung hướng dẫn (4%–96% ngang, 4%–96% dọc)
+  const bx=Math.floor(W*0.04), bw=Math.floor(W*0.92);
+  const by=Math.floor(H*0.04), bh=Math.floor(H*0.92);
 
-  // Vùng phiếu
-  const bx=Math.floor(W*0.05), bw=Math.floor(W*0.90);
-  const by=Math.floor(H*0.10), bh=Math.floor(H*0.80);
-
-  // Bỏ header (~15%) và footer (~8%) của phiếu
-  const contentTop  = by + Math.floor(bh*0.15);
-  const contentBot  = by + Math.floor(bh*0.92);
-  const contentH    = contentBot - contentTop;
-  const rowH        = contentH / numCands;
-
-  // Đo màu nền phiếu từ vùng header (thường trống không có mực)
-  const bgPatch = ctx.getImageData(bx+10, by+4, 60, Math.floor(bh*0.12));
-  let bgR=0,bgG=0,bgB=0,bgN=0;
-  for(let i=0;i<bgPatch.data.length;i+=4){
-    bgR+=bgPatch.data[i]; bgG+=bgPatch.data[i+1]; bgB+=bgPatch.data[i+2]; bgN++;
-  }
-  bgR/=bgN; bgG/=bgN; bgB/=bgN;
-  const bgLum=(bgR+bgG+bgB)/3;
-
-  // Ngưỡng: pixel tối hơn nền ít nhất DARK_DIFF đơn vị độ sáng
-  const DARK_DIFF = 55;
-  // Tỉ lệ cột "có pixel tối" tối thiểu để kết luận có gạch ngang
-  const STRIKE_RATIO = 0.42;
-
-  const crossed = new Set();
-
-  for(let row=0; row<numCands; row++){
-    const ry0 = Math.floor(contentTop + row*rowH + rowH*0.28);
-    const ry1 = Math.floor(contentTop + row*rowH + rowH*0.72);
-    const rh  = Math.max(1, ry1-ry0);
-
-    const id = ctx.getImageData(bx, ry0, bw, rh);
-    let darkCols = 0;
-
-    for(let x=0; x<bw; x++){
-      let darkPx=0;
-      for(let y=0; y<rh; y++){
-        const idx=(y*bw+x)*4;
-        const lum=(id.data[idx]+id.data[idx+1]+id.data[idx+2])/3;
-        if(bgLum-lum > DARK_DIFF) darkPx++;
-      }
-      // Ít nhất 30% pixel dọc trong cột này tối → cột có mực
-      if(darkPx >= Math.ceil(rh*0.30)) darkCols++;
+  // Tính luminance trung bình mỗi hàng pixel trong vùng scan
+  const rowLum=[];
+  for(let y=by; y<by+bh; y++){
+    const id=ctx.getImageData(bx, y, bw, 1);
+    const d=id.data;
+    let sum=0,cnt=0;
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<50) continue;
+      sum+=(d[i]+d[i+1]+d[i+2])/3; cnt++;
     }
-
-    if(darkCols/bw >= STRIKE_RATIO) crossed.add(row);
+    rowLum.push(cnt?sum/cnt:255);
   }
 
-  const votedNames = BALLOTS[type].candidates.filter((_,i)=>!crossed.has(i));
+  // Smoothing nhẹ
+  const sm=rowLum.map((_,i)=>{
+    let s=0,c=0;
+    for(let k=-2;k<=2;k++){ if(i+k>=0&&i+k<rowLum.length){s+=rowLum[i+k];c++;} }
+    return s/c;
+  });
 
-  // Vẽ overlay
-  drawOverlay(W,H,numCands,crossed,bx,by,bw,bh,contentTop,contentBot);
+  // Tìm ngưỡng tối (mean - std*0.7)
+  const mean=sm.reduce((a,b)=>a+b,0)/sm.length;
+  const std=Math.sqrt(sm.reduce((a,b)=>a+(b-mean)**2,0)/sm.length);
+  const thresh=mean-std*0.7;
 
-  return {crossed, votedNames};
+  // Tìm segments tối (chiều cao >= 10px)
+  const segs=[];
+  let inSeg=false, segStart=0;
+  for(let i=0;i<sm.length;i++){
+    if(sm[i]<thresh && !inSeg){ inSeg=true; segStart=i; }
+    else if(sm[i]>=thresh && inSeg){
+      inSeg=false;
+      const h=i-segStart;
+      if(h>=10) segs.push({start:by+segStart, end:by+i, mid:by+segStart+Math.floor(h/2), h});
+    }
+  }
+
+  if(segs.length<2) return null;
+
+  let type, rows;
+  if(baseColor==='tinh'){
+    // Tỉnh (Xanh): luôn 5 hàng
+    const g=findEvenGroup(segs,5);
+    if(!g) return null;
+    type='tinh'; rows=g;
+  } else if(baseColor==='qh'){
+    // Quốc Hội (Hồng): luôn 5 hàng
+    const g=findEvenGroup(segs,5);
+    if(!g) return null;
+    type='qh'; rows=g;
+  } else if(baseColor==='xa'){
+    // Xã (Vàng): luôn 8 hàng
+    const g=findEvenGroup(segs,8);
+    if(!g) return null;
+    type='xa'; rows=g;
+  } else {
+    return null;
+  }
+
+  if(!rows) return null;
+
+  // Tính spacing để xác định vùng mỗi hàng
+  const mids=rows.map(r=>r.mid);
+  const diffs=mids.slice(1).map((v,i)=>v-mids[i]);
+  const spacing=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
+  const halfRow=Math.floor(spacing*0.48);
+
+  // Đo màu nền phiếu từ vùng trên cùng (phần tiêu đề, không có tên)
+  const bgY=by+4;
+  const bgId=ctx.getImageData(bx+10, bgY, bw-20, Math.max(1,rows[0].start-bgY-10));
+  const bgD=bgId.data;
+  let bgSum=0,bgN=0;
+  for(let i=0;i<bgD.length;i+=4){ if(bgD[i+3]>50){bgSum+=(bgD[i]+bgD[i+1]+bgD[i+2])/3;bgN++;} }
+  const bgLum=bgN?bgSum/bgN:240;
+
+  // Phát hiện gạch mỗi hàng
+  const crossed=new Set();
+  const rowData=rows.map((row,idx)=>{
+    const y0=Math.max(by, row.mid-halfRow);
+    const y1=Math.min(by+bh, row.mid+halfRow);
+    const rh=Math.max(1,y1-y0);
+    const isCrossed=detectStrike(ctx,bx,y0,bw,rh,bgLum);
+    if(isCrossed) crossed.add(idx);
+    return {y0,y1,mid:row.mid,isCrossed};
+  });
+
+  drawOverlay(W,H,rowData,bx,bw);
+
+  const cands=BALLOTS[type].candidates;
+  const votedNames=cands.filter((_,i)=>!crossed.has(i));
+  return {type, crossed, votedNames, rowData};
+}
+
+// Tìm nhóm n segments đều nhau nhất
+function findEvenGroup(segs,n){
+  if(segs.length<n) return null;
+  let best=null, bestCV=Infinity;
+  for(let i=0;i<=segs.length-n;i++){
+    const g=segs.slice(i,i+n);
+    const cv=groupCV(g);
+    if(cv<bestCV){ bestCV=cv; best=g; }
+  }
+  return bestCV<0.25?best:null; // CV quá cao = không đều = không phải tên
+}
+
+function groupCV(g){
+  const mids=g.map(s=>s.mid);
+  const diffs=mids.slice(1).map((v,i)=>v-mids[i]);
+  if(!diffs.length) return 0;
+  const mean=diffs.reduce((a,b)=>a+b,0)/diffs.length;
+  if(mean===0) return 999;
+  const std=Math.sqrt(diffs.reduce((a,b)=>a+(b-mean)**2,0)/diffs.length);
+  return std/mean; // Coefficient of Variation
+}
+
+// ============================================================
+// PHÁT HIỆN ĐƯỜNG GẠCH NGANG
+//
+// Nguyên lý (từ phân tích ảnh thực tế):
+//   - Nền phiếu: lum ~230–250
+//   - Chữ in đậm: lum ~30–80
+//   - Đường gạch bút: lum ~0–80 (mực bút bi/mực in bị gạch)
+//
+//   Trong vùng mỗi hàng, scan từng cột x:
+//     với mỗi cột, lấy pixel tối nhất trong dải dọc
+//     nếu pixel đó tối hơn nền DARK_DIFF và có nhiều cột liên tiếp như vậy
+//     → có đường gạch
+//
+//   Khác biệt chữ in vs gạch:
+//     - Chữ in (tên): các cột tối tập trung trong 15–20% chiều rộng (chỉ phần có chữ)
+//     - Đường gạch: cột tối trải dài 50%+ chiều rộng
+// ============================================================
+function detectStrike(ctx, x0, y0, w, h, bgLum){
+  const id=ctx.getImageData(x0, y0, w, h);
+  const d=id.data;
+  const DARK_THRESH=bgLum-50; // pixel tối hơn nền 50 units
+
+  // Với mỗi cột: tìm pixel tối nhất
+  let darkCols=0;
+  for(let x=0; x<w; x++){
+    let minLum=255;
+    for(let y=0; y<h; y++){
+      const i=(y*w+x)*4;
+      const lum=(d[i]+d[i+1]+d[i+2])/3;
+      if(lum<minLum) minLum=lum;
+    }
+    if(minLum<DARK_THRESH) darkCols++;
+  }
+
+  const darkRatio=darkCols/w;
+
+  // Gạch ngang trải dài ≥ 45% chiều rộng
+  // Nhưng chỉ gạch ngang mới liên tục 45%+; chữ in bình thường < 30%
+  return darkRatio>=0.45;
 }
 
 // ============================================================
 // VẼ OVERLAY
 // ============================================================
-function drawOverlay(W,H,numCands,crossed,bx,by,bw,bh,contentTop,contentBot){
+function drawOverlay(W,H,rowData,bx,bw){
   const ov=document.getElementById('overlay');
   const vid=document.getElementById('video');
   const dW=vid.offsetWidth||W, dH=vid.offsetHeight||H;
@@ -540,171 +661,157 @@ function drawOverlay(W,H,numCands,crossed,bx,by,bw,bh,contentTop,contentBot){
   const ctx2=ov.getContext('2d');
   ctx2.clearRect(0,0,dW,dH);
 
-  const contentH=contentBot-contentTop;
-  const rowH=contentH/numCands;
+  rowData.forEach((row,i)=>{
+    const rx=bx*sx, rw2=bw*sx;
+    const ry=row.y0*sy, rh2=(row.y1-row.y0)*sy;
+    const isCrossed=row.isCrossed;
 
-  for(let row=0; row<numCands; row++){
-    const rx=bx*sx;
-    const ry=(contentTop+row*rowH)*sy;
-    const rw=bw*sx;
-    const rh2=rowH*sy;
-    const isCrossed=crossed.has(row);
-
-    ctx2.fillStyle=isCrossed?'rgba(248,81,73,0.22)':'rgba(63,185,80,0.15)';
-    ctx2.fillRect(rx,ry,rw,rh2);
-
-    ctx2.strokeStyle=isCrossed?'rgba(248,81,73,0.75)':'rgba(63,185,80,0.45)';
-    ctx2.lineWidth=1.5;
-    ctx2.strokeRect(rx+1,ry+1,rw-2,rh2-2);
-
-    const fs=Math.min(rh2*0.62,16);
-    ctx2.font='bold '+fs+'px sans-serif';
+    // Nền màu
+    ctx2.fillStyle=isCrossed?'rgba(248,81,73,0.20)':'rgba(63,185,80,0.15)';
+    ctx2.fillRect(rx,ry,rw2,rh2);
+    // Viền
+    ctx2.strokeStyle=isCrossed?'rgba(248,81,73,0.8)':'rgba(63,185,80,0.5)';
+    ctx2.lineWidth=2;
+    ctx2.strokeRect(rx+1,ry+1,rw2-2,rh2-2);
+    // Số thứ tự
+    const fs=Math.min(rh2*0.6,18);
+    ctx2.font=`bold ${fs}px sans-serif`;
     ctx2.textBaseline='middle';
-
-    // Số thứ tự bên trái
-    ctx2.fillStyle='rgba(255,255,255,0.8)';
+    ctx2.fillStyle='rgba(255,255,255,0.85)';
     ctx2.textAlign='left';
-    ctx2.fillText(row+1, rx+5, ry+rh2/2);
-
-    // Icon trạng thái bên phải
+    ctx2.fillText(i+1, rx+6, ry+rh2/2);
+    // Icon
     ctx2.fillStyle=isCrossed?'rgba(248,81,73,0.95)':'rgba(63,185,80,0.95)';
     ctx2.textAlign='right';
-    ctx2.fillText(isCrossed?'✖':'✔', rx+rw-5, ry+rh2/2);
-  }
+    ctx2.fillText(isCrossed?'✖':'✔', rx+rw2-6, ry+rh2/2);
+  });
 }
 
 function clearOverlay(){
   const ov=document.getElementById('overlay');
-  ov.getContext('2d').clearRect(0,0,ov.width,ov.height);
+  const ctx=ov.getContext('2d');
+  if(ctx) ctx.clearRect(0,0,ov.width,ov.height);
 }
 
 // ============================================================
 // FREEZE PANEL
 // ============================================================
 function showFreezePanel(result){
-  const B=BALLOTS[result.type];
-  const voted=result.votedNames.length;
+  const {type,votedNames,crossed}=result;
+  const B=BALLOTS[type];
+  const voted=votedNames.length;
 
-  document.getElementById('fpTitle').textContent='Phiếu '+B.name+' ('+B.colorName+')';
+  document.getElementById('fpTitle').textContent='Phiếu '+B.name;
   const badge=document.getElementById('fpBadge');
   badge.textContent='Bầu '+B.maxVotes+'/'+B.candidates.length;
   badge.className='fp-badge '+B.badgeClass;
 
   document.getElementById('resultList').innerHTML=B.candidates.map((n,i)=>{
-    const isCrossed=result.crossed.has(i);
-    return `<div class="r-row ${isCrossed?'crossed':'voted'}">
+    const x=crossed.has(i);
+    return `<div class="r-row ${x?'crossed':'voted'}">
       <div class="r-num">${i+1}</div>
       <div class="r-name">${n}</div>
-      <div class="r-ico">${isCrossed?'✖':'✔'}</div>
+      <div class="r-ico">${x?'✖':'✔'}</div>
     </div>`;
   }).join('');
 
-  const msgEl=document.getElementById('validityMsg');
-  const btnEl=document.getElementById('btnConfirm');
+  const msg=document.getElementById('validityMsg');
   if(voted===0){
-    msgEl.textContent='⚠️ Phiếu trắng — không hợp lệ'; msgEl.className='validity-msg err';
-    btnEl.textContent='❌ Ghi nhận phiếu không hợp lệ';
+    msg.textContent='⚠️ Phiếu trắng — không hợp lệ'; msg.className='validity-msg err';
   } else if(voted>B.maxVotes){
-    msgEl.textContent='⚠️ Bầu '+voted+' người — vượt quá '+B.maxVotes+' (không hợp lệ)'; msgEl.className='validity-msg err';
-    btnEl.textContent='❌ Ghi nhận phiếu không hợp lệ';
+    msg.textContent='⚠️ Bầu '+voted+' người — vượt quá '+B.maxVotes+' (không hợp lệ)'; msg.className='validity-msg err';
   } else {
-    msgEl.textContent='✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes+' người'; msgEl.className='validity-msg ok';
-    btnEl.textContent='✅ Xác nhận — '+voted+' người được bầu';
+    msg.textContent='✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes+' người'; msg.className='validity-msg ok';
   }
 
+  const typeLabels={qh:'🌸 Quốc Hội (Hồng)',tinh:'🔵 Tỉnh (Xanh)',xa:'🟡 Xã (Vàng)'};
+  updateTypePill(type, typeLabels[type]);
   document.getElementById('freezePanel').classList.add('show');
   document.getElementById('freezePanel').scrollIntoView({behavior:'smooth',block:'nearest'});
-  setStatus('ready','🔍 Xem kết quả quét','Kiểm tra → Xác nhận hoặc Quét lại');
-  switchTab(result.type);
+  setStatus('ready','🔍 Xem kết quả → Xác nhận hoặc Quét lại','');
+  switchTab(type);
 }
 
 function rescan(){
-  frozenResult=null; scanState=ST.DETECTING; lockCount=0; lastColorType=null; lockedType=null;
+  frozenResult=null; scanState='detecting'; lockCount=0; lastDetType=null;
   clearOverlay();
   document.getElementById('freezePanel').classList.remove('show');
   document.getElementById('scanLine').classList.remove('active');
-  setStatus('scan','🔄 Quét lại — đưa phiếu vào khung','');
+  setStatus('scan','🔄 Quét lại — đặt phiếu vào khung','');
 }
 
 function confirmBallot(){
   if(!frozenResult) return;
-  const {type,votedNames,crossed}=frozenResult;
+  const {type,votedNames}=frozenResult;
   const B=BALLOTS[type];
   const voted=votedNames.length;
-  const isValid=voted>0 && voted<=B.maxVotes;
+  const isValid=voted>0&&voted<=B.maxVotes;
 
-  const snap={votes:JSON.parse(JSON.stringify(votes)), stats:{...stats}, ballotLog:[...ballotLog]};
+  const snap={votes:JSON.parse(JSON.stringify(votes)),stats:{...stats},ballotLog:[...ballotLog]};
 
   if(!isValid){
     stats.total++; stats.invalid++;
     beep(2);
     ballotLog.push({type,votedFor:[],count:voted,valid:false,time:new Date().toISOString()});
-    undoStack.push({snap, desc:'❌ KHL '+B.name+' ('+voted+')'});
-    setStatus('err','❌ Phiếu không hợp lệ', voted===0?'Phiếu trắng':'Bầu quá '+B.maxVotes+' người');
+    undoStack.push({snap,desc:'❌ KHL '+B.name+' ('+voted+'ng)'});
+    setStatus('err','❌ Phiếu không hợp lệ',voted===0?'Phiếu trắng':'Bầu quá '+B.maxVotes);
   } else {
     stats.total++; stats.valid++;
     votedNames.forEach(n=>{ votes[type][n]=(votes[type][n]||0)+1; });
-    renderAllRows();
-    votedNames.forEach(n=>bumpVote(type,n));
+    renderAllRows(); votedNames.forEach(n=>bumpVote(type,n));
     beep(1);
     ballotLog.push({type,votedFor:votedNames,count:voted,valid:true,time:new Date().toISOString()});
-    undoStack.push({snap, desc:'✅ '+B.name+' ('+voted+' người)'});
+    undoStack.push({snap,desc:'✅ '+B.name+' ('+voted+'ng)'});
     setStatus('ok','✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes,B.name);
   }
 
   if(undoStack.length>20) undoStack.shift();
   updateStats(); saveData(); updateUndoUI();
-
-  // Cooldown 3s
-  cooldownUntil=Date.now()+3000;
+  cooldownUntil=Date.now()+3500;
   document.getElementById('freezePanel').classList.remove('show');
-  frozenResult=null; scanState=ST.DETECTING; lockCount=0; lastColorType=null; lockedType=null;
-  setTimeout(()=>{ clearOverlay(); setStatus('scan','📷 Phiếu tiếp theo...','Đưa phiếu mới vào khung'); }, 3000);
+  frozenResult=null; scanState='detecting'; lockCount=0; lastDetType=null;
+  setTimeout(()=>{ clearOverlay(); updateTypePill(null,null); setStatus('scan','📷 Phiếu tiếp theo...','Đặt phiếu mới vào khung'); },3500);
 }
 
 // ============================================================
 // UNDO
 // ============================================================
 function undoLast(){
-  if(!undoStack.length){ alert('Không có gì để xóa.'); return; }
+  if(!undoStack.length){alert('Không có gì để xóa.');return;}
   if(!confirm('Xóa lần cộng gần nhất?\n'+undoStack[undoStack.length-1].desc)) return;
   const last=undoStack.pop();
   votes=last.snap.votes; stats=last.snap.stats; ballotLog=last.snap.ballotLog;
   renderAllRows(); updateStats(); saveData(); updateUndoUI();
-  setStatus('scan','↩️ Đã xóa: '+last.desc,'Tiếp tục quét');
+  setStatus('scan','↩️ Đã xóa: '+last.desc,'');
 }
 function updateUndoUI(){
   const w=document.getElementById('undoWrap');
   if(undoStack.length){
     w.classList.add('show');
     document.getElementById('undoInfo').textContent=undoStack[undoStack.length-1].desc;
-  } else {
-    w.classList.remove('show');
-  }
+  } else w.classList.remove('show');
 }
 
 // ============================================================
-// SCOREBOARD / RESULT
+// SCOREBOARD
 // ============================================================
 function renderAllRows(){
   ['qh','tinh','xa'].forEach(t=>{
     const sorted=[...BALLOTS[t].candidates].sort((a,b)=>(votes[t][b]||0)-(votes[t][a]||0));
+    window['_map_'+t]=sorted;
     document.getElementById('rows-'+t).innerHTML=sorted.map((n,i)=>`
       <div class="score-row">
         <div class="score-rank">${i+1}</div>
         <div class="score-name">${n}</div>
-        <div class="score-v" id="v-${t}-${i}">${votes[t][n]||0}</div>
+        <div class="score-v" id="sv-${t}-${i}">${votes[t][n]||0}</div>
       </div>`).join('');
-    // Lưu map index→name để bump
-    if(!window._scoreMap) window._scoreMap={};
-    window._scoreMap[t]=sorted;
   });
 }
 function bumpVote(t,name){
-  if(!window._scoreMap||!window._scoreMap[t]) return;
-  const idx=window._scoreMap[t].indexOf(name);
-  if(idx<0) return;
-  const el=document.getElementById('v-'+t+'-'+idx);
+  const map=window['_map_'+t];
+  if(!map) return;
+  const idx=map.indexOf(name);
+  const el=document.getElementById('sv-'+t+'-'+idx);
   if(!el) return;
   el.textContent=votes[t][name]||0;
   el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
@@ -716,7 +823,7 @@ function updateStats(){
 }
 function switchTab(t){
   currentTab=t;
-  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
   document.querySelector('.tab-'+t).classList.add('active');
   ['qh','tinh','xa'].forEach(x=>document.getElementById('rows-'+x).classList.toggle('hidden',x!==t));
 }
@@ -726,12 +833,14 @@ function setStatus(type,title,sub){
   document.getElementById('statusTitle').textContent=title;
   document.getElementById('statusSub').textContent=sub||'';
 }
-function updateColorPill(type){
-  const p=document.getElementById('colorPill');
-  if(type==='qh')       {p.style.background='#b0405a';p.style.color='#fff';p.textContent='🌸 Hồng — QH';}
-  else if(type==='tinh'){p.style.background='#1a5cb0';p.style.color='#fff';p.textContent='🔵 Xanh — Tỉnh';}
-  else if(type==='xa')  {p.style.background='#9c7d00';p.style.color='#fff';p.textContent='🟡 Vàng — Xã';}
-  else                  {p.style.background='var(--border)';p.style.color='var(--muted)';p.textContent='Chưa nhận';}
+function updateTypePill(type,label){
+  const p=document.getElementById('typePill');
+  const raw=p.getAttribute('data-raw')||'';
+  if(type==='qh')  {p.style.cssText='background:#c0406a;color:#fff;';p.textContent='🌸 Hồng — QH';}
+  else if(type==='tinh'){p.style.cssText='background:#1a5cb0;color:#fff;';p.textContent='🔵 Xanh — Tỉnh';}
+  else if(type==='xa') {p.style.cssText='background:#9c7d00;color:#fff;';p.textContent='🟡 Vàng — Xã';}
+  else{p.style.cssText='background:var(--border);color:var(--muted);font-size:10px;';
+    p.textContent=raw||'Chưa nhận phiếu';}
 }
 function beep(times){
   try{
@@ -747,6 +856,9 @@ function beep(times){
   }catch(e){}
 }
 
+// ============================================================
+// RESULT PAGE
+// ============================================================
 function showResult(){
   document.getElementById('main-app').style.display='none';
   document.getElementById('result-page').classList.add('show');
@@ -762,8 +874,7 @@ function showResult(){
       </div>`).join('');
   });
   renderDist('qh',3); renderDist('tinh',3); renderDist('xa',5);
-
-  const S=type=>ballotLog.filter(b=>b.type===type);
+  const S=tp=>ballotLog.filter(b=>b.type===tp);
   document.getElementById('result-summary').innerHTML=[
     {l:'🏛️ Quốc Hội tổng',v:S('qh').length},
     {l:'   ✅ Hợp lệ',v:S('qh').filter(b=>b.valid).length},
@@ -784,12 +895,12 @@ function showResult(){
 function renderDist(type,maxVotes){
   const bl=ballotLog.filter(b=>b.type===type);
   const el=document.getElementById('dist-'+type);
-  if(!bl.length){ el.innerHTML='<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Chưa có phiếu</div>'; return; }
+  if(!bl.length){el.innerHTML='<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Chưa có phiếu</div>';return;}
   const dist={};
-  bl.forEach(b=>{ const k=b.valid?b.count:(b.count===0?'blank':'over'); dist[k]=(dist[k]||0)+1; });
+  bl.forEach(b=>{const k=b.valid?b.count:(b.count===0?'blank':'over');dist[k]=(dist[k]||0)+1;});
   const rows=[];
   for(let i=1;i<=maxVotes;i++) rows.push({l:'Bầu '+i+' người',c:dist[i]||0,cls:'b'+i});
-  rows.push({l:'Phiếu trắng (0)',c:dist['blank']||0,cls:'b0'});
+  rows.push({l:'Phiếu trắng',c:dist['blank']||0,cls:'b0'});
   rows.push({l:'Bầu quá '+maxVotes,c:dist['over']||0,cls:'binvalid'});
   const mx=Math.max(...rows.map(r=>r.c),1);
   el.innerHTML=rows.map(r=>`<div class="dist-row">
@@ -809,12 +920,13 @@ function resetAll(){
   localStorage.removeItem('kp26');
   votes={}; stats={total:0,valid:0,invalid:0}; ballotLog=[]; undoStack=[];
   BALLOTS=buildBallots(currentUnit); initVotes();
-  frozenResult=null; scanState=ST.DETECTING; lockCount=0; lastColorType=null; lockedType=null;
+  frozenResult=null; scanState='detecting'; lockCount=0; lastDetType=null;
   clearOverlay();
   document.getElementById('freezePanel').classList.remove('show');
   document.getElementById('scanLine').classList.remove('active');
   renderAllRows(); updateStats(); updateUndoUI(); hideResult();
-  setStatus('scan','✅ Đã reset — đưa phiếu vào khung','');
+  updateTypePill(null,null);
+  setStatus('scan','✅ Đã reset — đặt phiếu vào khung','');
 }
 </script>
 </body>
