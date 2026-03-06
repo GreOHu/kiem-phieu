@@ -757,24 +757,27 @@ function detectPaper(ctx, W, H) {
   if (pw * ph < W * H * 0.15) return { found: false };
   if (pw < W * 0.20 || ph < H * 0.20) return { found: false };
 
-  // Kiểm tra tỉ lệ A5: chấp nhận dọc (ph/pw ≈ 1.41) hoặc ngang (pw/ph ≈ 1.41)
-  // Cho phép sai số ±30% → ratio trong [0.50, 2.00]
+  // A5 tỉ lệ: dọc 1.41, cho phép ±20% → ratio 1.13..1.70
+  // Không chấp nhận ngang hoặc vuông (thường là điện thoại/sách)
   const ratio = ph / pw;
-  if (ratio < 0.50 || ratio > 2.00) return { found: false };
+  if (ratio < 1.10 || ratio > 1.85) return { found: false };
 
-  // Edge phải đủ mạnh — tránh detect nhầm vùng phẳng
-  const minEdge = 8;
+  // Phiếu phải chiếm ≥ 28% diện tích frame (đủ lớn để quét được chữ)
+  if (pw * ph < W * H * 0.28) return { found: false };
+  if (pw < W * 0.35 || ph < H * 0.35) return { found: false };
+
+  // 4 cạnh phải đủ mạnh — đủ tương phản nền gỗ/bàn
+  const minEdge = 10;
   if (eTop.val < minEdge || eBot.val < minEdge ||
       eLft.val < minEdge || eRgt.val < minEdge) {
     return { found: false };
   }
 
-  // Tờ giấy phải nằm gọn trong frame (4 cạnh đều thấy được)
-  // Nếu cạnh sát mép frame (<3%) → clipped → không tính là tờ giấy hoàn chỉnh
-  const clip = 0.04;
-  const clipped = xL < W*clip || xR > W*(1-clip) ||
-                  yT < H*clip || yB > H*(1-clip);
-  if (clipped) return { found: false };
+  // Tất cả 4 cạnh phải nằm trong frame (không clipped)
+  const clip = 0.03;
+  if (xL < W*clip || xR > W*(1-clip) || yT < H*clip || yB > H*(1-clip)) {
+    return { found: false };
+  }
 
   return { found: true, xL, yT, xR, yB, pw, ph, ratio };
 }
@@ -1215,245 +1218,211 @@ function analyzeBallot(ctx,W,H,baseColor){
   const nC=baseColor==='xa'?8:5;
   const type=baseColor==='xa'?'xa':(baseColor==='tinh'?'tinh':'qh');
 
-  // ── BƯỚC 0: Detect bounds & tilt ──────────────────────────────
+  // Detect bounds & tilt
   const bounds=detectBallotBounds(ctx,W,H);
   if(!bounds)return null;
-  const {bx,bw,by,bh,slope,xCenter,angleDeg}=bounds;
-  const scanBot=by+Math.floor(bh*.93);
+  const{bx,bw,by,bh,slope,xCenter,angleDeg}=bounds;
+  const fd=bounds.fullData, fW=bounds.W, fH=bounds.H;
 
-  // ── BƯỚC 1: Tilted HPP scan 6%→62% phiếu ─────────────────────
-  const hppTop=by+Math.floor(bh*.06);
-  const hppH=Math.floor(bh*.58);
-  const prof=buildTiltedProfile(ctx,bounds,hppTop,hppH);
-  if(!prof||hppH<20)return null;
+  // ── TÌM VỊ TRÍ CÁC HÀNG ỨNG VIÊN qua HPP ─────────────────
+  // Scan từ 5%→92% chiều cao phiếu
+  const scanTop=by+Math.floor(bh*.05);
+  const scanBot=by+Math.floor(bh*.92);
+  const scanH=scanBot-scanTop;
+  const xL=Math.floor(bw*.08), xR=Math.floor(bw*.92), uw=xR-xL;
 
-  // Smooth mạnh window ±6
-  const sm=new Float32Array(hppH);
-  for(let i=0;i<hppH;i++){
+  // Build HPP: dark ratio per row (bù nghiêng)
+  // Lấy bg từ vùng 5-15% (phần tiêu đề sạch nhất)
+  let bgSum=0,bgN=0;
+  for(let y=scanTop;y<scanTop+Math.floor(bh*.10);y+=2){
+    for(let x=xL;x<xR;x+=4){
+      const yOff=Math.round((bx+x-xCenter)*slope);
+      const gy=y+yOff,gx=bx+x;
+      if(gx<0||gx>=fW||gy<0||gy>=fH)continue;
+      const idx=(gy*fW+gx)*4;
+      bgSum+=(fd[idx]+fd[idx+1]+fd[idx+2])/3;bgN++;
+    }
+  }
+  const bgLum=bgN>0?bgSum/bgN:220;
+  const darkTh=Math.min(185,Math.max(50,bgLum*0.80));
+
+  // HPP full scan
+  const hpp=new Float32Array(scanH);
+  for(let row=0;row<scanH;row++){
+    let dark=0;
+    for(let x=xL;x<xR;x+=2){
+      const yOff=Math.round((bx+x-xCenter)*slope);
+      const gy=scanTop+row+yOff,gx=bx+x;
+      if(gx<0||gx>=fW||gy<0||gy>=fH)continue;
+      const idx=(gy*fW+gx)*4;
+      if((fd[idx]+fd[idx+1]+fd[idx+2])/3<darkTh)dark++;
+    }
+    hpp[row]=dark/(uw/2);
+  }
+
+  // Smooth HPP (window ±5)
+  const sm=new Float32Array(scanH);
+  for(let i=0;i<scanH;i++){
     let s=0,c=0;
-    for(let k=-6;k<=6;k++)if(i+k>=0&&i+k<hppH){s+=prof[i+k];c++;}
+    for(let k=-5;k<=5;k++)if(i+k>=0&&i+k<scanH){s+=hpp[i+k];c++;}
     sm[i]=s/c;
   }
-  const profMax=Math.max(...sm);
-  if(profMax<0.01)return null;
-  const peakTh=profMax*0.12;
 
-  // ── BƯỚC 2: Tìm anchor peak ────────────────────────────────────
-  const minDist=Math.floor(hppH*0.04);
-  const anchorZoneEnd=Math.floor(hppH*0.85);
-  const localPeaks=[];
-  for(let i=minDist;i<anchorZoneEnd-minDist;i++){
-    if(sm[i]<=peakTh)continue;
-    let isPeak=true;
-    for(let k=1;k<=minDist;k++){
-      if(sm[i-k]>sm[i]||sm[i+k]>sm[i]){isPeak=false;break;}
+  // Tìm anchor: peak cuối cùng trong 6%→50% = "Được bầu X đại biểu"
+  const aPeakTh=Math.max(...sm)*0.10;
+  const anchorEnd=Math.floor(scanH*0.50);
+  let anchorIdx=0,anchorVal=0;
+  const minDist=Math.floor(scanH*0.03);
+  for(let i=minDist;i<anchorEnd-minDist;i++){
+    if(sm[i]>aPeakTh&&sm[i]>=anchorVal){
+      let isPeak=true;
+      for(let k=1;k<=minDist;k++)if(sm[i+k]>sm[i]){isPeak=false;break;}
+      if(isPeak){anchorIdx=i;anchorVal=sm[i];}
     }
-    if(isPeak)localPeaks.push(i);
   }
-  if(localPeaks.length<1)return null;
 
-  const anchorPeakIdx=localPeaks[localPeaks.length-1];
-
-  // ── BƯỚC 3: Tìm Y_list_start ──────────────────────────────────
-  const dropTh=peakTh*0.6;
+  // Tìm Y_listStart: sau anchor, tìm valley rồi tăng lại
+  const dropTh=aPeakTh*0.55;
   let inDrop=false,dropEnd=-1;
-  for(let i=anchorPeakIdx+1;i<hppH;i++){
-    if(!inDrop&&sm[i]<dropTh){inDrop=true;}
+  for(let i=anchorIdx+1;i<Math.floor(scanH*0.75);i++){
+    if(!inDrop&&sm[i]<dropTh)inDrop=true;
     else if(inDrop&&sm[i]>=dropTh){dropEnd=i;break;}
   }
-  let Y_listStart;
-  if(dropEnd>anchorPeakIdx+3){Y_listStart=hppTop+dropEnd;}
-  else{Y_listStart=hppTop+anchorPeakIdx+Math.floor(hppH*0.12);}
+  let listStart=(dropEnd>anchorIdx+3)?(scanTop+dropEnd):(scanTop+anchorIdx+Math.floor(scanH*0.12));
+  listStart=Math.max(by+Math.floor(bh*.18),Math.min(by+Math.floor(bh*.60),listStart));
 
-  const minYList=by+Math.floor(bh*0.20);
-  const maxYList=by+Math.floor(bh*0.60);
-  Y_listStart=Math.max(minYList,Math.min(maxYList,Y_listStart));
-
-  // ── BƯỚC 4: Spacing & halfRow ─────────────────────────────────
-  const Y_listEnd=by+Math.floor(bh*0.91);
-  const listH=Y_listEnd-Y_listStart;
-  if(listH<15)return null;
+  const listEnd=by+Math.floor(bh*.92);
+  const listH=listEnd-listStart;
+  if(listH<20||listH/nC<8)return null;
   const spacing=listH/nC;
-  const halfRow=Math.floor(spacing*0.32); // giảm từ 0.40→0.32 tránh overlap hàng liền kề
+  const halfRow=Math.floor(spacing*0.34); // 34% spacing để không overlap
 
-  // ── BƯỚC 5+6: bgLum và zoneLums từ fullData ──────────────────
-  // Đo trong vùng khoảng trắng anchor (nền sạch nhất)
-  const bgY2=hppTop+anchorPeakIdx+4;
-  const bgH2=Math.max(2,Y_listStart-bgY2-2);
-  let bgLum=230;
-  const nZones=4;
-  const zoneLums=new Float32Array(nZones);
-  const {fullData:fd,W:fW,H:fH}=bounds;
-  if(bgH2>2&&fd){
-    // Tính bgLum global từ vùng giữa
-    let lumSum=0,lumN=0;
-    const zoneW2=Math.floor(bw/nZones);
-    for(let z=0;z<nZones;z++){
-      let zSum=0,zN=0;
-      const zx0=bx+z*zoneW2+Math.floor(zoneW2*.1);
-      const zx1=zx0+Math.floor(zoneW2*.8);
-      for(let y=bgY2;y<Math.min(bgY2+bgH2,bgY2+12);y++){
-        for(let x=zx0;x<zx1;x+=2){
-          if(x<0||x>=fW||y<0||y>=fH)continue;
-          const idx=(y*fW+x)*4;
-          const l=(fd[idx]+fd[idx+1]+fd[idx+2])/3;
-          zSum+=l;zN++;lumSum+=l;lumN++;
-        }
-      }
-      zoneLums[z]=zN>0?zSum/zN:230;
-    }
-    if(lumN>0)bgLum=lumSum/lumN;
-  } else {
-    zoneLums.fill(bgLum);
-  }
-
-  // ── BƯỚC 7: Generate tọa độ hàng ─────────────────────────────
+  // midY của từng hàng ứng viên
   const rowMids=[];
-  for(let i=0;i<nC;i++) rowMids.push(Math.round(Y_listStart+(i+0.5)*spacing));
+  for(let i=0;i<nC;i++)rowMids.push(Math.round(listStart+(i+0.5)*spacing));
 
-  // ── BƯỚC 8: Detect gạch từng hàng (tilted + column-probe) ─────
-  const crossed=new Set();
-  let clearCount=0,ambiguous=false;
-
-  const rowData=rowMids.map((midY,idx)=>{
+  // ── TÍNH RAW METRICS CHO TỪNG HÀNG ─────────────────────────
+  // Thu thập TRƯỚC khi phán quyết để so sánh tương đối
+  const rowMetrics=rowMids.map((midY,idx)=>{
     const y0=Math.max(by,midY-halfRow);
-    const y1=Math.min(scanBot,midY+halfRow);
-    const rh=Math.max(4,y1-y0);
-    const{isCrossed,score,dbg}=detectStrikeTilted(ctx,bounds,y0,rh,zoneLums,bgLum);
-    if(score===0.5)ambiguous=true; else clearCount++;
+    const y1=Math.min(scanBot+by,midY+halfRow);
+    const h=Math.max(4,y1-y0);
+    return computeRowMetrics(fd,fW,fH,bx,bw,xCenter,slope,y0,h,darkTh,bgLum);
+  });
+
+  // Median peak_density của tất cả rows → baseline
+  const peakVals=rowMetrics.map(m=>m.peak);
+  const sorted=[...peakVals].sort((a,b)=>a-b);
+  const medPeak=sorted[Math.floor(sorted.length/2)];
+  const maxPeak=sorted[sorted.length-1];
+  const minPeak=sorted[0];
+  const spread=maxPeak-minPeak;
+
+  // ── PHÁN QUYẾT TỪNG HÀNG ────────────────────────────────────
+  const crossed=new Set();
+  const rowData=rowMetrics.map((m,idx)=>{
+    const{peak,colCov,y0,y1}=m;
+    const mid=rowMids[idx];
+
+    // Điểm tuyệt đối
+    const absScore=peak>0.30?1:peak>0.23?0.5:0;
+
+    // Điểm tương đối so với median
+    const relExcess=(peak-medPeak)/(medPeak+0.01);
+    const relScore=relExcess>0.35?1:relExcess>0.15?0.5:0;
+
+    // Column coverage bonus
+    const covBonus=colCov>0.55?0.5:0;
+
+    const total=absScore+relScore+covBonus;
+    let isCrossed,score;
+    if(total>=2){isCrossed=true;score=1;}
+    else if(total>=1){isCrossed=false;score=0.5;}
+    else{isCrossed=false;score=1;}
+
     if(isCrossed)crossed.add(idx);
-    return{y0,y1,mid:midY,isCrossed,score,dbg};
+    return{y0,y1,mid,isCrossed,score,dbg:{pk:+peak.toFixed(2),cc:+colCov.toFixed(2),re:+relExcess.toFixed(2)}};
   });
 
-  // Debug overlay
   drawOverlay(W,H,rowData,bx,bw);
-  if(DBG) drawAnchorDebug(W,H,{
-    anchorY:hppTop+anchorPeakIdx, listStart:Y_listStart,
-    bx,bw,by,bh, slope,
-    anchorPct:((hppTop+anchorPeakIdx-by)/bh*100).toFixed(1),
-    listPct:((Y_listStart-by)/bh*100).toFixed(1),
-    spacing:Math.round(spacing), angleDeg
+  if(DBG)drawAnchorDebug(W,H,{
+    anchorY:scanTop+anchorIdx,listStart,bx,bw,by,bh,slope,
+    anchorPct:((scanTop+anchorIdx-by)/bh*100).toFixed(1),
+    listPct:((listStart-by)/bh*100).toFixed(1),
+    spacing:Math.round(spacing),angleDeg
   });
 
+  const clearCount=rowData.filter(r=>r.score===1).length;
   const confidence=clearCount/nC;
   const votedNames=BALLOTS[type].candidates.filter((_,i)=>!crossed.has(i));
-  return{type,crossed,votedNames,rowData,confidence,ambiguous,
-    anchorY:Y_listStart,spacing:Math.round(spacing),slope};
+  return{type,crossed,votedNames,rowData,confidence,
+    ambiguous:rowData.some(r=>r.score===0.5),
+    anchorY:listStart,spacing:Math.round(spacing),slope};
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHÁT HIỆN GẠCH — LOCAL OTSU + MORPHOLOGICAL OPENING
-//
-// Nguyên lý (như Google Translate camera detect text):
-//
-//   Bước 1 — LOCAL OTSU: tính ngưỡng tối/sáng từ HISTOGRAM của
-//     chính vùng ROI đó → tự động thích ứng mọi ánh sáng (flash,
-//     bóng, đèn trần, ban đêm...) mà không cần tham số cứng nào.
-//
-//   Bước 2 — MORPHOLOGICAL OPENING ngang:
-//     Erode (thu hẹp) với kernel ngang rộng → xóa các nét ngắn
-//       (ký tự in: chiều rộng < 25% hàng)
-//     Dilate (mở rộng) → phục hồi nét dài
-//     Kết quả: CHỈ còn nét ngang dài ≥ minOpen → đó là gạch bút bi
-//
-//   Phân biệt vật lý:
-//     Gạch bút bi : run liên tục 60–95% chiều rộng  → tồn tại sau opening
-//     Ký tự in    : run 5–20% chiều rộng            → bị xóa sau opening
-//     Blur hàng kề: run rải rác 5–15% chiều rộng    → bị xóa sau opening
+// COMPUTE ROW METRICS — tính các chỉ số cho 1 hàng ứng viên
+// Trả về: peak (max dark ratio trong 1 scan line),
+//         colCov (tỉ lệ cột có dark pixel ở vùng giữa hàng)
 // ════════════════════════════════════════════════════════════════
+function computeRowMetrics(fd,fW,fH,bx,bw,xCenter,slope,y0,h,globalDarkTh,bgLum){
+  const xL=Math.floor(bw*.07),xR=Math.floor(bw*.93),uw=xR-xL;
+  if(h<3)return{peak:0,colCov:0,y0,y1:y0+h};
 
-// Tính Otsu threshold từ histogram của vùng pixels
-function computeOtsu(lums){
-  const hist=new Int32Array(256);
-  for(const v of lums)hist[Math.min(255,Math.max(0,v|0))]++;
-  const N=lums.length; if(!N)return 128;
-  let sum=0; for(let i=0;i<256;i++)sum+=i*hist[i];
-  let sumB=0,wB=0,maxVar=0,th=128;
-  for(let t=0;t<256;t++){
-    wB+=hist[t]; if(!wB)continue;
-    const wF=N-wB; if(!wF)break;
-    sumB+=t*hist[t];
-    const mB=sumB/wB, mF=(sum-sumB)/wF;
-    const v=wB*wF*(mB-mF)*(mB-mF);
-    if(v>maxVar){maxVar=v;th=t;}
-  }
-  return th;
-}
-
-function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum){
-  if(h<4)return{isCrossed:false,score:1,dbg:{otsu:0,hmr:0,rows:0}};
-  const{bx,bw,slope,xCenter,fullData,W,H}=bounds;
-
-  // Vùng quét ngang — bỏ 7% lề 2 bên
-  const xL=Math.floor(bw*.07), xR=Math.floor(bw*.93), uw=xR-xL;
-
-  function getTiltedLum(x,row){
+  function getLum(x,row){
     const yOff=Math.round((bx+x-xCenter)*slope);
-    const gy=y0+row+yOff, gx=bx+x;
-    if(gx<0||gx>=W||gy<0||gy>=H)return 255;
-    const idx=(gy*W+gx)*4;
-    return(fullData[idx]+fullData[idx+1]+fullData[idx+2])/3;
+    const gy=y0+row+yOff,gx=bx+x;
+    if(gx<0||gx>=fW||gy<0||gy>=fH)return 255;
+    const idx=(gy*fW+gx)*4;
+    return(fd[idx]+fd[idx+1]+fd[idx+2])/3;
   }
 
-  // ── BƯỚC 1: Thu thập pixel & tính OTSU cục bộ ──────────────
-  // Chỉ lấy vùng GIỮA hàng (25%–75%) — tránh nhiễu hàng kề ở mép
-  const rStart=Math.floor(h*0.25), rEnd=Math.ceil(h*0.75);
-  const lums=[];
-  for(let row=rStart;row<rEnd;row++)
-    for(let x=xL;x<xR;x+=2) // lấy cách 1 pixel để nhanh hơn
-      lums.push(getTiltedLum(x,row));
-
-  const otsuTh=computeOtsu(lums);
-
-  // Kiểm tra: nếu Otsu quá cao (vùng toàn tối = bóng che) → skip
-  // Nếu Otsu quá thấp (vùng quá sáng không có gì) → skip
-  if(otsuTh<20||otsuTh>230)
-    return{isCrossed:false,score:0.5,dbg:{otsu:otsuTh,hmr:0,rows:0}};
-
-  // ── BƯỚC 2: MORPHOLOGICAL OPENING ngang ────────────────────
-  // minOpen = chiều rộng tối thiểu để một nét được coi là "gạch"
-  // = 42% chiều rộng vùng quét (ký tự in dài nhất ~20%, gạch ≥60%)
-  const minOpen=Math.floor(uw*0.42);
-  const GAP=4; // gap-bridge: cho phép ≤4px sáng trong nét bút (mực không đều)
-
-  let bestHmr=0, validRows=0;
-
-  for(let row=rStart;row<rEnd;row++){
-    // Erosion: tìm tất cả dark-runs có length ≥ minOpen
-    // Equivalent: sliding window sum
-    let curRun=0, gapBuf=0, rowBestRun=0;
-    for(let x=xL;x<xR;x++){
-      if(getTiltedLum(x,row)<otsuTh){
-        curRun+=gapBuf+1; gapBuf=0;
-        if(curRun>rowBestRun)rowBestRun=curRun;
-      } else {
-        if(curRun>0&&gapBuf<GAP){gapBuf++;}
-        else{curRun=0;gapBuf=0;}
-      }
+  // ── LOCAL OTSU cho strip này ──────────────────────────────
+  // Sample pixels để tính histogram
+  const hist=new Int32Array(256);
+  let sampleN=0;
+  for(let row=0;row<h;row+=2)
+    for(let x=xL;x<xR;x+=3){
+      const v=getLum(x,row)|0;
+      hist[Math.min(255,Math.max(0,v))]++;sampleN++;
     }
-    // Opening: chỉ count row này nếu có run đủ dài (≥ minOpen)
-    if(rowBestRun>=minOpen){
-      validRows++;
-      const r=rowBestRun/uw;
-      if(r>bestHmr)bestHmr=r;
-    }
+  // Otsu
+  let sumAll=0;for(let i=0;i<256;i++)sumAll+=i*hist[i];
+  let sumB=0,wB=0,bestVar=0,otsu=Math.round(globalDarkTh);
+  for(let t=0;t<256;t++){
+    wB+=hist[t];if(!wB)continue;
+    const wF=sampleN-wB;if(!wF)break;
+    sumB+=t*hist[t];
+    const mB=sumB/wB,mF=(sumAll-sumB)/wF;
+    const v=wB*wF*(mB-mF)*(mB-mF);
+    if(v>bestVar){bestVar=v;otsu=t;}
+  }
+  // Clamp: đừng để ngưỡng quá thấp/cao
+  const th=Math.min(190,Math.max(40,otsu));
+
+  // ── HPP: dark ratio per scan line ────────────────────────
+  let peakDark=0;
+  for(let row=0;row<h;row++){
+    let dark=0;
+    for(let x=xL;x<xR;x+=1)if(getLum(x,row)<th)dark++;
+    const dr=dark/uw;
+    if(dr>peakDark)peakDark=dr;
   }
 
-  // Số rows hợp lệ / tổng rows quét
-  const totalRows=rEnd-rStart;
-  const rowRatio=validRows/totalRows;
+  // ── COLUMN COVERAGE tại vùng giữa (30-70% height) ────────
+  const cStart=Math.floor(h*0.30),cEnd=Math.ceil(h*0.70);
+  let coveredCols=0;
+  for(let x=xL;x<xR;x+=3){
+    let hasDark=false;
+    for(let row=cStart;row<cEnd;row++){
+      if(getLum(x,row)<th){hasDark=true;break;}
+    }
+    if(hasDark)coveredCols++;
+  }
+  const colCov=coveredCols/Math.ceil(uw/3);
 
-  const dbg={otsu:otsuTh,hmr:+bestHmr.toFixed(2),rows:validRows};
-
-  // ── PHÁN QUYẾT ───────────────────────────────────────────────
-  // Gạch thật: nhiều rows liên tiếp đều có nét dài (rowRatio ≥ 30%)
-  //            VÀ nét đó đủ dài (bestHmr ≥ 0.50)
-  // Không gạch: ít rows có nét dài (chữ đậm nhưng không liên tục)
-  if(bestHmr>=0.50&&rowRatio>=0.30)return{isCrossed:true, score:1,  dbg};
-  if(bestHmr>=0.38&&rowRatio>=0.20)return{isCrossed:false,score:0.5,dbg};
-  return                                 {isCrossed:false, score:1,  dbg};
+  return{peak:peakDark,colCov,y0,y1:y0+h};
 }
-
 // Debug overlay: hiện anchor + tilt angle
 function drawAnchorDebug(W,H,info){
   const ov=document.getElementById('overlay');
@@ -1651,7 +1620,7 @@ function drawOverlay(W,H,rowData,bx,bw){
       c.fillStyle='rgba(255,255,80,.95)';
       c.textAlign='left';
       const dg=row.dbg;
-      c.fillText(`ot${dg.otsu} h${dg.hmr} r${dg.rows}`,rx+18,ry+rh2/2);
+      c.fillText(`pk${dg.pk} cc${dg.cc} re${dg.re}`,rx+18,ry+rh2/2);
     }
   });
 }
