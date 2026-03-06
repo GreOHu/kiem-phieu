@@ -860,7 +860,6 @@ function drawPaperRing(paper, progress, done) {
 //   locking       → đang tích lũy frame (ring tiến trình)
 //   frozen        → đã đủ frame, analyze và chờ xác nhận
 // ════════════════════════════════════════════════════════════════
-const LOCK_NEEDED = 5;    // số frame cần giữ ổn định
 let paperStable = 0;      // frame liên tiếp thấy tờ giấy đúng chuẩn
 let lastPaper   = null;   // paper detection kết quả frame trước
 let paperColor  = null;   // màu phiếu được detect
