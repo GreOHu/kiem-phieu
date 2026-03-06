@@ -656,35 +656,64 @@ function setLockProgress(r){
 // NHẬN DIỆN MÀU
 // ════════════════════════════════════════════════════════════════
 function detectBaseColor(ctx,W,H){
-  // Lấy vùng giữa 15-85% để tránh viền trắng
-  const sx=Math.floor(W*.15),sy=Math.floor(H*.15);
-  const sw=Math.floor(W*.70),sh=Math.floor(H*.70);
+  // Scan vùng giữa tránh viền/nền ngoài
+  const sx=Math.floor(W*.12),sy=Math.floor(H*.12);
+  const sw=Math.floor(W*.76),sh=Math.floor(H*.76);
   const d=ctx.getImageData(sx,sy,sw,sh).data;
-  let n=0,pink=0,cyan=0,yellow=0,sR=0,sG=0,sB=0;
+
+  let n=0,pink=0,cyan=0,sR=0,sG=0,sB=0;
+  let brightN=0; // pixel sáng (lum>200) — để detect "giấy trắng/vàng nhạt"
+
   for(let i=0;i<d.length;i+=4){
     if(d[i+3]<30)continue;
     const r=d[i],g=d[i+1],b=d[i+2],lum=(r+g+b)/3;
-    if(lum<65||lum>253)continue;
+    if(lum<60||lum>254)continue;
     sR+=r;sG+=g;sB+=b;n++;
-    // HỒNG (QH): r kênh cao nhất, r-g >= 15
-    if(r>g+15&&r>200)pink++;
-    // CYAN (Tỉnh): g và b cùng cao hơn r, phiếu xanh ngọc nhạt
-    if(g>r+15&&b>r+15&&g>140&&b>140)cyan++;
-    // VÀNG (Xã): r≈g>b, abs(r-g)<30
-    if(r>b+30&&g>b+25&&Math.abs(r-g)<30&&r>180&&g>180)yellow++;
+    if(lum>185)brightN++;
+    // HỒNG (QH): r trội hơn g rõ ràng (≥12), r cao
+    if(r>g+12&&r>b+8&&r>185)pink++;
+    // CYAN (Tỉnh): cả g và b đều cao hơn r, xanh ngọc
+    if(g>r+12&&b>r+10&&g>130&&b>130)cyan++;
   }
+
   if(!n)return null;
-  if((sR+sG+sB)/(3*n)<75)return null;
-  const pp=pink/n,cp=cyan/n,yp=yellow/n;
+  const avgR=Math.round(sR/n),avgG=Math.round(sG/n),avgB=Math.round(sB/n);
+  const avgLum=(avgR+avgG+avgB)/3;
+
+  // Nếu quá tối → không phải phiếu
+  if(avgLum<80)return null;
+
+  const pp=pink/n, cp=cyan/n;
+  const brightRatio=brightN/n;
+
+  // Ghi debug
   document.getElementById('typePill').setAttribute('data-raw',
-    `R=${Math.round(sR/n)} G=${Math.round(sG/n)} B=${Math.round(sB/n)} | p=${pp.toFixed(3)} c=${cp.toFixed(3)} y=${yp.toFixed(3)}`);
-  const MIN=0.08; // Ngưỡng tối thiểu rất thấp vì phiếu màu rất nhạt
-  const best=Math.max(pp,cp,yp);
-  if(best<MIN)return null;
-  // Phân loại theo kênh chiếm ưu thế
-  if(best===yp&&yp>pp*0.8&&yp>cp)return 'xa';
-  if(best===cp&&cp>pp)return 'tinh';
-  if(best===pp)return 'qh';
+    `R=${avgR} G=${avgG} B=${avgB} lum=${Math.round(avgLum)} | p=${pp.toFixed(3)} c=${cp.toFixed(3)} br=${brightRatio.toFixed(2)}`);
+
+  // ── Nhận diện HỒNG (QH) ──
+  // Phiếu hồng: avgR > avgG + 8, có ít nhất 8% pixel hồng
+  if(pp>0.08&&avgR>avgG+8&&avgR>avgB+5&&pp>cp*2){
+    return 'qh';
+  }
+
+  // ── Nhận diện CYAN (Tỉnh) ──
+  // Phiếu cyan: avgG và avgB đều cao hơn avgR, có ít nhất 8% pixel cyan
+  if(cp>0.08&&avgG>avgR+10&&avgB>avgR+8&&cp>pp*2){
+    return 'tinh';
+  }
+
+  // ── LOẠI TRỪ → Xã ──
+  // Nếu phiếu đang trong khung (đủ sáng, đủ trắng/kem),
+  // không phải hồng, không phải cyan → là phiếu Xã vàng nhạt
+  // Điều kiện: giấy sáng (avgLum>170), màu trung tính (R≈G≈B hoặc R/G hơi cao hơn B)
+  // Và không có đặc trưng hồng/cyan rõ ràng
+  const isNeutralBright = avgLum>165 && brightRatio>0.35;
+  const notPink = pp<0.12 || avgR<avgG+8;
+  const notCyan = cp<0.12 || !(avgG>avgR+8&&avgB>avgR+6);
+  if(isNeutralBright&&notPink&&notCyan){
+    return 'xa';
+  }
+
   return null;
 }
 
@@ -715,10 +744,22 @@ function analyzeBallot(ctx,W,H,baseColor){
   const spacing=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
   const halfRow=Math.floor(spacing*.58); // rộng: bao cả sub-text Ông/Bà
 
-  let bgLum=240;
-  if(grp.length>=2){
-    const gY=grp[0].end+2,gH=Math.max(1,grp[1].start-grp[0].end-4);
-    if(gH>1){const id=ctx.getImageData(bx+20,gY,bw-40,gH);bgLum=meanLum(id.data);}
+  // Đo bgLum chính xác: lấy mẫu từ nhiều khoảng giữa các hàng
+  let bgLum=235;
+  const gaps=[];
+  for(let i=0;i<grp.length-1;i++){
+    const gY=grp[i].end+1, gH=Math.max(1,grp[i+1].start-grp[i].end-2);
+    if(gH>=2) gaps.push({y:gY,h:gH});
+  }
+  if(gaps.length>0){
+    // Lấy 3 khoảng giữa đầu, giữa, cuối để đo nền
+    const samples=[gaps[0], gaps[Math.floor(gaps.length/2)], gaps[gaps.length-1]];
+    let lumSum=0, lumCount=0;
+    for(const g of samples){
+      const id2=ctx.getImageData(bx+Math.floor(bw*.2),g.y,Math.floor(bw*.6),g.h);
+      lumSum+=meanLum(id2.data); lumCount++;
+    }
+    if(lumCount>0) bgLum=lumSum/lumCount;
   }
 
   const crossed=new Set();
@@ -742,63 +783,116 @@ function analyzeBallot(ctx,W,H,baseColor){
 }
 
 // ════════════════════════════════════════════════════════════════
-// detectStrikeHPPFull — trả về {isCrossed, score}
-// score: 1=confident crossed, 0=confident not crossed, 0.5=ambiguous
-// Cải tiến: 3 mức ngưỡng thay vì 1 ngưỡng cứng
+// PHÁT HIỆN GẠCH — Thuật toán kết hợp 2 phương pháp:
+//
+// Phương pháp 1 — HORIZONTAL DARK BAND:
+//   Tìm hàng pixel nào có TỈ LỆ PIXEL TỐI cao bất thường so với các hàng khác.
+//   Gạch tạo ra 1-2 hàng có dark ratio >> median.
+//
+// Phương pháp 2 — CONTINUOUS RUN ACROSS WIDTH:
+//   Tìm hàng nào có chuỗi pixel tối LIÊN TỤC dài ≥ 20% chiều rộng.
+//   Chữ tạo ra pixel tối rải rác, gạch tạo ra chuỗi dài liên tục.
+//
+// Điểm mấu chốt: chữ in phiếu bầu VN không có đường ngang dài liên tục
+// (chỉ có gạch ngang mới tạo ra đường liên tục cắt qua toàn bộ hàng)
 // ════════════════════════════════════════════════════════════════
 function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
-  if(h<3)return{isCrossed:false,score:0,dbg:{peak:0,gap:0,run:0}};
+  if(h<4)return{isCrossed:false,score:1,dbg:{peak:0,gap:0,run:0,bgL:bgLum}};
   const id=ctx.getImageData(x0,y0,w,h),d=id.data;
 
-  // darkTh: linh hoạt theo bgLum thực tế
-  // Với phiếu nhạt bgLum~230-245, dùng bgLum-20 để bắt bút bi mỏng
-  const darkTh=Math.max(20,bgLum-20);
+  // Ngưỡng tối adaptive: dùng histogram để tìm ngưỡng tốt hơn
+  // bgLum là lum nền thực tế đo được giữa các hàng
+  // Gạch bút bi: lum ≈ 60-140, chữ in: lum ≈ 30-100
+  // Nền phiếu: lum ≈ 220-250
+  // → darkTh = bgLum * 0.75 (75% độ sáng nền)
+  const darkTh = Math.min(180, Math.max(60, bgLum * 0.78));
 
-  const xL=Math.floor(w*.06),xR=Math.floor(w*.94),uw=xR-xL;
+  // Vùng scan: bỏ 8% 2 bên tránh viền khung
+  const xL=Math.floor(w*.08), xR=Math.floor(w*.92), uw=xR-xL;
+
+  // === Phương pháp 1: HPP — dark ratio per row ===
   const rowRatio=new Float32Array(h);
   for(let row=0;row<h;row++){
     let dark=0;
     for(let x=xL;x<xR;x++){
-      const i=(row*w+x)*4;
-      if((d[i]+d[i+1]+d[i+2])/3<darkTh)dark++;
+      const idx=(row*w+x)*4;
+      if((d[idx]+d[idx+1]+d[idx+2])/3<darkTh)dark++;
     }
     rowRatio[row]=dark/uw;
   }
-
   const sorted=[...rowRatio].sort((a,b)=>a-b);
   const median=sorted[Math.floor(sorted.length/2)];
   const peak=sorted[sorted.length-1];
   const gap=peak-median;
-
-  // Kiểm tra run liên tục tại hàng peak
   const peakRow=rowRatio.indexOf(peak);
-  let maxRun=0,run=0;
-  for(let x=xL;x<xR;x++){
-    const i=(peakRow*w+x)*4;
-    if((d[i]+d[i+1]+d[i+2])/3<darkTh){run++;if(run>maxRun)maxRun=run;}
-    else run=0;
+
+  // === Phương pháp 2: CONTINUOUS RUN — tìm chuỗi pixel tối dài nhất ===
+  // Kiểm tra TẤT CẢ các hàng, không chỉ hàng peak
+  let maxRun=0, maxRunRow=-1;
+  for(let row=0;row<h;row++){
+    let run=0, best=0;
+    for(let x=xL;x<xR;x++){
+      const idx=(row*w+x)*4;
+      if((d[idx]+d[idx+1]+d[idx+2])/3<darkTh){
+        run++;
+        if(run>best)best=run;
+      } else {
+        // Cho phép gap nhỏ 2px (bút bi không đều)
+        if(run>0){
+          // kiểm tra 2 pixel tiếp theo
+          let gap2=0;
+          for(let xx=x;xx<Math.min(x+3,xR);xx++){
+            const idx2=(row*w+xx)*4;
+            if((d[idx2]+d[idx2+1]+d[idx2+2])/3<darkTh){gap2=xx-x+1;break;}
+          }
+          if(gap2>0){run+=gap2;x+=gap2-1;}
+          else{if(run>best)best=run;run=0;}
+        }
+      }
+    }
+    if(best>maxRun){maxRun=best;maxRunRow=row;}
   }
   const runRatio=maxRun/uw;
-  const dbg={peak:+peak.toFixed(3),gap:+gap.toFixed(3),run:+runRatio.toFixed(3),
-    med:+median.toFixed(3),bgL:Math.round(bgLum),th:Math.round(darkTh)};
 
-  // Ngưỡng được hạ xuống đáng kể cho bút bi mỏng trên phiếu thật:
-  // HIGH: gap>0.18 AND peak>0.28 AND run>0.18
-  // MED:  gap>0.10 AND peak>0.18 AND run>0.10
-  // Không gạch rõ: gap<0.08 hoặc peak<0.15
-  if(gap>0.18&&peak>0.28&&runRatio>0.18){
-    return{isCrossed:true,score:1,dbg};
+  // === Phương pháp 3: MULTI-ROW BAND ===
+  // Đường gạch thường kéo dài 2-4 hàng liên tiếp có dark ratio cao
+  // Tìm vùng liên tiếp có dark > median + 0.08
+  const bandTh=median+0.08;
+  let maxBandLen=0, bandRun=0;
+  for(let row=0;row<h;row++){
+    if(rowRatio[row]>bandTh){bandRun++;if(bandRun>maxBandLen)maxBandLen=bandRun;}
+    else bandRun=0;
   }
-  if(gap>0.10&&peak>0.18&&runRatio>0.10){
-    return{isCrossed:true,score:0.5,dbg};
+
+  const dbg={
+    peak:+peak.toFixed(3),gap:+gap.toFixed(3),
+    run:+runRatio.toFixed(3),med:+median.toFixed(3),
+    band:maxBandLen,bgL:Math.round(bgLum),th:Math.round(darkTh)
+  };
+
+  // === QUYẾT ĐỊNH ===
+  // Gạch xác nhận nếu ĐÁP ỨNG ÍT NHẤT 2 trong 3 điều kiện:
+  // C1: run liên tục ≥ 25% chiều rộng
+  // C2: gap (peak-median) ≥ 0.12 (có hàng tối bất thường)
+  // C3: band liên tiếp ≥ 2 hàng có dark ratio cao
+
+  const C1 = runRatio>=0.25;
+  const C2 = gap>=0.12 && peak>=0.20;
+  const C3 = maxBandLen>=2 && peak>=0.15;
+
+  const score_sum = (C1?1:0)+(C2?1:0)+(C3?1:0);
+
+  if(score_sum>=2){
+    // Gạch rõ ràng
+    return{isCrossed:true, score:1, dbg};
   }
-  if(gap<=0.08||peak<=0.15){
-    return{isCrossed:false,score:1,dbg};
+  if(score_sum===1){
+    // 1 điều kiện → mơ hồ, ưu tiên hiện cho user xem
+    const isCrossed = C1||(C2&&peak>0.28)||(C3&&runRatio>0.15);
+    return{isCrossed, score:0.5, dbg};
   }
-  if(gap>0.06&&peak>0.14){
-    return{isCrossed:false,score:0.5,dbg};
-  }
-  return{isCrossed:false,score:0,dbg};
+  // Không có điều kiện nào → không gạch
+  return{isCrossed:false, score:gap<0.05?1:0.5, dbg};
 }
 
 function findContentStart(ctx,bx,by,bw,scanH){
@@ -921,13 +1015,14 @@ function drawOverlay(W,H,rowData,bx,bw){
     c.fillStyle=row.score===0.5?'rgba(251,191,36,.95)':x?'rgba(239,68,68,.95)':'rgba(16,185,129,.95)';
     c.textAlign='right';
     c.fillText(row.score===0.5?'?':x?'✖':'✔',rx+rw2-3,ry+rh2/2);
-    // DEBUG numbers
+    // DEBUG numbers — hiện p/g/r/band để debug
     if(DBG&&row.dbg){
-      const dfs=Math.max(6,Math.min(rh2*.36,9));
+      const dfs=Math.max(6,Math.min(rh2*.34,8));
       c.font=`${dfs}px monospace`;
       c.fillStyle='rgba(255,255,80,.95)';
       c.textAlign='left';
-      c.fillText(`p${row.dbg.peak} g${row.dbg.gap} r${row.dbg.run}`,rx+18,ry+rh2/2);
+      const dg=row.dbg;
+      c.fillText(`p${dg.peak} g${dg.gap} r${dg.run} b${dg.band}`,rx+18,ry+rh2/2);
     }
   });
 }
