@@ -860,6 +860,7 @@ function drawPaperRing(paper, progress, done) {
 //   locking       → đang tích lũy frame (ring tiến trình)
 //   frozen        → đã đủ frame, analyze và chờ xác nhận
 // ════════════════════════════════════════════════════════════════
+// LOCK_NEEDED = 5 (khai báo ở dòng trên)
 let paperStable = 0;      // frame liên tiếp thấy tờ giấy đúng chuẩn
 let lastPaper   = null;   // paper detection kết quả frame trước
 let paperColor  = null;   // màu phiếu được detect
@@ -1207,136 +1208,110 @@ function buildTiltedProfile(ctx, bounds, topY, scanH){
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHÂN TÍCH PHIẾU — ANCHOR-BASED + TILT-AWARE
+// PHÂN TÍCH PHIẾU v3 — FIXED NORMALIZED COORDINATES
+//
+// Sau khi detectBallotBounds() cho bx/bw/by/bh/slope,
+// tọa độ ứng viên được hard-code theo % chiều cao phiếu THỰC TẾ:
+//
+//  QH  (hồng, 5UV) : listStart=44.5%, spacing=10.8%, listEnd=98.5%
+//  Tỉnh(cyan, 5UV) : listStart=25.5%, spacing= 9.5%, listEnd=73.0%
+//  Xã  (vàng, 8UV) : listStart=43.5%, spacing= 6.5%, listEnd=95.5%
+//
+// Vùng detect gạch cho mỗi ứng viên i:
+//   midY  = by + (listStart + (i+0.5)*spacing) * bh
+//   y0    = midY - halfRow   (halfRow = spacing*0.38*bh)
+//   y1    = midY + halfRow
+//   Chỉ scan cột x = bx + [5%..40%]bw  ← vùng checkbox/gạch bên trái tên
+//   (tránh chữ in đậm bên phải làm false positive)
 // ════════════════════════════════════════════════════════════════
+const BALLOT_LAYOUT={
+  qh : {listStart:0.445, spacing:0.108, listEnd:0.985, nC:5},
+  tinh: {listStart:0.255, spacing:0.095, listEnd:0.730, nC:5},
+  xa  : {listStart:0.435, spacing:0.065, listEnd:0.955, nC:8},
+};
+
 function analyzeBallot(ctx,W,H,baseColor){
-  const nC=baseColor==='xa'?8:5;
   const type=baseColor==='xa'?'xa':(baseColor==='tinh'?'tinh':'qh');
+  const lay=BALLOT_LAYOUT[type];
+  const nC=lay.nC;
 
   // ── BƯỚC 0: Detect bounds & tilt ──────────────────────────────
   const bounds=detectBallotBounds(ctx,W,H);
   if(!bounds)return null;
   const {bx,bw,by,bh,slope,xCenter,angleDeg}=bounds;
-  const scanBot=by+Math.floor(bh*.93);
 
-  // ── BƯỚC 1: Tilted HPP scan 6%→62% phiếu ─────────────────────
-  const hppTop=by+Math.floor(bh*.06);
-  const hppH=Math.floor(bh*.58);
-  const prof=buildTiltedProfile(ctx,bounds,hppTop,hppH);
-  if(!prof||hppH<20)return null;
+  // ── BƯỚC 1: Tọa độ hàng từ layout cố định ────────────────────
+  // midY[i] = by + (listStart + (i+0.5)*spacing) * bh
+  const halfRowPx = Math.max(4, Math.floor(lay.spacing * bh * 0.38));
+  const scanBotAbs = by + Math.floor(lay.listEnd * bh);
 
-  // Smooth mạnh window ±6
-  const sm=new Float32Array(hppH);
-  for(let i=0;i<hppH;i++){
-    let s=0,c=0;
-    for(let k=-6;k<=6;k++)if(i+k>=0&&i+k<hppH){s+=prof[i+k];c++;}
-    sm[i]=s/c;
-  }
-  const profMax=Math.max(...sm);
-  if(profMax<0.01)return null;
-  const peakTh=profMax*0.12;
-
-  // ── BƯỚC 2: Tìm anchor peak ────────────────────────────────────
-  const minDist=Math.floor(hppH*0.04);
-  const anchorZoneEnd=Math.floor(hppH*0.85);
-  const localPeaks=[];
-  for(let i=minDist;i<anchorZoneEnd-minDist;i++){
-    if(sm[i]<=peakTh)continue;
-    let isPeak=true;
-    for(let k=1;k<=minDist;k++){
-      if(sm[i-k]>sm[i]||sm[i+k]>sm[i]){isPeak=false;break;}
-    }
-    if(isPeak)localPeaks.push(i);
-  }
-  if(localPeaks.length<1)return null;
-
-  const anchorPeakIdx=localPeaks[localPeaks.length-1];
-
-  // ── BƯỚC 3: Tìm Y_list_start ──────────────────────────────────
-  const dropTh=peakTh*0.6;
-  let inDrop=false,dropEnd=-1;
-  for(let i=anchorPeakIdx+1;i<hppH;i++){
-    if(!inDrop&&sm[i]<dropTh){inDrop=true;}
-    else if(inDrop&&sm[i]>=dropTh){dropEnd=i;break;}
-  }
-  let Y_listStart;
-  if(dropEnd>anchorPeakIdx+3){Y_listStart=hppTop+dropEnd;}
-  else{Y_listStart=hppTop+anchorPeakIdx+Math.floor(hppH*0.12);}
-
-  const minYList=by+Math.floor(bh*0.20);
-  const maxYList=by+Math.floor(bh*0.60);
-  Y_listStart=Math.max(minYList,Math.min(maxYList,Y_listStart));
-
-  // ── BƯỚC 4: Spacing & halfRow ─────────────────────────────────
-  const Y_listEnd=by+Math.floor(bh*0.91);
-  const listH=Y_listEnd-Y_listStart;
-  if(listH<15)return null;
-  const spacing=listH/nC;
-  const halfRow=Math.floor(spacing*0.40);
-
-  // ── BƯỚC 5+6: bgLum và zoneLums từ fullData ──────────────────
-  // Đo trong vùng khoảng trắng anchor (nền sạch nhất)
-  const bgY2=hppTop+anchorPeakIdx+4;
-  const bgH2=Math.max(2,Y_listStart-bgY2-2);
-  let bgLum=230;
-  const nZones=4;
-  const zoneLums=new Float32Array(nZones);
-  const {fullData:fd,W:fW,H:fH}=bounds;
-  if(bgH2>2&&fd){
-    // Tính bgLum global từ vùng giữa
-    let lumSum=0,lumN=0;
-    const zoneW2=Math.floor(bw/nZones);
+  // ── BƯỚC 2: Đo bgLum từ vùng giữa phiếu (trên danh sách) ─────
+  const bgSampleY = by + Math.floor(lay.listStart * bh * 0.6);
+  const bgSampleH = Math.max(4, Math.floor(bh * 0.04));
+  const nZones = 4;
+  const zoneLums = new Float32Array(nZones);
+  let bgLum = 230;
+  const {fullData:fd, W:fW, H:fH} = bounds;
+  if(fd){
+    const zoneW = Math.floor(bw / nZones);
+    let lumSum=0, lumN=0;
     for(let z=0;z<nZones;z++){
       let zSum=0,zN=0;
-      const zx0=bx+z*zoneW2+Math.floor(zoneW2*.1);
-      const zx1=zx0+Math.floor(zoneW2*.8);
-      for(let y=bgY2;y<Math.min(bgY2+bgH2,bgY2+12);y++){
-        for(let x=zx0;x<zx1;x+=2){
-          if(x<0||x>=fW||y<0||y>=fH)continue;
+      const zx0 = bx + z*zoneW + Math.floor(zoneW*.1);
+      const zx1 = zx0 + Math.floor(zoneW*.8);
+      for(let y=bgSampleY; y<bgSampleY+bgSampleH; y++){
+        for(let x=zx0; x<zx1; x+=2){
+          if(x<0||x>=fW||y<0||y>=fH) continue;
           const idx=(y*fW+x)*4;
           const l=(fd[idx]+fd[idx+1]+fd[idx+2])/3;
-          zSum+=l;zN++;lumSum+=l;lumN++;
+          zSum+=l; zN++; lumSum+=l; lumN++;
         }
       }
-      zoneLums[z]=zN>0?zSum/zN:230;
+      zoneLums[z] = zN>0 ? zSum/zN : 230;
     }
-    if(lumN>0)bgLum=lumSum/lumN;
+    if(lumN>0) bgLum = lumSum/lumN;
   } else {
     zoneLums.fill(bgLum);
   }
 
-  // ── BƯỚC 7: Generate tọa độ hàng ─────────────────────────────
-  const rowMids=[];
-  for(let i=0;i<nC;i++) rowMids.push(Math.round(Y_listStart+(i+0.5)*spacing));
+  // ── BƯỚC 3: Detect gạch từng ứng viên ────────────────────────
+  const crossed = new Set();
+  let clearCount=0, ambiguous=false;
 
-  // ── BƯỚC 8: Detect gạch từng hàng (tilted + column-probe) ─────
-  const crossed=new Set();
-  let clearCount=0,ambiguous=false;
+  const rowData = [];
+  for(let i=0; i<nC; i++){
+    const midFrac = lay.listStart + (i + 0.5) * lay.spacing;
+    const midY    = by + Math.round(midFrac * bh);
+    const y0      = Math.max(by, midY - halfRowPx);
+    const y1      = Math.min(scanBotAbs, midY + halfRowPx);
+    const rh      = Math.max(4, y1 - y0);
 
-  const rowData=rowMids.map((midY,idx)=>{
-    const y0=Math.max(by,midY-halfRow);
-    const y1=Math.min(scanBot,midY+halfRow);
-    const rh=Math.max(4,y1-y0);
-    const{isCrossed,score,dbg}=detectStrikeTilted(ctx,bounds,y0,rh,zoneLums,bgLum);
-    if(score===0.5)ambiguous=true; else clearCount++;
-    if(isCrossed)crossed.add(idx);
-    return{y0,y1,mid:midY,isCrossed,score,dbg};
-  });
+    // Detect gạch chỉ trong vùng checkbox [5%..42%] width (bên trái tên)
+    const {isCrossed, score, dbg} =
+      detectStrikeTilted(ctx, bounds, y0, rh, zoneLums, bgLum,
+                         /*xFromPct*/0.05, /*xToPct*/0.42);
+
+    if(score===0.5) ambiguous=true; else clearCount++;
+    if(isCrossed) crossed.add(i);
+    rowData.push({y0, y1, mid:midY, isCrossed, score, dbg});
+  }
 
   // Debug overlay
-  drawOverlay(W,H,rowData,bx,bw);
-  if(DBG) drawAnchorDebug(W,H,{
-    anchorY:hppTop+anchorPeakIdx, listStart:Y_listStart,
-    bx,bw,by,bh, slope,
-    anchorPct:((hppTop+anchorPeakIdx-by)/bh*100).toFixed(1),
-    listPct:((Y_listStart-by)/bh*100).toFixed(1),
-    spacing:Math.round(spacing), angleDeg
+  drawOverlay(W, H, rowData, bx, bw);
+  if(DBG) drawAnchorDebug(W, H, {
+    anchorY: by + Math.floor(lay.listStart * bh),
+    listStart: by + Math.floor(lay.listStart * bh),
+    bx, bw, by, bh, slope,
+    anchorPct: (lay.listStart*100).toFixed(1),
+    listPct:   (lay.listStart*100).toFixed(1),
+    spacing: Math.round(lay.spacing*bh), angleDeg
   });
 
-  const confidence=clearCount/nC;
-  const votedNames=BALLOTS[type].candidates.filter((_,i)=>!crossed.has(i));
-  return{type,crossed,votedNames,rowData,confidence,ambiguous,
-    anchorY:Y_listStart,spacing:Math.round(spacing),slope};
+  const confidence = clearCount / nC;
+  const votedNames = BALLOTS[type].candidates.filter((_,i) => !crossed.has(i));
+  return {type, crossed, votedNames, rowData, confidence, ambiguous,
+    anchorY: by + Math.floor(lay.listStart*bh),
+    spacing: Math.round(lay.spacing*bh), slope};
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1349,12 +1324,12 @@ function analyzeBallot(ctx,W,H,baseColor){
 // C2 — HORIZONTAL BAND: peak dark ratio >> p10 baseline
 // C3 — MULTI-ROW: band liên tiếp ≥2 row
 // ════════════════════════════════════════════════════════════════
-function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum){
+function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum, xFromPct=0.06, xToPct=0.94){
   if(h<4)return{isCrossed:false,score:1,dbg:{cp:0,pk:0,band:0}};
   const {bx,bw,slope,xCenter,fullData,W,H}=bounds;
 
   // Tái dùng fullData — không getImageData thêm
-  const xL=Math.floor(bw*.06), xR=Math.floor(bw*.94), uw=xR-xL;
+  const xL=Math.floor(bw*xFromPct), xR=Math.floor(bw*xToPct), uw=xR-xL;
   const nZones=zoneLums.length;
   const zoneW=Math.floor(uw/nZones);
 
