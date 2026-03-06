@@ -173,7 +173,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
 .fhdr-t{font-size:10px;font-weight:800;}
 .fhdr-b{font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;}
 .bqh{background:rgba(244,63,94,.12);color:var(--pink);}
-.btinh{background:rgba(59,130,246,.12);color:var(--blue);}
+.btinh{background:rgba(8,145,178,.12);color:#22d3ee;}
 .bxa{background:rgba(245,158,11,.12);color:var(--gold);}
 /* Confidence indicator trong freeze header */
 .fhdr-conf{font-size:8px;font-weight:700;padding:1px 5px;border-radius:8px;
@@ -218,14 +218,14 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
   background:linear-gradient(90deg,rgba(244,63,94,.16),rgba(244,63,94,.03));
   border-bottom:1px solid rgba(244,63,94,.18);}
 .grp-hdr.tinh{
-  background:linear-gradient(90deg,rgba(59,130,246,.16),rgba(59,130,246,.03));
-  border-bottom:1px solid rgba(59,130,246,.18);}
+  background:linear-gradient(90deg,rgba(8,145,178,.18),rgba(8,145,178,.03));
+  border-bottom:1px solid rgba(8,145,178,.2);}
 .grp-hdr.xa{
   background:linear-gradient(90deg,rgba(245,158,11,.16),rgba(245,158,11,.03));
   border-bottom:1px solid rgba(245,158,11,.18);}
 .gh-n{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
 .grp-hdr.qh .gh-n{color:var(--pink);}
-.grp-hdr.tinh .gh-n{color:var(--blue);}
+.grp-hdr.tinh .gh-n{color:#22d3ee;} /* cyan cho Tỉnh */
 .grp-hdr.xa .gh-n{color:var(--gold);}
 .gh-tot{font-size:8px;font-weight:700;color:var(--muted);}
 
@@ -236,7 +236,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
 .sr-bar{position:absolute;left:0;top:0;bottom:0;
   transition:width .5s cubic-bezier(.4,0,.2,1);pointer-events:none;}
 .grp-qh .sr-bar{background:rgba(244,63,94,.07);}
-.grp-tinh .sr-bar{background:rgba(59,130,246,.07);}
+.grp-tinh .sr-bar{background:rgba(8,145,178,.07);}
 .grp-xa .sr-bar{background:rgba(245,158,11,.07);}
 .sr.top1 .sr-bar{background:rgba(255,255,255,.09);}
 .sr.top2 .sr-bar{background:rgba(255,255,255,.06);}
@@ -268,8 +268,8 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
   font-family:inherit;}
 .dtab.active.qh{border-color:var(--pink);color:var(--pink);
   background:rgba(244,63,94,.1);}
-.dtab.active.tinh{border-color:var(--blue);color:var(--blue);
-  background:rgba(59,130,246,.1);}
+.dtab.active.tinh{border-color:#22d3ee;color:#22d3ee;
+  background:rgba(8,145,178,.1);}
 .dtab.active.xa{border-color:var(--gold);color:var(--gold);
   background:rgba(245,158,11,.1);}
 /* bars: 52px + overflow visible để số không bị cắt */
@@ -349,6 +349,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
       <div class="cam-bar">
         <div class="dot" id="camDot"></div>
         <span class="cam-lbl">Camera</span>
+        <button id="btnDbg" onclick="toggleDebug()" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:4px;color:#8b5cf6;font-size:7px;font-weight:800;padding:1px 4px;cursor:pointer;font-family:inherit;">🔬ON</button>
         <div class="type-pill" id="typePill">—</div>
       </div>
 
@@ -427,7 +428,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
         </div>
         <div class="grp-tinh">
           <div class="grp-hdr tinh">
-            <span class="gh-n">🔵 HĐND Tỉnh · max 3/5</span>
+            <span class="gh-n">🩵 HĐND Tỉnh · max 3/5</span>
             <span class="gh-tot" id="total-tinh">0 phiếu</span>
           </div>
           <div id="rows-tinh"></div>
@@ -491,7 +492,7 @@ const XA={
   1:['Nguyễn Xuân Đang','Trần Thị Giang','Trần Thị Ngọc Linh','Nguyễn Văn Mạnh','Nguyễn Thành Tín','Nguyễn Thanh Tú','Nguyễn Thị Thu Vân','Vũ Đức Vân'],
   2:['Nguyễn Cung','Nguyễn Thị Dung','Trần Thị Giang','Trần Thanh Hải','Doãn Hồng Lan','Lê Trung Nghĩa','Hoàng Đình Nhân','Nguyễn Thị Tâm'],
   3:['Chiêm Thanh Điền','Lê Thị Thùy Dung','Nguyễn Văn Hoa','Trần Thị Kim Lan','Lê Tùng Lâm','Nguyễn Thị Minh','Nguyễn Văn Thanh','Lê Minh Vẹn'],
-  4:['Nguyễn Hải Bằng','Nguyễn Thị Thùy Dung','Trần Mạnh Hùng','Trần Thị Huyên','Nguyễn Tư Khánh','Nguyễn Đình Thắng','Nguyễn Minh Tuấn','Nguyễn Văn Trung'],
+  4:['Nguyễn Hải Bằng','Nguyễn Thị Thùy Dung','Trần Mạnh Hùng','Trần Thị Huyên','Nguyễn Tư Khánh','Nguyễn Đình Thắng','Nguyễn Văn Trung','Nguyễn Minh Tuấn'],
   5:['Dương Thị Thái An','Trịnh Văn Duy','Phan Thanh Hà','Lê Ngọc Hiếu','Nguyễn Xuân Linh','Lê Đình Minh','Lê Thị Ngọc Nga','Đinh Thị Vân']
 };
 function buildBallots(u){return{
@@ -655,28 +656,34 @@ function setLockProgress(r){
 // NHẬN DIỆN MÀU
 // ════════════════════════════════════════════════════════════════
 function detectBaseColor(ctx,W,H){
+  // Lấy vùng giữa 15-85% để tránh viền trắng
   const sx=Math.floor(W*.15),sy=Math.floor(H*.15);
   const sw=Math.floor(W*.70),sh=Math.floor(H*.70);
   const d=ctx.getImageData(sx,sy,sw,sh).data;
-  let n=0,pink=0,blue=0,yellow=0,sR=0,sG=0,sB=0;
+  let n=0,pink=0,cyan=0,yellow=0,sR=0,sG=0,sB=0;
   for(let i=0;i<d.length;i+=4){
     if(d[i+3]<30)continue;
     const r=d[i],g=d[i+1],b=d[i+2],lum=(r+g+b)/3;
-    if(lum<85||lum>252)continue;
+    if(lum<65||lum>253)continue;
     sR+=r;sG+=g;sB+=b;n++;
-    if(r>150&&r-g>20&&r-b>18&&g<220)pink++;
-    if(b>r+15&&b>90)blue++;
-    if(r>130&&g>100&&b<115&&r-b>45&&g-b>25&&Math.abs(r-g)<65)yellow++;
+    // HỒNG (QH): r kênh cao nhất, r-g >= 15
+    if(r>g+15&&r>200)pink++;
+    // CYAN (Tỉnh): g và b cùng cao hơn r, phiếu xanh ngọc nhạt
+    if(g>r+15&&b>r+15&&g>140&&b>140)cyan++;
+    // VÀNG (Xã): r≈g>b, abs(r-g)<30
+    if(r>b+30&&g>b+25&&Math.abs(r-g)<30&&r>180&&g>180)yellow++;
   }
   if(!n)return null;
-  if((sR+sG+sB)/(3*n)<90)return null;
-  const pp=pink/n,bp=blue/n,yp=yellow/n;
+  if((sR+sG+sB)/(3*n)<75)return null;
+  const pp=pink/n,cp=cyan/n,yp=yellow/n;
   document.getElementById('typePill').setAttribute('data-raw',
-    `R=${Math.round(sR/n)} G=${Math.round(sG/n)} B=${Math.round(sB/n)}`);
-  const MIN=0.22,best=Math.max(pp,bp,yp);
+    `R=${Math.round(sR/n)} G=${Math.round(sG/n)} B=${Math.round(sB/n)} | p=${pp.toFixed(3)} c=${cp.toFixed(3)} y=${yp.toFixed(3)}`);
+  const MIN=0.08; // Ngưỡng tối thiểu rất thấp vì phiếu màu rất nhạt
+  const best=Math.max(pp,cp,yp);
   if(best<MIN)return null;
-  if(best===yp&&yp>pp+0.04)return 'xa';
-  if(best===bp&&bp>pp+0.04)return 'tinh';
+  // Phân loại theo kênh chiếm ưu thế
+  if(best===yp&&yp>pp*0.8&&yp>cp)return 'xa';
+  if(best===cp&&cp>pp)return 'tinh';
   if(best===pp)return 'qh';
   return null;
 }
@@ -689,7 +696,7 @@ function analyzeBallot(ctx,W,H,baseColor){
   const by=Math.floor(H*.03),bh=Math.floor(H*.94);
 
   const cY=findContentStart(ctx,bx,by,bw,Math.floor(bh*.40));
-  const scanTop=cY>0?cY:by+Math.floor(bh*.20);
+  const scanTop=cY>0?cY:by+Math.floor(bh*.15); // fallback 15% cho phiếu tiêu đề dài
   const scanBot=by+bh;
 
   const profile=buildHorizProfile(ctx,bx,scanTop,bw,scanBot-scanTop);
@@ -706,7 +713,7 @@ function analyzeBallot(ctx,W,H,baseColor){
   const mids=grp.map(r=>r.mid);
   const diffs=mids.slice(1).map((v,i)=>v-mids[i]);
   const spacing=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
-  const halfRow=Math.floor(spacing*.46); // hơi rộng hơn để bắt gạch
+  const halfRow=Math.floor(spacing*.58); // rộng: bao cả sub-text Ông/Bà
 
   let bgLum=240;
   if(grp.length>=2){
@@ -722,11 +729,10 @@ function analyzeBallot(ctx,W,H,baseColor){
     const y0=Math.max(scanTop,row.mid-halfRow);
     const y1=Math.min(scanBot,row.mid+halfRow);
     const rh=Math.max(1,y1-y0);
-    const{isCrossed,score}=detectStrikeHPPFull(ctx,bx,y0,bw,rh,bgLum);
-    // score: 0=không gạch rõ, 1=gạch rõ, 0.5=mơ hồ
+    const{isCrossed,score,dbg}=detectStrikeHPPFull(ctx,bx,y0,bw,rh,bgLum);
     if(score===0.5)ambiguous=true; else clearCount++;
     if(isCrossed)crossed.add(idx);
-    return{y0,y1,mid:row.mid,isCrossed,score};
+    return{y0,y1,mid:row.mid,isCrossed,score,dbg};
   });
 
   const confidence=clearCount/grp.length;
@@ -741,13 +747,14 @@ function analyzeBallot(ctx,W,H,baseColor){
 // Cải tiến: 3 mức ngưỡng thay vì 1 ngưỡng cứng
 // ════════════════════════════════════════════════════════════════
 function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
-  if(h<3)return{isCrossed:false,score:0};
+  if(h<3)return{isCrossed:false,score:0,dbg:{peak:0,gap:0,run:0}};
   const id=ctx.getImageData(x0,y0,w,h),d=id.data;
 
-  // Ngưỡng tối: dựa theo nền thực tế
-  const darkTh=Math.max(30,bgLum-30); // nhạy hơn (-30 thay vì -35)
+  // darkTh: linh hoạt theo bgLum thực tế
+  // Với phiếu nhạt bgLum~230-245, dùng bgLum-20 để bắt bút bi mỏng
+  const darkTh=Math.max(20,bgLum-20);
 
-  const xL=Math.floor(w*.08),xR=Math.floor(w*.92),uw=xR-xL;
+  const xL=Math.floor(w*.06),xR=Math.floor(w*.94),uw=xR-xL;
   const rowRatio=new Float32Array(h);
   for(let row=0;row<h;row++){
     let dark=0;
@@ -760,14 +767,8 @@ function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
 
   const sorted=[...rowRatio].sort((a,b)=>a-b);
   const median=sorted[Math.floor(sorted.length/2)];
-  const p75=sorted[Math.floor(sorted.length*.75)]; // percentile 75
   const peak=sorted[sorted.length-1];
   const gap=peak-median;
-
-  // 3 mức ngưỡng:
-  // HIGH confidence crossed: gap>0.25 AND peak>0.40 AND run liên tục>28%
-  // LOW confidence crossed: gap>0.14 AND peak>0.25
-  // else: not crossed
 
   // Kiểm tra run liên tục tại hàng peak
   const peakRow=rowRatio.indexOf(peak);
@@ -778,21 +779,26 @@ function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
     else run=0;
   }
   const runRatio=maxRun/uw;
+  const dbg={peak:+peak.toFixed(3),gap:+gap.toFixed(3),run:+runRatio.toFixed(3),
+    med:+median.toFixed(3),bgL:Math.round(bgLum),th:Math.round(darkTh)};
 
-  if(gap>0.25&&peak>0.40&&runRatio>0.28){
-    return{isCrossed:true,score:1}; // rõ ràng có gạch
+  // Ngưỡng được hạ xuống đáng kể cho bút bi mỏng trên phiếu thật:
+  // HIGH: gap>0.18 AND peak>0.28 AND run>0.18
+  // MED:  gap>0.10 AND peak>0.18 AND run>0.10
+  // Không gạch rõ: gap<0.08 hoặc peak<0.15
+  if(gap>0.18&&peak>0.28&&runRatio>0.18){
+    return{isCrossed:true,score:1,dbg};
   }
-  if(gap>0.14&&peak>0.25&&runRatio>0.15){
-    return{isCrossed:true,score:0.5}; // mơ hồ, cần xác nhận
+  if(gap>0.10&&peak>0.18&&runRatio>0.10){
+    return{isCrossed:true,score:0.5,dbg};
   }
-  if(gap<0.10&&peak<0.30){
-    return{isCrossed:false,score:1}; // rõ ràng không gạch
+  if(gap<=0.08||peak<=0.15){
+    return{isCrossed:false,score:1,dbg};
   }
-  // gap và peak ở vùng trung gian
-  if(gap>0.08&&peak>0.20){
-    return{isCrossed:false,score:0.5}; // mơ hồ
+  if(gap>0.06&&peak>0.14){
+    return{isCrossed:false,score:0.5,dbg};
   }
-  return{isCrossed:false,score:0};
+  return{isCrossed:false,score:0,dbg};
 }
 
 function findContentStart(ctx,bx,by,bw,scanH){
@@ -830,7 +836,7 @@ function buildHorizProfile(ctx,bx,topY,bw,scanH){
     let dark=0,total=0;
     for(let x=Math.floor(bw*.05);x<Math.floor(bw*.95);x++){
       const i=(row*bw+x)*4;if(d[i+3]<50)continue;
-      total++;if((d[i]+d[i+1]+d[i+2])/3<160)dark++;
+      total++;if((d[i]+d[i+1]+d[i+2])/3<180)dark++; // bắt pixel xám nhạt
     }
     profile[row]=total?dark/total:0;
   }
@@ -845,13 +851,13 @@ function findSegsFromProfile(profile,topY){
   }
   const mean=sm.reduce((a,b)=>a+b,0)/sm.length;
   const std=Math.sqrt(sm.reduce((a,b)=>a+(b-mean)**2,0)/sm.length);
-  const thresh=mean+std*.45; // hơi nhạy hơn (.45 thay vì .5)
+  const thresh=mean+std*.35; // rất nhạy để bắt hàng kẻ mỏng
   const segs=[];let inS=false,sStart=0;
   for(let i=0;i<sm.length;i++){
     if(sm[i]>thresh&&!inS){inS=true;sStart=i;}
     else if(sm[i]<=thresh&&inS){
       inS=false;const h=i-sStart;
-      if(h>=5)segs.push({start:topY+sStart,end:topY+i,
+      if(h>=4)segs.push({start:topY+sStart,end:topY+i,
         mid:topY+sStart+Math.floor(h/2),h});
     }
   }
@@ -872,7 +878,7 @@ function findEvenGroup(segs,n){
     const g=segs.slice(i,i+n),cv=groupCV(g);
     if(cv<bestCV){bestCV=cv;best=g;}
   }
-  return bestCV<0.35?best:null; // nới lỏng 0.32→0.35
+  return bestCV<0.42?best:null; // nới lỏng thêm cho phiếu thật
 }
 function groupCV(g){
   const d=g.map(s=>s.mid).slice(1).map((v,i)=>v-g[i].mid);
@@ -885,6 +891,10 @@ function groupCV(g){
 // ════════════════════════════════════════════════════════════════
 // OVERLAY
 // ════════════════════════════════════════════════════════════════
+// DEBUG mode
+let DBG=true;
+function toggleDebug(){DBG=!DBG;const b=document.getElementById('btnDbg');if(b)b.textContent=DBG?'🔬ON':'🔬';}
+
 function drawOverlay(W,H,rowData,bx,bw){
   const ov=document.getElementById('overlay');
   const vid=document.getElementById('video');
@@ -895,23 +905,30 @@ function drawOverlay(W,H,rowData,bx,bw){
   rowData.forEach((row,i)=>{
     const rx=bx*sx,rw2=bw*sx,ry=row.y0*sy,rh2=(row.y1-row.y0)*sy;
     const x=row.isCrossed;
-    const alpha=row.score===0.5?0.5:1;
-    c.fillStyle=x?`rgba(239,68,68,${.18*alpha})`:`rgba(16,185,129,${.14*alpha})`;
+    const alpha=row.score===0.5?0.55:1;
+    c.fillStyle=x?`rgba(239,68,68,${.2*alpha})`:`rgba(16,185,129,${.15*alpha})`;
     c.fillRect(rx,ry,rw2,rh2);
-    c.strokeStyle=x?`rgba(239,68,68,${.7*alpha})`:`rgba(16,185,129,${.5*alpha})`;
+    c.strokeStyle=x?`rgba(239,68,68,${.75*alpha})`:`rgba(16,185,129,${.55*alpha})`;
     c.lineWidth=1.5;c.strokeRect(rx+1,ry+1,rw2-2,rh2-2);
-    // Score indicator
     if(row.score===0.5){
       c.strokeStyle='rgba(251,191,36,.7)';
       c.setLineDash([3,2]);c.strokeRect(rx+1,ry+1,rw2-2,rh2-2);c.setLineDash([]);
     }
-    const fs=Math.min(rh2*.5,12);
+    const fs=Math.min(rh2*.48,11);
     c.font=`bold ${fs}px sans-serif`;c.textBaseline='middle';
     c.fillStyle='rgba(255,255,255,.9)';c.textAlign='left';
     c.fillText(i+1,rx+3,ry+rh2/2);
-    c.fillStyle=row.score===0.5?'rgba(251,191,36,.9)':x?'rgba(239,68,68,.95)':'rgba(16,185,129,.95)';
+    c.fillStyle=row.score===0.5?'rgba(251,191,36,.95)':x?'rgba(239,68,68,.95)':'rgba(16,185,129,.95)';
     c.textAlign='right';
     c.fillText(row.score===0.5?'?':x?'✖':'✔',rx+rw2-3,ry+rh2/2);
+    // DEBUG numbers
+    if(DBG&&row.dbg){
+      const dfs=Math.max(6,Math.min(rh2*.36,9));
+      c.font=`${dfs}px monospace`;
+      c.fillStyle='rgba(255,255,80,.95)';
+      c.textAlign='left';
+      c.fillText(`p${row.dbg.peak} g${row.dbg.gap} r${row.dbg.run}`,rx+18,ry+rh2/2);
+    }
   });
 }
 function clearOverlay(){
@@ -1142,7 +1159,7 @@ function renderLog(){
 // ════════════════════════════════════════════════════════════════
 // UI HELPERS
 // ════════════════════════════════════════════════════════════════
-function setStatus(type,title,sub){
+function setStatus(type,title,sub,extra){
   const bar=document.getElementById('statusBar');
   bar.className='cst '+(type||'scan');
   document.getElementById('stIco').textContent=
@@ -1150,10 +1167,17 @@ function setStatus(type,title,sub){
   document.getElementById('statusTitle').textContent=title;
   document.getElementById('statusSub').textContent=sub||'';
 }
+// Gọi sau mỗi frame để hiện raw data khi DBG=true
+function updateDebugBar(colorResult,bgLum){
+  const pill=document.getElementById('typePill');
+  if(!DBG)return;
+  const raw=pill.getAttribute('data-raw')||'';
+  if(raw)pill.title=raw+' | bgL='+Math.round(bgLum||0);
+}
 function updateTypePill(type){
   const p=document.getElementById('typePill');
   if(type==='qh'){p.style.cssText='background:#9f1239;color:#fff;';p.textContent='🌸 QH';}
-  else if(type==='tinh'){p.style.cssText='background:#1e40af;color:#fff;';p.textContent='🔵 Tỉnh';}
+  else if(type==='tinh'){p.style.cssText='background:#0891b2;color:#fff;';p.textContent='🩵 Tỉnh';}
   else if(type==='xa'){p.style.cssText='background:#92400e;color:#fff;';p.textContent='🟡 Xã';}
   else{p.style.cssText='';p.textContent='—';}
 }
