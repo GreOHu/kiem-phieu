@@ -761,133 +761,249 @@ function setLockProgress(r){
 // NHẬN DIỆN MÀU
 // ════════════════════════════════════════════════════════════════
 function detectBaseColor(ctx,W,H){
-  // Scan vùng giữa tránh viền/nền ngoài
-  const sx=Math.floor(W*.12),sy=Math.floor(H*.12);
-  const sw=Math.floor(W*.76),sh=Math.floor(H*.76);
-  const d=ctx.getImageData(sx,sy,sw,sh).data;
+  // Scan 5 vùng để chống bóng/ánh sáng không đều:
+  // trung tâm + 4 góc (lấy kết quả voting)
+  const zones=[
+    {sx:Math.floor(W*.18),sy:Math.floor(H*.18),sw:Math.floor(W*.64),sh:Math.floor(H*.64)}, // centre
+    {sx:Math.floor(W*.08),sy:Math.floor(H*.08),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // top-left
+    {sx:Math.floor(W*.57),sy:Math.floor(H*.08),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // top-right
+    {sx:Math.floor(W*.08),sy:Math.floor(H*.57),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // bot-left
+    {sx:Math.floor(W*.57),sy:Math.floor(H*.57),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // bot-right
+  ];
 
-  let n=0,pink=0,cyan=0,sR=0,sG=0,sB=0;
-  let brightN=0; // pixel sáng (lum>200) — để detect "giấy trắng/vàng nhạt"
+  let totalN=0,totalPink=0,totalCyan=0,totalBright=0;
+  let totalR=0,totalG=0,totalB=0;
+  // Vote: mỗi zone bỏ phiếu cho màu của nó
+  const zoneVotes={qh:0,tinh:0,xa:0,none:0};
 
-  for(let i=0;i<d.length;i+=4){
-    if(d[i+3]<30)continue;
-    const r=d[i],g=d[i+1],b=d[i+2],lum=(r+g+b)/3;
-    if(lum<60||lum>254)continue;
-    sR+=r;sG+=g;sB+=b;n++;
-    if(lum>185)brightN++;
-    // HỒNG (QH): r trội hơn g rõ ràng (≥12), r cao
-    if(r>g+12&&r>b+8&&r>185)pink++;
-    // CYAN (Tỉnh): cả g và b đều cao hơn r, xanh ngọc
-    if(g>r+12&&b>r+10&&g>130&&b>130)cyan++;
+  for(const z of zones){
+    const d=ctx.getImageData(z.sx,z.sy,z.sw,z.sh).data;
+    let n=0,pink=0,cyan=0,bright=0,sR=0,sG=0,sB=0;
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<30)continue;
+      const r=d[i],g=d[i+1],b=d[i+2],lum=(r+g+b)/3;
+      if(lum<55||lum>254)continue;
+      sR+=r;sG+=g;sB+=b;n++;
+      if(lum>180)bright++;
+      if(r>g+10&&r>b+6&&r>175)pink++;
+      if(g>r+10&&b>r+8&&g>125&&b>125)cyan++;
+    }
+    if(!n)continue;
+    totalN+=n;totalPink+=pink;totalCyan+=cyan;totalBright+=bright;
+    totalR+=sR;totalG+=sG;totalB+=sB;
+
+    // Zone-level vote
+    const pp=pink/n,cp=cyan/n,br=bright/n;
+    const avgR2=sR/n,avgG2=sG/n,avgB2=sB/n,lum2=(avgR2+avgG2+avgB2)/3;
+    if(lum2<75){zoneVotes.none++;continue;}
+    if(pp>0.07&&avgR2>avgG2+7&&pp>cp*1.5)zoneVotes.qh++;
+    else if(cp>0.07&&avgG2>avgR2+8&&avgB2>avgR2+6&&cp>pp*1.5)zoneVotes.tinh++;
+    else if(lum2>160&&br>0.30)zoneVotes.xa++;
+    else zoneVotes.none++;
   }
 
-  if(!n)return null;
-  const avgR=Math.round(sR/n),avgG=Math.round(sG/n),avgB=Math.round(sB/n);
+  if(!totalN)return null;
+  const avgR=Math.round(totalR/totalN),avgG=Math.round(totalG/totalN),avgB=Math.round(totalB/totalN);
   const avgLum=(avgR+avgG+avgB)/3;
+  const pp=totalPink/totalN,cp=totalCyan/totalN,br=totalBright/totalN;
 
-  // Nếu quá tối → không phải phiếu
-  if(avgLum<80)return null;
-
-  const pp=pink/n, cp=cyan/n;
-  const brightRatio=brightN/n;
-
-  // Ghi debug
   document.getElementById('typePill').setAttribute('data-raw',
-    `R=${avgR} G=${avgG} B=${avgB} lum=${Math.round(avgLum)} | p=${pp.toFixed(3)} c=${cp.toFixed(3)} br=${brightRatio.toFixed(2)}`);
+    `R=${avgR} G=${avgG} B=${avgB} | p=${pp.toFixed(3)} c=${cp.toFixed(3)} br=${br.toFixed(2)} votes=${JSON.stringify(zoneVotes)}`);
 
-  // ── Nhận diện HỒNG (QH) ──
-  // Phiếu hồng: avgR > avgG + 8, có ít nhất 8% pixel hồng
-  if(pp>0.08&&avgR>avgG+8&&avgR>avgB+5&&pp>cp*2){
-    return 'qh';
-  }
+  if(avgLum<75)return null;
 
-  // ── Nhận diện CYAN (Tỉnh) ──
-  // Phiếu cyan: avgG và avgB đều cao hơn avgR, có ít nhất 8% pixel cyan
-  if(cp>0.08&&avgG>avgR+10&&avgB>avgR+8&&cp>pp*2){
-    return 'tinh';
-  }
+  // Quyết định theo majority vote từ các zones
+  const maxVote=Math.max(zoneVotes.qh,zoneVotes.tinh,zoneVotes.xa);
+  if(maxVote<2)return null; // cần ít nhất 2/5 zones đồng ý
 
-  // ── LOẠI TRỪ → Xã ──
-  // Nếu phiếu đang trong khung (đủ sáng, đủ trắng/kem),
-  // không phải hồng, không phải cyan → là phiếu Xã vàng nhạt
-  // Điều kiện: giấy sáng (avgLum>170), màu trung tính (R≈G≈B hoặc R/G hơi cao hơn B)
-  // Và không có đặc trưng hồng/cyan rõ ràng
-  const isNeutralBright = avgLum>165 && brightRatio>0.35;
-  const notPink = pp<0.12 || avgR<avgG+8;
-  const notCyan = cp<0.12 || !(avgG>avgR+8&&avgB>avgR+6);
-  if(isNeutralBright&&notPink&&notCyan){
-    return 'xa';
-  }
+  if(zoneVotes.qh===maxVote&&zoneVotes.qh>zoneVotes.tinh)return 'qh';
+  if(zoneVotes.tinh===maxVote&&zoneVotes.tinh>zoneVotes.qh)return 'tinh';
+  if(zoneVotes.xa===maxVote)return 'xa';
 
+  // Fallback: dùng global stats
+  if(pp>0.07&&avgR>avgG+7&&pp>cp*1.5)return 'qh';
+  if(cp>0.07&&avgG>avgR+8&&avgB>avgR+6)return 'tinh';
+  if(avgLum>160&&br>0.30)return 'xa';
   return null;
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHÂN TÍCH PHIẾU — HPP với confidence scoring
+// PHÂN TÍCH PHIẾU — ANCHOR-BASED DETECTION (v2)
+//
+// Dựa trên đo đạc pixel thực tế từ 3 mẫu phiếu:
+//
+//  QH (hồng, 5 UV):  anchor "Được bầu" ~34%H
+//                    khoảng trắng 34%→40%, hàng1=45.2%, spacing=10.8%H
+//  Tỉnh (cyan, 5UV): tiêu đề kết thúc ~12%H
+//                    khoảng trắng 12%→22%, hàng1=26.4%, spacing=9.5%H
+//  Xã (vàng, 8 UV):  anchor "Được bầu" ~33%H
+//                    khoảng trắng 33%→41%, hàng1=44.4%, spacing=6.5%H
+//
+// Thuật toán:
+//  1. HPP scan 6%→60% phiếu, smooth mạnh
+//  2. Tìm peak cuối cùng trong vùng 8%→50% → anchor "Được bầu"
+//  3. Sau peak: scan xuống tìm khi profile tăng lại → Y_list_start
+//  4. Verify: Y_list_start phải hợp lý (25%–55% H)
+//  5. spacing = (0.91H - Y_list_start) / nCandidates
+//  6. midY[i] = Y_list_start + (i+0.5)*spacing
+//  7. Detect gạch trong vùng [midY-halfRow, midY+halfRow]
 // ════════════════════════════════════════════════════════════════
 function analyzeBallot(ctx,W,H,baseColor){
-  const bx=Math.floor(W*.03),bw=Math.floor(W*.94);
-  const by=Math.floor(H*.03),bh=Math.floor(H*.94);
-
-  // Bắt đầu scan từ 28% chiều cao để bỏ qua hoàn toàn tiêu đề phiếu
-  // Phiếu QH/Tỉnh: tiêu đề ~20%, phiếu Xã: tiêu đề ~28%
-  // Dùng findContentStart trong vùng 28%-70% để tìm bắt đầu danh sách ứng viên
-  const cY=findContentStart(ctx,bx,by+Math.floor(bh*.28),bw,Math.floor(bh*.35));
-  const scanTop=cY>0?cY:by+Math.floor(bh*.30);
-  const scanBot=by+bh;
-
-  const profile=buildHorizProfile(ctx,bx,scanTop,bw,scanBot-scanTop);
-  if(!profile)return null;
-
-  const segs=findSegsFromProfile(profile,scanTop);
-  if(segs.length<2)return null;
-
+  const bx=Math.floor(W*.03), bw=Math.floor(W*.94);
+  const by=Math.floor(H*.03), bh=Math.floor(H*.94);
+  const scanBot=by+Math.floor(bh*.93);
   const nC=baseColor==='xa'?8:5;
-  const grp=findEvenGroup(segs,nC);
-  if(!grp)return null;
-
   const type=baseColor==='xa'?'xa':(baseColor==='tinh'?'tinh':'qh');
-  const mids=grp.map(r=>r.mid);
-  const diffs=mids.slice(1).map((v,i)=>v-mids[i]);
-  const spacing=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
-  const halfRow=Math.floor(spacing*.44); // vừa đủ bao hàng chữ + gạch
 
-  // Đo bgLum chính xác: lấy mẫu từ nhiều khoảng giữa các hàng
-  let bgLum=235;
-  const gaps=[];
-  for(let i=0;i<grp.length-1;i++){
-    const gY=grp[i].end+1, gH=Math.max(1,grp[i+1].start-grp[i].end-2);
-    if(gH>=2) gaps.push({y:gY,h:gH});
+  // ── BƯỚC 1: HPP scan 6%→62% phiếu ─────────────────────────────
+  const hppTop=by+Math.floor(bh*.06);
+  const hppBot=by+Math.floor(bh*.62);
+  const hppH=hppBot-hppTop;
+  const prof=buildHorizProfile(ctx,bx,hppTop,bw,hppH);
+  if(!prof||hppH<20)return null;
+
+  // Smooth mạnh window ±6 để gộp sub-peaks trong 1 dòng chữ
+  const sm=new Float32Array(hppH);
+  for(let i=0;i<hppH;i++){
+    let s=0,c=0;
+    for(let k=-6;k<=6;k++)if(i+k>=0&&i+k<hppH){s+=prof[i+k];c++;}
+    sm[i]=s/c;
   }
-  if(gaps.length>0){
-    // Lấy 3 khoảng giữa đầu, giữa, cuối để đo nền
-    const samples=[gaps[0], gaps[Math.floor(gaps.length/2)], gaps[gaps.length-1]];
-    let lumSum=0, lumCount=0;
-    for(const g of samples){
-      const id2=ctx.getImageData(bx+Math.floor(bw*.2),g.y,Math.floor(bw*.6),g.h);
-      lumSum+=meanLum(id2.data); lumCount++;
+
+  const profMax=Math.max(...sm);
+  if(profMax<0.01)return null; // phiếu quá trắng/sáng
+  const peakTh=profMax*0.12;  // ngưỡng nhận dạng peak
+
+  // ── BƯỚC 2: Tìm peaks và anchor ────────────────────────────────
+  // Tìm tất cả local peaks trong vùng 8%→52% (vùng tiêu đề + "Được bầu")
+  const minDist=Math.floor(hppH*0.04); // khoảng cách tối thiểu giữa peaks
+  const anchorZoneEnd=Math.floor(hppH*0.85); // tìm peak đến 85% của scan zone = ~52%H
+
+  const localPeaks=[];
+  for(let i=minDist;i<anchorZoneEnd-minDist;i++){
+    if(sm[i]<=peakTh)continue;
+    let isPeak=true;
+    for(let k=1;k<=minDist;k++){
+      if(sm[i-k]>sm[i]||sm[i+k]>sm[i]){isPeak=false;break;}
     }
-    if(lumCount>0) bgLum=lumSum/lumCount;
+    if(isPeak)localPeaks.push(i);
   }
 
-  const crossed=new Set();
-  let clearCount=0; // số hàng có kết quả rõ ràng
-  let ambiguous=false;
+  if(localPeaks.length<1)return null;
 
-  const rowData=grp.map((row,idx)=>{
-    const y0=Math.max(scanTop,row.mid-halfRow);
-    const y1=Math.min(scanBot,row.mid+halfRow);
-    const rh=Math.max(1,y1-y0);
+  // Anchor = peak cuối cùng trong vùng tìm kiếm = "Được bầu XX đại biểu"
+  // (peak nhỏ nhất, ngay trước khoảng trắng dẫn vào danh sách)
+  const anchorPeakIdx=localPeaks[localPeaks.length-1];
+
+  // ── BƯỚC 3: Từ anchor, tìm Y_list_start ──────────────────────
+  // Scan xuống từ anchor: tìm khi profile giảm xuống dưới threshold
+  // rồi tăng lại → điểm tăng lại = hàng 1 ứng viên
+  const dropTh=peakTh*0.6; // ngưỡng "khoảng trắng"
+  let inDrop=false, dropEnd=-1;
+  for(let i=anchorPeakIdx+1;i<hppH;i++){
+    if(!inDrop&&sm[i]<dropTh){inDrop=true;}
+    else if(inDrop&&sm[i]>=dropTh){dropEnd=i;break;}
+  }
+
+  // Y_list_start = đáy khoảng trắng sau anchor
+  let Y_listStart;
+  if(dropEnd>anchorPeakIdx+3){
+    Y_listStart=hppTop+dropEnd;
+  } else {
+    // Fallback: không tìm thấy drop rõ → dùng anchor + 8%H
+    Y_listStart=hppTop+anchorPeakIdx+Math.floor(hppH*0.12);
+  }
+
+  // Sanity check: Y_listStart phải nằm trong 22%–58% chiều cao phiếu
+  const minYList=by+Math.floor(bh*0.22);
+  const maxYList=by+Math.floor(bh*0.58);
+  if(Y_listStart<minYList)Y_listStart=minYList;
+  if(Y_listStart>maxYList)Y_listStart=maxYList;
+
+  // ── BƯỚC 4: Tính spacing từ kích thước phiếu thực ─────────────
+  // Danh sách kết thúc ở ~91% chiều cao phiếu (có padding dưới)
+  const Y_listEnd=by+Math.floor(bh*0.91);
+  const listH=Y_listEnd-Y_listStart;
+  if(listH<15)return null;
+
+  const spacing=listH/nC;          // spacing mỗi hàng
+  const halfRow=Math.floor(spacing*0.40); // 40% spacing mỗi bên
+
+  // ── BƯỚC 5: Đo bgLum từ khoảng trắng anchor ──────────────────
+  // Vùng giữa anchor peak và Y_listStart = nền sạch nhất
+  const bgTopY=hppTop+anchorPeakIdx+4;
+  const bgBotY=Math.max(bgTopY+2, Y_listStart-4);
+  const bgH=Math.max(1,bgBotY-bgTopY);
+  const bgData=ctx.getImageData(bx+Math.floor(bw*.15),bgTopY,Math.floor(bw*.70),bgH);
+  const bgLum=meanLum(bgData.data);
+
+  // ── BƯỚC 6: Generate tọa độ hàng ─────────────────────────────
+  const rowMids=[];
+  for(let i=0;i<nC;i++){
+    // midY = Y_listStart + (i+0.5)*spacing
+    rowMids.push(Math.round(Y_listStart+(i+0.5)*spacing));
+  }
+
+  // ── BƯỚC 7: Detect gạch từng hàng ────────────────────────────
+  const crossed=new Set();
+  let clearCount=0, ambiguous=false;
+
+  const rowData=rowMids.map((midY,idx)=>{
+    const y0=Math.max(by,midY-halfRow);
+    const y1=Math.min(scanBot,midY+halfRow);
+    const rh=Math.max(4,y1-y0);
     const{isCrossed,score,dbg}=detectStrikeHPPFull(ctx,bx,y0,bw,rh,bgLum);
     if(score===0.5)ambiguous=true; else clearCount++;
     if(isCrossed)crossed.add(idx);
-    return{y0,y1,mid:row.mid,isCrossed,score,dbg};
+    return{y0,y1,mid:midY,isCrossed,score,dbg};
   });
 
-  const confidence=clearCount/grp.length;
+  // Debug overlay
+  if(DBG){
+    drawAnchorDebug(W,H,{
+      anchorY:hppTop+anchorPeakIdx,
+      listStart:Y_listStart,
+      listEnd:Y_listEnd,
+      bx,bw,by,bh,
+      anchorPct:((hppTop+anchorPeakIdx-by)/bh*100).toFixed(1),
+      listPct:((Y_listStart-by)/bh*100).toFixed(1),
+      spacing:Math.round(spacing)
+    });
+  }
   drawOverlay(W,H,rowData,bx,bw);
+
+  const confidence=clearCount/nC;
   const votedNames=BALLOTS[type].candidates.filter((_,i)=>!crossed.has(i));
-  return{type,crossed,votedNames,rowData,confidence,ambiguous};
+  return{type,crossed,votedNames,rowData,confidence,ambiguous,
+    anchorY:Y_listStart,spacing:Math.round(spacing)};
+}
+
+// Debug: vẽ anchor + list zone lên overlay
+function drawAnchorDebug(W,H,info){
+  const ov=document.getElementById('overlay');
+  const vid=document.getElementById('video');
+  const dW=vid.offsetWidth||W,dH=vid.offsetHeight||H;
+  const sx=dW/W,sy=dH/H;
+  const c=ov.getContext('2d');
+  const rx=info.bx*sx, rw=info.bw*sx;
+
+  // Đường anchor "Được bầu" — cam
+  const ay=info.anchorY*sy;
+  c.strokeStyle='rgba(251,146,60,.7)';c.lineWidth=1;
+  c.setLineDash([4,3]);
+  c.beginPath();c.moveTo(rx,ay);c.lineTo(rx+rw,ay);c.stroke();
+  c.setLineDash([]);
+  c.font='bold 8px sans-serif';c.fillStyle='rgba(251,146,60,.9)';
+  c.textAlign='left';c.textBaseline='bottom';
+  c.fillText(`⚓${info.anchorPct}%`,rx+3,ay-1);
+
+  // Đường list start — vàng
+  const ly=info.listStart*sy;
+  c.strokeStyle='rgba(250,204,21,.9)';c.lineWidth=2;
+  c.beginPath();c.moveTo(rx,ly);c.lineTo(rx+rw,ly);c.stroke();
+  c.font='bold 9px sans-serif';c.fillStyle='rgba(250,204,21,.95)';
+  c.textAlign='left';c.textBaseline='top';
+  c.fillText(`▶ LIST ${info.listPct}% sp=${info.spacing}px`,rx+3,ly+1);
 }
 
 // ════════════════════════════════════════════════════════════════
