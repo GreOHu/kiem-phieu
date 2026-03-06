@@ -402,6 +402,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
         <div class="dot" id="camDot"></div>
         <span class="cam-lbl">Camera</span>
         <button id="btnDbg" onclick="toggleDebug()" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:4px;color:#8b5cf6;font-size:7px;font-weight:800;padding:1px 4px;cursor:pointer;font-family:inherit;">🔬ON</button>
+        <button id="btnFlash" onclick="toggleFlash()" style="background:rgba(250,204,21,.1);border:1px solid rgba(250,204,21,.3);border-radius:4px;color:#facc15;font-size:7px;font-weight:800;padding:1px 5px;cursor:pointer;font-family:inherit;display:none;">⚡ ĐÈN</button>
         <div class="type-pill" id="typePill">—</div>
       </div>
 
@@ -655,6 +656,12 @@ async function startCamera(){
     };
     document.getElementById('btnCamera').style.display='none';
     document.getElementById('camDot').classList.add('live');
+    // Hiện nút flash nếu thiết bị hỗ trợ torch
+    try{
+      const track=stream.getVideoTracks()[0];
+      const caps=track.getCapabilities();
+      if(caps&&caps.torch)document.getElementById('btnFlash').style.display='';
+    }catch(e){}
     scanState='detecting';
     scanInterval=setInterval(scanFrame,260);
     setStatus('scan','📷 Đang quét...','Đặt phiếu phẳng trong khung');
@@ -1606,6 +1613,28 @@ function groupCV(g){
 // DEBUG mode
 let DBG=true;
 function toggleDebug(){DBG=!DBG;const b=document.getElementById('btnDbg');if(b)b.textContent=DBG?'🔬ON':'🔬';}
+
+let flashOn=false;
+async function toggleFlash(){
+  if(!stream)return;
+  try{
+    const track=stream.getVideoTracks()[0];
+    flashOn=!flashOn;
+    await track.applyConstraints({advanced:[{torch:flashOn}]});
+    const btn=document.getElementById('btnFlash');
+    if(flashOn){
+      btn.textContent='⚡ TẮT';
+      btn.style.background='rgba(250,204,21,.35)';
+      btn.style.color='#fef08a';
+      btn.style.borderColor='rgba(250,204,21,.7)';
+    }else{
+      btn.textContent='⚡ ĐÈN';
+      btn.style.background='rgba(250,204,21,.1)';
+      btn.style.color='#facc15';
+      btn.style.borderColor='rgba(250,204,21,.3)';
+    }
+  }catch(e){alert('Thiết bị không hỗ trợ đèn flash');}
+}
 
 function drawOverlay(W,H,rowData,bx,bw){
   const ov=document.getElementById('overlay');
