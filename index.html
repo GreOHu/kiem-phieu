@@ -1017,69 +1017,63 @@ function setLockProgress(r) {
 // NHẬN DIỆN MÀU
 // ════════════════════════════════════════════════════════════════
 function detectBaseColor(ctx,W,H){
-  // Scan 5 vùng để chống bóng/ánh sáng không đều:
-  // trung tâm + 4 góc (lấy kết quả voting)
+  // ── Dùng TỈ LỆ màu (ratio) thay vì giá trị tuyệt đối ──────
+  // Flash/tối làm R,G,B đều thay đổi đồng đều
+  // nhưng r/(r+g+b) ít thay đổi → nhận diện ổn định mọi ánh sáng
+  //
+  // QH (hồng/đỏ):  rRatio > 0.37 rõ rệt so với g,b
+  // Tỉnh (cyan):   gRatio > 0.34 VÀ bRatio > 0.34, rRatio thấp
+  // Xã (vàng/trắng): rRatio≈gRatio≈bRatio≈0.33 (neutral)
   const zones=[
-    {sx:Math.floor(W*.18),sy:Math.floor(H*.18),sw:Math.floor(W*.64),sh:Math.floor(H*.64)}, // centre
-    {sx:Math.floor(W*.08),sy:Math.floor(H*.08),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // top-left
-    {sx:Math.floor(W*.57),sy:Math.floor(H*.08),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // top-right
-    {sx:Math.floor(W*.08),sy:Math.floor(H*.57),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // bot-left
-    {sx:Math.floor(W*.57),sy:Math.floor(H*.57),sw:Math.floor(W*.35),sh:Math.floor(H*.35)}, // bot-right
+    {sx:Math.floor(W*.18),sy:Math.floor(H*.18),sw:Math.floor(W*.64),sh:Math.floor(H*.64)},
+    {sx:Math.floor(W*.08),sy:Math.floor(H*.08),sw:Math.floor(W*.35),sh:Math.floor(H*.35)},
+    {sx:Math.floor(W*.57),sy:Math.floor(H*.08),sw:Math.floor(W*.35),sh:Math.floor(H*.35)},
+    {sx:Math.floor(W*.08),sy:Math.floor(H*.57),sw:Math.floor(W*.35),sh:Math.floor(H*.35)},
+    {sx:Math.floor(W*.57),sy:Math.floor(H*.57),sw:Math.floor(W*.35),sh:Math.floor(H*.35)},
   ];
-
-  let totalN=0,totalPink=0,totalCyan=0,totalBright=0;
-  let totalR=0,totalG=0,totalB=0;
-  // Vote: mỗi zone bỏ phiếu cho màu của nó
   const zoneVotes={qh:0,tinh:0,xa:0,none:0};
+  let dbgStr='';
 
   for(const z of zones){
     const d=ctx.getImageData(z.sx,z.sy,z.sw,z.sh).data;
-    let n=0,pink=0,cyan=0,bright=0,sR=0,sG=0,sB=0;
+    let n=0, sumR=0,sumG=0,sumB=0;
+    let pinkRatio=0, cyanRatio=0;
+    // Chỉ lấy pixel SÁNG (là nền giấy, bỏ pixel mực/chữ tối)
+    // Pixel nền giấy: lum > 100 (bất kể flash hay không)
     for(let i=0;i<d.length;i+=4){
       if(d[i+3]<30)continue;
-      const r=d[i],g=d[i+1],b=d[i+2],lum=(r+g+b)/3;
-      if(lum<55||lum>254)continue;
-      sR+=r;sG+=g;sB+=b;n++;
-      if(lum>180)bright++;
-      if(r>g+10&&r>b+6&&r>175)pink++;
-      if(g>r+10&&b>r+8&&g>125&&b>125)cyan++;
+      const r=d[i],g=d[i+1],b=d[i+2];
+      const lum=(r+g+b)/3;
+      if(lum<100||lum>253)continue; // bỏ quá tối (mực) và bão hòa
+      sumR+=r; sumG+=g; sumB+=b; n++;
     }
-    if(!n)continue;
-    totalN+=n;totalPink+=pink;totalCyan+=cyan;totalBright+=bright;
-    totalR+=sR;totalG+=sG;totalB+=sB;
+    if(n<200){zoneVotes.none++;continue;}
+    const mR=sumR/n, mG=sumG/n, mB=sumB/n;
+    const tot=mR+mG+mB;
+    if(tot<50){zoneVotes.none++;continue;}
+    // Tỉ lệ từng kênh — bất biến với ánh sáng
+    const rr=mR/tot, gr=mG/tot, br=mB/tot;
+    dbgStr+=`rr${rr.toFixed(2)} gr${gr.toFixed(2)} br_${br.toFixed(2)} | `;
 
-    // Zone-level vote
-    const pp=pink/n,cp=cyan/n,br=bright/n;
-    const avgR2=sR/n,avgG2=sG/n,avgB2=sB/n,lum2=(avgR2+avgG2+avgB2)/3;
-    if(lum2<75){zoneVotes.none++;continue;}
-    if(pp>0.07&&avgR2>avgG2+7&&pp>cp*1.5)zoneVotes.qh++;
-    else if(cp>0.07&&avgG2>avgR2+8&&avgB2>avgR2+6&&cp>pp*1.5)zoneVotes.tinh++;
-    else if(lum2>160&&br>0.30)zoneVotes.xa++;
-    else zoneVotes.none++;
+    // QH hồng: rr cao hơn gr và br rõ rệt
+    if(rr>0.365 && rr-gr>0.025 && rr-br>0.015){zoneVotes.qh++;continue;}
+    // Tỉnh cyan: gr và br đều cao, rr thấp
+    if(gr>0.335 && br>0.325 && rr<0.345 && (gr-rr>0.015||br-rr>0.015)){zoneVotes.tinh++;continue;}
+    // Xã trắng/vàng: rr≈gr≈br (neutral) hoặc gr hơi cao hơn (vàng nhạt)
+    if(Math.abs(rr-0.333)<0.022 && Math.abs(gr-0.333)<0.022){zoneVotes.xa++;continue;}
+    // Vàng nhạt: gr hơi cao hơn rr và br
+    if(gr>rr && gr>br && gr-br<0.04 && rr>0.30){zoneVotes.xa++;continue;}
+    zoneVotes.none++;
   }
 
-  if(!totalN)return null;
-  const avgR=Math.round(totalR/totalN),avgG=Math.round(totalG/totalN),avgB=Math.round(totalB/totalN);
-  const avgLum=(avgR+avgG+avgB)/3;
-  const pp=totalPink/totalN,cp=totalCyan/totalN,br=totalBright/totalN;
-
   document.getElementById('typePill').setAttribute('data-raw',
-    `R=${avgR} G=${avgG} B=${avgB} | p=${pp.toFixed(3)} c=${cp.toFixed(3)} br=${br.toFixed(2)} votes=${JSON.stringify(zoneVotes)}`);
+    `votes=${JSON.stringify(zoneVotes)} | ${dbgStr}`);
 
-  if(avgLum<75)return null;
-
-  // Quyết định theo majority vote từ các zones
   const maxVote=Math.max(zoneVotes.qh,zoneVotes.tinh,zoneVotes.xa);
-  if(maxVote<2)return null; // cần ít nhất 2/5 zones đồng ý
-
-  if(zoneVotes.qh===maxVote&&zoneVotes.qh>zoneVotes.tinh)return 'qh';
+  if(maxVote<2)return null;
+  if(zoneVotes.qh===maxVote&&zoneVotes.qh>=zoneVotes.tinh)return 'qh';
   if(zoneVotes.tinh===maxVote&&zoneVotes.tinh>zoneVotes.qh)return 'tinh';
   if(zoneVotes.xa===maxVote)return 'xa';
-
-  // Fallback: dùng global stats
-  if(pp>0.07&&avgR>avgG+7&&pp>cp*1.5)return 'qh';
-  if(cp>0.07&&avgG>avgR+8&&avgB>avgR+6)return 'tinh';
-  if(avgLum>160&&br>0.30)return 'xa';
   return null;
 }
 
@@ -1348,77 +1342,116 @@ function analyzeBallot(ctx,W,H,baseColor){
 }
 
 // ════════════════════════════════════════════════════════════════
-// PHÁT HIỆN GẠCH — HORIZONTAL MAX-RUN (HMR)
+// PHÁT HIỆN GẠCH — LOCAL OTSU + MORPHOLOGICAL OPENING
 //
-// Nguyên lý hoàn toàn khác cũ:
-//   Cũ: đếm CỘT nào có pixel tối → blur hàng kề đánh lừa dễ dàng
-//   Mới: tìm RUN pixel tối LIÊN TỤC dài nhất trong 1 DÒNG QUÉT ĐƠN LẺ
+// Nguyên lý (như Google Translate camera detect text):
 //
-// Vật lý:
-//   Gạch bút bi  → nét liên tục ngang, run ≥55% chiều rộng
-//   Chữ in       → gaps giữa ký tự, run chỉ ~8–15%
-//   Blur hàng kề → pixel rải từ nhiều chữ khác nhau, run ngắn ~10–20%
+//   Bước 1 — LOCAL OTSU: tính ngưỡng tối/sáng từ HISTOGRAM của
+//     chính vùng ROI đó → tự động thích ứng mọi ánh sáng (flash,
+//     bóng, đèn trần, ban đêm...) mà không cần tham số cứng nào.
 //
-// Không cần column-probe, HPP, band, anti-shadow phức tạp.
+//   Bước 2 — MORPHOLOGICAL OPENING ngang:
+//     Erode (thu hẹp) với kernel ngang rộng → xóa các nét ngắn
+//       (ký tự in: chiều rộng < 25% hàng)
+//     Dilate (mở rộng) → phục hồi nét dài
+//     Kết quả: CHỈ còn nét ngang dài ≥ minOpen → đó là gạch bút bi
+//
+//   Phân biệt vật lý:
+//     Gạch bút bi : run liên tục 60–95% chiều rộng  → tồn tại sau opening
+//     Ký tự in    : run 5–20% chiều rộng            → bị xóa sau opening
+//     Blur hàng kề: run rải rác 5–15% chiều rộng    → bị xóa sau opening
 // ════════════════════════════════════════════════════════════════
+
+// Tính Otsu threshold từ histogram của vùng pixels
+function computeOtsu(lums){
+  const hist=new Int32Array(256);
+  for(const v of lums)hist[Math.min(255,Math.max(0,v|0))]++;
+  const N=lums.length; if(!N)return 128;
+  let sum=0; for(let i=0;i<256;i++)sum+=i*hist[i];
+  let sumB=0,wB=0,maxVar=0,th=128;
+  for(let t=0;t<256;t++){
+    wB+=hist[t]; if(!wB)continue;
+    const wF=N-wB; if(!wF)break;
+    sumB+=t*hist[t];
+    const mB=sumB/wB, mF=(sum-sumB)/wF;
+    const v=wB*wF*(mB-mF)*(mB-mF);
+    if(v>maxVar){maxVar=v;th=t;}
+  }
+  return th;
+}
+
 function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum){
-  if(h<4)return{isCrossed:false,score:1,dbg:{hmr:0,row:-1}};
-  const {bx,bw,slope,xCenter,fullData,W,H}=bounds;
+  if(h<4)return{isCrossed:false,score:1,dbg:{otsu:0,hmr:0,rows:0}};
+  const{bx,bw,slope,xCenter,fullData,W,H}=bounds;
 
-  const xL=Math.floor(bw*.08), xR=Math.floor(bw*.92), uw=xR-xL;
-  const nZones=zoneLums.length;
-  const zoneW=Math.max(1,Math.floor(uw/nZones));
+  // Vùng quét ngang — bỏ 7% lề 2 bên
+  const xL=Math.floor(bw*.07), xR=Math.floor(bw*.93), uw=xR-xL;
 
-  function getTiltedLum(x,baseRow){
+  function getTiltedLum(x,row){
     const yOff=Math.round((bx+x-xCenter)*slope);
-    const gy=y0+baseRow+yOff;
-    const gx=bx+x;
+    const gy=y0+row+yOff, gx=bx+x;
     if(gx<0||gx>=W||gy<0||gy>=H)return 255;
     const idx=(gy*W+gx)*4;
     return(fullData[idx]+fullData[idx+1]+fullData[idx+2])/3;
   }
 
-  function darkTh(x){
-    const z=Math.min(nZones-1,Math.floor((x-xL)/zoneW));
-    return Math.min(185,Math.max(50,(zoneLums[z]||bgLum)*0.75));
-  }
+  // ── BƯỚC 1: Thu thập pixel & tính OTSU cục bộ ──────────────
+  // Chỉ lấy vùng GIỮA hàng (25%–75%) — tránh nhiễu hàng kề ở mép
+  const rStart=Math.floor(h*0.25), rEnd=Math.ceil(h*0.75);
+  const lums=[];
+  for(let row=rStart;row<rEnd;row++)
+    for(let x=xL;x<xR;x+=2) // lấy cách 1 pixel để nhanh hơn
+      lums.push(getTiltedLum(x,row));
 
-  // ── CHỈ QUÉT VÙNG GIỮA hàng (28%–72%) ──────────────────────
-  // Blur từ hàng kề tập trung ở mép trên/dưới → bỏ qua vùng đó
-  // Gạch bút bi đi ngang qua GIỮA chữ → vẫn nằm trong vùng này
-  const rStart=Math.floor(h*0.28);
-  const rEnd  =Math.ceil (h*0.72);
+  const otsuTh=computeOtsu(lums);
 
-  // ── HMR: Horizontal Max-Run với gap-bridge ≤3px ──────────────
-  // Gap-bridge: cho phép ≤3px sáng tạm trong nét bút (mực không đều)
-  // mà không cắt run → tránh false-negative khi bút nhạt mực
-  const GAP=3;
-  let bestRun=0, bestRunRow=-1;
+  // Kiểm tra: nếu Otsu quá cao (vùng toàn tối = bóng che) → skip
+  // Nếu Otsu quá thấp (vùng quá sáng không có gì) → skip
+  if(otsuTh<20||otsuTh>230)
+    return{isCrossed:false,score:0.5,dbg:{otsu:otsuTh,hmr:0,rows:0}};
+
+  // ── BƯỚC 2: MORPHOLOGICAL OPENING ngang ────────────────────
+  // minOpen = chiều rộng tối thiểu để một nét được coi là "gạch"
+  // = 42% chiều rộng vùng quét (ký tự in dài nhất ~20%, gạch ≥60%)
+  const minOpen=Math.floor(uw*0.42);
+  const GAP=4; // gap-bridge: cho phép ≤4px sáng trong nét bút (mực không đều)
+
+  let bestHmr=0, validRows=0;
 
   for(let row=rStart;row<rEnd;row++){
-    let curRun=0,gapBuf=0,rowBest=0;
+    // Erosion: tìm tất cả dark-runs có length ≥ minOpen
+    // Equivalent: sliding window sum
+    let curRun=0, gapBuf=0, rowBestRun=0;
     for(let x=xL;x<xR;x++){
-      if(getTiltedLum(x,row)<darkTh(x)){
+      if(getTiltedLum(x,row)<otsuTh){
         curRun+=gapBuf+1; gapBuf=0;
-        if(curRun>rowBest)rowBest=curRun;
+        if(curRun>rowBestRun)rowBestRun=curRun;
       } else {
         if(curRun>0&&gapBuf<GAP){gapBuf++;}
         else{curRun=0;gapBuf=0;}
       }
     }
-    if(rowBest>bestRun){bestRun=rowBest;bestRunRow=row;}
+    // Opening: chỉ count row này nếu có run đủ dài (≥ minOpen)
+    if(rowBestRun>=minOpen){
+      validRows++;
+      const r=rowBestRun/uw;
+      if(r>bestHmr)bestHmr=r;
+    }
   }
 
-  const hmr=bestRun/uw;
+  // Số rows hợp lệ / tổng rows quét
+  const totalRows=rEnd-rStart;
+  const rowRatio=validRows/totalRows;
+
+  const dbg={otsu:otsuTh,hmr:+bestHmr.toFixed(2),rows:validRows};
 
   // ── PHÁN QUYẾT ───────────────────────────────────────────────
-  // hmr ≥ 0.55 → gạch rõ   (bút bi bình thường qua chữ in)
-  // hmr ≥ 0.38 → nghi ngờ  (bút nhạt / phiếu nhàu → hiện ?)
-  // hmr <  0.38 → không gạch
-  const dbg={hmr:+hmr.toFixed(2),row:bestRunRow};
-  if(hmr>=0.55)return{isCrossed:true, score:1,  dbg};
-  if(hmr>=0.38)return{isCrossed:false,score:0.5,dbg};
-  return            {isCrossed:false, score:1,  dbg};
+  // Gạch thật: nhiều rows liên tiếp đều có nét dài (rowRatio ≥ 30%)
+  //            VÀ nét đó đủ dài (bestHmr ≥ 0.50)
+  // Không gạch: ít rows có nét dài (chữ đậm nhưng không liên tục)
+  if(bestHmr>=0.50&&rowRatio>=0.30)return{isCrossed:true, score:1,  dbg};
+  if(bestHmr>=0.38&&rowRatio>=0.20)return{isCrossed:false,score:0.5,dbg};
+  return                                 {isCrossed:false, score:1,  dbg};
 }
 
 // Debug overlay: hiện anchor + tilt angle
@@ -1618,7 +1651,7 @@ function drawOverlay(W,H,rowData,bx,bw){
       c.fillStyle='rgba(255,255,80,.95)';
       c.textAlign='left';
       const dg=row.dbg;
-      c.fillText(`hmr${dg.hmr} r${dg.row}`,rx+18,ry+rh2/2);
+      c.fillText(`ot${dg.otsu} h${dg.hmr} r${dg.rows}`,rx+18,ry+rh2/2);
     }
   });
 }
