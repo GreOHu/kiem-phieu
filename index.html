@@ -601,7 +601,7 @@ let currentUnit=1,BALLOTS=buildBallots(1);
 let votes={},stats={total:0,valid:0,invalid:0},ballotLog=[],undoStack=[];
 let stream=null,scanInterval=null,distTab='qh';
 let scanState='idle',lockCount=0,lastDetType=null;
-const LOCK_NEEDED=5;
+const LOCK_NEEDED=4;
 let frozenResult=null,cooldownUntil=0,manualCrossed=null;
 
 try{
@@ -900,19 +900,26 @@ function scanFrame() {
   const paper = detectPaper(ctx, W, H);
 
   if (!paper.found) {
-    // Không thấy giấy → reset hoàn toàn
-    if (paperStable > 0 || lockCount > 0) {
+    // Sticky lock: cho phép mất tối đa 2 frame liên tiếp trước khi reset
+    // Tránh trường hợp 1 frame blurry/rung tay làm mất tiến trình
+    paperStable = (paperStable || 0);
+    if(paperStable < 0) paperStable--;
+    else paperStable = -1;
+
+    if (paperStable < -2) {
       paperStable = 0; lockCount = 0;
       lastPaper = null; paperColor = null;
       lastDetType = null;
       setLockRingProgress(0, null);
+      clearOverlay();
+      showNoPaperHint(true);
+      updateTypePill(null);
+      setStatus('scan', '📄 Đặt tờ phiếu vào khung', '🌸 Hồng=QH · 🔵 Xanh=Tỉnh · 🟡 Vàng=Xã');
     }
-    clearOverlay();
-    showNoPaperHint(true);
-    updateTypePill(null);
-    setStatus('scan', '📄 Đặt tờ phiếu vào khung', '🌸 Hồng=QH · 🔵 Xanh=Tỉnh · 🟡 Vàng=Xã');
+    // Giữ nguyên ring trong khi chờ (tối đa 2 frame miss)
     return;
   }
+  paperStable = 0; // reset miss counter khi thấy lại
 
   showNoPaperHint(false);
 
