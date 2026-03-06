@@ -336,9 +336,47 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
 .dfb{height:100%;border-radius:5px;transition:width .4s;}
 .dfn{width:26px;text-align:right;font-size:11px;font-weight:700;}
 .hidden{display:none!important;}
+
+/* ══ MODAL CHỌN ĐƠN VỊ ══════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);
+  z-index:100;display:flex;align-items:center;justify-content:center;
+  padding:20px;}
+.modal-box{background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:20px 16px;width:100%;max-width:320px;}
+.modal-title{font-size:16px;font-weight:900;text-align:center;
+  margin-bottom:4px;letter-spacing:-.3px;}
+.modal-title em{color:var(--gold);font-style:normal;}
+.modal-sub{font-size:11px;color:var(--muted);text-align:center;
+  margin-bottom:16px;}
+.modal-units{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
+  margin-bottom:18px;}
+.modal-u{padding:10px 2px;border:2px solid var(--border);border-radius:10px;
+  text-align:center;font-size:12px;font-weight:800;cursor:pointer;
+  font-family:inherit;background:var(--bg);color:var(--muted);
+  transition:all .15s;}
+.modal-u:active{transform:scale(.95);}
+.modal-u.sel{border-color:var(--gold);color:var(--gold);
+  background:rgba(245,158,11,.1);}
+.modal-confirm{width:100%;padding:12px;border:none;border-radius:10px;
+  font-size:14px;font-weight:900;cursor:pointer;font-family:inherit;
+  background:linear-gradient(135deg,#d97706,#f59e0b);color:#000;
+  letter-spacing:-.3px;}
+.modal-confirm:disabled{opacity:.35;cursor:not-allowed;}
 </style>
 </head>
 <body>
+<!-- ══ MODAL CHỌN ĐƠN VỊ XÃ ══════════════════════════════════ -->
+<div class="modal-overlay" id="unitModal">
+  <div class="modal-box">
+    <div class="modal-title">🗳️ Kiểm <em>Phiếu</em> 2026</div>
+    <div class="modal-sub">Chọn đơn vị bầu cử Xã trước khi bắt đầu</div>
+    <div class="modal-units" id="modalUnits"></div>
+    <button class="modal-confirm" id="modalConfirm" onclick="confirmUnit()" disabled>
+      Bắt đầu kiểm phiếu →
+    </button>
+  </div>
+</div>
+
 <div id="app">
   <div class="hdr">
     <div class="hdr-title">🗳️ Kiểm <em>Phiếu</em> 2026</div>
@@ -346,8 +384,14 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
   <div class="unit-bar">
-    <span class="unit-lbl">Đơn vị:</span>
+    <span class="unit-lbl">Đơn vị Xã:</span>
     <div class="unit-grid" id="unitGrid"></div>
+    <button onclick="document.getElementById('unitModal').style.display='flex'" 
+      style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);
+      border-radius:5px;color:var(--gold);font-size:9px;font-weight:800;
+      padding:3px 7px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">
+      ✏️ Đổi
+    </button>
   </div>
 
   <div class="mid">
@@ -491,6 +535,50 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
 </div>
 
 <script>
+
+// ════════════════════════════════════════════════════════════════
+// MODAL CHỌN ĐƠN VỊ
+// ════════════════════════════════════════════════════════════════
+let modalUnit=null;
+
+(function initModal(){
+  const mu=document.getElementById('modalUnits');
+  // Pre-select từ localStorage nếu có
+  let savedUnit=null;
+  try{const d=JSON.parse(localStorage.getItem('kp26')||'{}'); if(d.currentUnit)savedUnit=d.currentUnit;}catch(e){}
+
+  for(let i=1;i<=5;i++){
+    const b=document.createElement('button');
+    b.className='modal-u'+(savedUnit===i?' sel':''); 
+    b.textContent='ĐV 0'+i;
+    b.onclick=()=>{
+      modalUnit=i;
+      document.querySelectorAll('.modal-u').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel');
+      document.getElementById('modalConfirm').disabled=false;
+      document.getElementById('modalConfirm').textContent='✅ Bắt đầu kiểm phiếu →';
+    };
+    mu.appendChild(b);
+  }
+  if(savedUnit){
+    modalUnit=savedUnit;
+    document.getElementById('modalConfirm').disabled=false;
+    document.getElementById('modalConfirm').textContent='✅ Tiếp tục ĐV 0'+savedUnit+' →';
+  }
+})();
+
+function confirmUnit(){
+  if(!modalUnit)return;
+  currentUnit=modalUnit;
+  BALLOTS=buildBallots(currentUnit);
+  initVotes();
+  document.querySelectorAll('.unit-btn').forEach((b,i)=>b.classList.toggle('active',i+1===currentUnit));
+  document.getElementById('xa-hdr-name').textContent='🟡 HĐND Xã ĐV 0'+currentUnit+' · max 5/8';
+  document.getElementById('unitModal').style.display='none';
+  renderAllRows();renderDistMini(distTab);saveData();
+}
+
+
 // ════════════════════════════════════════════════════════════════
 // DỮ LIỆU
 // ════════════════════════════════════════════════════════════════
@@ -741,8 +829,11 @@ function analyzeBallot(ctx,W,H,baseColor){
   const bx=Math.floor(W*.03),bw=Math.floor(W*.94);
   const by=Math.floor(H*.03),bh=Math.floor(H*.94);
 
-  const cY=findContentStart(ctx,bx,by,bw,Math.floor(bh*.40));
-  const scanTop=cY>0?cY:by+Math.floor(bh*.15); // fallback 15% cho phiếu tiêu đề dài
+  // Bắt đầu scan từ 28% chiều cao để bỏ qua hoàn toàn tiêu đề phiếu
+  // Phiếu QH/Tỉnh: tiêu đề ~20%, phiếu Xã: tiêu đề ~28%
+  // Dùng findContentStart trong vùng 28%-70% để tìm bắt đầu danh sách ứng viên
+  const cY=findContentStart(ctx,bx,by+Math.floor(bh*.28),bw,Math.floor(bh*.35));
+  const scanTop=cY>0?cY:by+Math.floor(bh*.30);
   const scanBot=by+bh;
 
   const profile=buildHorizProfile(ctx,bx,scanTop,bw,scanBot-scanTop);
@@ -759,7 +850,7 @@ function analyzeBallot(ctx,W,H,baseColor){
   const mids=grp.map(r=>r.mid);
   const diffs=mids.slice(1).map((v,i)=>v-mids[i]);
   const spacing=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
-  const halfRow=Math.floor(spacing*.58); // rộng: bao cả sub-text Ông/Bà
+  const halfRow=Math.floor(spacing*.44); // vừa đủ bao hàng chữ + gạch
 
   // Đo bgLum chính xác: lấy mẫu từ nhiều khoảng giữa các hàng
   let bgLum=235;
@@ -822,10 +913,10 @@ function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
   // Gạch bút bi: lum ≈ 60-140, chữ in: lum ≈ 30-100
   // Nền phiếu: lum ≈ 220-250
   // → darkTh = bgLum * 0.75 (75% độ sáng nền)
-  const darkTh = Math.min(180, Math.max(60, bgLum * 0.78));
+  const darkTh = Math.min(185, Math.max(50, bgLum * 0.80));
 
-  // Vùng scan: bỏ 8% 2 bên tránh viền khung
-  const xL=Math.floor(w*.08), xR=Math.floor(w*.92), uw=xR-xL;
+  // Vùng scan: bỏ 6% 2 bên tránh viền khung
+  const xL=Math.floor(w*.06), xR=Math.floor(w*.94), uw=xR-xL;
 
   // === Phương pháp 1: HPP — dark ratio per row ===
   const rowRatio=new Float32Array(h);
@@ -841,40 +932,41 @@ function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
   const median=sorted[Math.floor(sorted.length/2)];
   const peak=sorted[sorted.length-1];
   const gap=peak-median;
-  const peakRow=rowRatio.indexOf(peak);
 
-  // === Phương pháp 2: CONTINUOUS RUN — tìm chuỗi pixel tối dài nhất ===
-  // Kiểm tra TẤT CẢ các hàng, không chỉ hàng peak
+  // === Phương pháp 2: CONTINUOUS RUN với bridge nhỏ ===
+  // Quét tất cả các hàng, cho phép bridge 3px (bút bi không đều)
+  // QUAN TRỌNG: chuẩn hóa run theo chiều rộng hàng thực tế
   let maxRun=0, maxRunRow=-1;
   for(let row=0;row<h;row++){
     let run=0, best=0;
-    for(let x=xL;x<xR;x++){
+    let x=xL;
+    while(x<xR){
       const idx=(row*w+x)*4;
-      if((d[idx]+d[idx+1]+d[idx+2])/3<darkTh){
-        run++;
-        if(run>best)best=run;
+      const lum=(d[idx]+d[idx+1]+d[idx+2])/3;
+      if(lum<darkTh){
+        run++; x++;
       } else {
-        // Cho phép gap nhỏ 2px (bút bi không đều)
-        if(run>0){
-          // kiểm tra 2 pixel tiếp theo
-          let gap2=0;
-          for(let xx=x;xx<Math.min(x+3,xR);xx++){
-            const idx2=(row*w+xx)*4;
-            if((d[idx2]+d[idx2+1]+d[idx2+2])/3<darkTh){gap2=xx-x+1;break;}
+        // thử bridge: nếu trong 4px tiếp theo có pixel tối → bridge
+        let bridged=false;
+        for(let bx2=x+1;bx2<Math.min(x+5,xR);bx2++){
+          const idx2=(row*w+bx2)*4;
+          if((d[idx2]+d[idx2+1]+d[idx2+2])/3<darkTh){
+            run+=(bx2-x+1); x=bx2+1; bridged=true; break;
           }
-          if(gap2>0){run+=gap2;x+=gap2-1;}
-          else{if(run>best)best=run;run=0;}
+        }
+        if(!bridged){
+          if(run>best)best=run;
+          run=0; x++;
         }
       }
     }
+    if(run>best)best=run;
     if(best>maxRun){maxRun=best;maxRunRow=row;}
   }
   const runRatio=maxRun/uw;
 
   // === Phương pháp 3: MULTI-ROW BAND ===
-  // Đường gạch thường kéo dài 2-4 hàng liên tiếp có dark ratio cao
-  // Tìm vùng liên tiếp có dark > median + 0.08
-  const bandTh=median+0.08;
+  const bandTh=median+0.06; // nhạy hơn: +6% thay vì +8%
   let maxBandLen=0, bandRun=0;
   for(let row=0;row<h;row++){
     if(rowRatio[row]>bandTh){bandRun++;if(bandRun>maxBandLen)maxBandLen=bandRun;}
@@ -907,11 +999,12 @@ function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
   // Chỉ gạch bút bi mới tạo run ≥ 30% chiều rộng liên tục
 
   // C1: run liên tục ≥ 30% — key indicator cho gạch thực
-  const C1 = runRatio>=0.30;
-  // C2: peak cao BẤT THƯỜNG hơn nền p10 + spread rộng + band dài
-  const C2 = gap_p10>=0.25 && peak>=0.35 && maxBandLen>=2;
-  // C3: kết hợp nhẹ: run>=20% VÀ band>=3 hàng
-  const C3 = runRatio>=0.20 && maxBandLen>=3;
+  // C1: run liên tục — ngưỡng 22% (bút bi mỏng trên chữ nhỏ QH/Tỉnh)
+  const C1 = runRatio>=0.22;
+  // C2: peak bất thường so với nền p10 (hạ từ 0.25 → 0.18)
+  const C2 = gap_p10>=0.18 && peak>=0.28 && maxBandLen>=2;
+  // C3: kết hợp: run≥16% VÀ band≥2
+  const C3 = runRatio>=0.16 && maxBandLen>=2;
 
   const score_sum=(C1?1:0)+(C2?1:0)+(C3?1:0);
 
@@ -920,7 +1013,7 @@ function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
   }
   if(score_sum===1){
     // Mơ hồ: C1 đáng tin nhất
-    return{isCrossed:C1||(runRatio>=0.22&&maxBandLen>=2), score:0.5, dbg};
+    return{isCrossed:C1||(runRatio>=0.18&&maxBandLen>=2), score:0.5, dbg};
   }
   return{isCrossed:false, score:peak<0.35?1:0.5, dbg};
 }
