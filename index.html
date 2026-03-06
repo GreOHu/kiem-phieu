@@ -897,31 +897,28 @@ function scanFrame() {
   const W = canvas.width, H = canvas.height;
 
   // ── BƯỚC 1: Detect tờ giấy A5 ──────────────────────────────
-  const paper = detectPaper(ctx, W, H);
+
+  let paper = detectPaper(ctx, W, H);
 
   if (!paper.found) {
-    // Sticky lock: cho phép mất tối đa 2 frame liên tiếp trước khi reset
-    // Tránh trường hợp 1 frame blurry/rung tay làm mất tiến trình
-    paperStable = (paperStable || 0);
-    if(paperStable < 0) paperStable--;
-    else paperStable = -1;
+    // Miss counter: cho phép tối đa 2 frame miss liên tiếp
+    paperStable = (paperStable > 0 ? 0 : paperStable) - 1;
 
     if (paperStable < -2) {
+      // Mất giấy thật sự → reset hoàn toàn
       paperStable = 0; lockCount = 0;
-      lastPaper = null; paperColor = null;
-      lastDetType = null;
+      lastPaper = null; paperColor = null; lastDetType = null;
       setLockRingProgress(0, null);
-      clearOverlay();
-      showNoPaperHint(true);
-      updateTypePill(null);
+      clearOverlay(); showNoPaperHint(true); updateTypePill(null);
       setStatus('scan', '📄 Đặt tờ phiếu vào khung', '🌸 Hồng=QH · 🔵 Xanh=Tỉnh · 🟡 Vàng=Xã');
+      return;
     }
-    // Giữ nguyên ring trong khi chờ (tối đa 2 frame miss)
-    return;
+    // Miss ngắn: dùng lastPaper để tiếp tục lock (tránh bị stuck)
+    if (!lastPaper) return;
+    paper = lastPaper; // dùng vị trí frame trước
+  } else {
+    paperStable = 0; // thấy giấy → reset miss counter
   }
-  paperStable = 0; // reset miss counter khi thấy lại
-
-  showNoPaperHint(false);
 
   // ── BƯỚC 2: Detect màu phiếu (chỉ khi thấy giấy) ──────────
   const baseColor = detectBaseColor(ctx, W, H);
