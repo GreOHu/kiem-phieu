@@ -853,93 +853,80 @@ function detectBaseColor(ctx,W,H){
 // slope = tan(α), α = góc nghiêng phiếu
 // ════════════════════════════════════════════════════════════════
 function detectBallotBounds(ctx, W, H){
-  // --- Tìm x_left, x_right từ column dark profile ---
-  // Viền phiếu: cột tối liên tục (lum < 100) chiếm > 12% chiều cao
-  const colH = Math.floor(H * 0.80);
-  const colOff = Math.floor(H * 0.10);
-  const BORDER_TH = 100;
-  const MIN_DARK_RATIO = 0.10;
+  // ── CHỈ 1 LẦN getImageData cho toàn bộ hàm ──────────────────
+  // Dùng canvas đã có sẵn (scan frame), không gọi thêm getImageData nào
+  const fullData = ctx.getImageData(0, 0, W, H).data;
+  function lumAt(x,y){
+    if(x<0||x>=W||y<0||y>=H)return 255;
+    const i=(y*W+x)*4;
+    return (fullData[i]+fullData[i+1]+fullData[i+2])/3;
+  }
 
-  let xL = Math.floor(W * 0.02);
-  let xR = Math.floor(W * 0.98);
+  const BORDER_TH=110; // ngưỡng pixel tối của viền phiếu
 
-  // Lấy toàn bộ ảnh 1 lần để tránh nhiều getImageData
-  const fullData = ctx.getImageData(0, colOff, W, colH).data;
-
-  const colDark = new Int32Array(W);
-  for(let y=0; y<colH; y++){
-    for(let x=0; x<W; x++){
-      const i=(y*W+x)*4;
-      if((fullData[i]+fullData[i+1]+fullData[i+2])/3 < BORDER_TH) colDark[x]++;
+  // --- Column profile: tìm xL, xR ---
+  // Viền phiếu là vùng tối liên tục theo chiều dọc
+  const colDark=new Int32Array(W);
+  const scanY0=Math.floor(H*0.08), scanY1=Math.floor(H*0.92);
+  for(let y=scanY0;y<scanY1;y+=2){ // bước 2 để nhanh gấp đôi
+    for(let x=0;x<W;x++){
+      if(lumAt(x,y)<BORDER_TH)colDark[x]++;
     }
   }
-  const minDarkCols = colH * MIN_DARK_RATIO;
-  for(let x=0; x<W; x++){ if(colDark[x]>minDarkCols){xL=x; break;} }
-  for(let x=W-1; x>=0; x--){ if(colDark[x]>minDarkCols){xR=x; break;} }
+  const minDarkV=(scanY1-scanY0)/2*0.10; // 10% số hàng scan
+  let xL=Math.floor(W*0.03), xR=Math.floor(W*0.97);
+  for(let x=0;x<W;x++){if(colDark[x]>minDarkV){xL=x;break;}}
+  for(let x=W-1;x>=0;x--){if(colDark[x]>minDarkV){xR=x;break;}}
+  if(xR-xL<W*0.20){xL=Math.floor(W*0.04);xR=Math.floor(W*0.96);}
 
-  if(xR-xL < W*0.20) { // phiếu quá hẹp → fallback
-    xL=Math.floor(W*0.04); xR=Math.floor(W*0.96);
-  }
-
-  // --- Tìm y_top từ row dark profile ---
-  const rowDark = new Int32Array(H);
-  const scanW = xR - xL;
-  for(let y=0; y<H; y++){
-    for(let x=xL; x<xR; x++){
-      const i=(y*W+x)*4;
-      if((fullData[Math.floor(y-colOff)>=0?(y-colOff)*W*4+x*4:0]||255) < BORDER_TH||
-         (ctx.getImageData(x,y,1,1).data[0]<BORDER_TH)) rowDark[y]++;
-    }
-  }
-  // Scan row profile nhanh hơn
-  const rowProf = new Int32Array(H);
-  for(let y=0; y<H; y++){
-    const d=ctx.getImageData(xL, y, scanW, 1).data;
+  // --- Row profile: tìm yT, yB ---
+  const rowDark=new Int32Array(H);
+  const scanX0=xL+Math.floor((xR-xL)*0.10);
+  const scanX1=xR-Math.floor((xR-xL)*0.10);
+  for(let y=0;y<H;y++){
     let dk=0;
-    for(let x=0;x<scanW;x++){const i=x*4;if((d[i]+d[i+1]+d[i+2])/3<BORDER_TH)dk++;}
-    rowProf[y]=dk;
+    for(let x=scanX0;x<scanX1;x+=2){ // bước 2
+      if(lumAt(x,y)<BORDER_TH)dk++;
+    }
+    rowDark[y]=dk;
   }
-  let yT=Math.floor(H*0.02), yB=Math.floor(H*0.98);
-  for(let y=0;y<H;y++){if(rowProf[y]>scanW*0.15){yT=y;break;}}
-  for(let y=H-1;y>=0;y--){if(rowProf[y]>scanW*0.15){yB=y;break;}}
-
-  if(yB-yT < H*0.20){yT=Math.floor(H*0.03);yB=Math.floor(H*0.97);}
+  const minDarkH=(scanX1-scanX0)/2*0.12;
+  let yT=Math.floor(H*0.02), yB=Math.floor(H*0.97);
+  for(let y=0;y<H;y++){if(rowDark[y]>minDarkH){yT=y;break;}}
+  for(let y=H-1;y>=0;y--){if(rowDark[y]>minDarkH){yB=y;break;}}
+  if(yB-yT<H*0.20){yT=Math.floor(H*0.03);yB=Math.floor(H*0.97);}
 
   // --- Tìm góc nghiêng từ cạnh trên phiếu ---
-  // Lấy 10 điểm đều nhau dọc theo cạnh trên, tìm y đầu tiên tối
-  const nSamples = 12;
-  const xStep = Math.floor((xR-xL)/nSamples);
-  const topPoints = []; // {x, y}
-  for(let k=1; k<nSamples; k++){
-    const px = xL + k*xStep;
-    for(let y=Math.max(0,yT-5); y<Math.min(H,yT+30); y++){
-      const d=ctx.getImageData(px,y,1,1).data;
-      if((d[0]+d[1]+d[2])/3 < BORDER_TH){
-        topPoints.push({x:px, y});
-        break;
-      }
+  // Probe 10 cột đều trong [xL+10%, xR-10%], tìm y tối đầu tiên
+  // Toàn bộ dùng fullData, không getImageData thêm
+  const nSamples=10;
+  const xStep=Math.floor((xR-xL)*0.80/nSamples);
+  const xOff=xL+Math.floor((xR-xL)*0.10);
+  const topPoints=[];
+  const searchTop=Math.max(0,yT-8), searchBot=Math.min(H,yT+40);
+  for(let k=0;k<nSamples;k++){
+    const px=xOff+k*xStep;
+    for(let y=searchTop;y<searchBot;y++){
+      if(lumAt(px,y)<BORDER_TH){topPoints.push({x:px,y});break;}
     }
   }
 
-  // Linear regression: slope = Σ(xi-x̄)(yi-ȳ) / Σ(xi-x̄)²
-  let slope = 0;
-  if(topPoints.length >= 4){
+  // Linear regression → slope = tan(α)
+  let slope=0;
+  if(topPoints.length>=4){
     const n=topPoints.length;
     const mx=topPoints.reduce((s,p)=>s+p.x,0)/n;
     const my=topPoints.reduce((s,p)=>s+p.y,0)/n;
     let num=0,den=0;
     for(const p of topPoints){num+=(p.x-mx)*(p.y-my);den+=(p.x-mx)**2;}
-    if(den>0) slope=num/den;
-    // Clamp: tối đa ±20° (tan(20°)=0.364)
-    slope=Math.max(-0.364, Math.min(0.364, slope));
+    if(den>0)slope=num/den;
+    slope=Math.max(-0.27,Math.min(0.27,slope)); // clamp ±15°
   }
 
-  const xCenter = (xL+xR)/2;
-  const bw = xR-xL;
-  const bh = yB-yT;
-
-  return {bx:xL, bw, by:yT, bh, slope, xCenter,
-          angleDeg: Math.round(Math.atan(slope)*180/Math.PI*10)/10};
+  return{bx:xL,bw:xR-xL,by:yT,bh:yB-yT,
+    slope,xCenter:(xL+xR)/2,
+    angleDeg:Math.round(Math.atan(slope)*180/Math.PI*10)/10,
+    fullData,W,H}; // trả kèm fullData để tái dùng
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -947,32 +934,24 @@ function detectBallotBounds(ctx, W, H){
 // Tương tự buildHorizProfile nhưng dọc theo đường nghiêng
 // ════════════════════════════════════════════════════════════════
 function buildTiltedProfile(ctx, bounds, topY, scanH){
-  const {bx,bw,by,bh,slope,xCenter}=bounds;
+  const {bx,bw,by,bh,slope,xCenter,fullData,W,H}=bounds;
   if(scanH<=0)return null;
 
-  // Lấy vùng dữ liệu đủ rộng để tránh index out of bounds khi nghiêng
-  const maxOffset=Math.ceil(Math.abs(slope)*bw/2)+2;
-  const safeTop=Math.max(0,topY-maxOffset);
-  const safeBot=Math.min(by+bh, topY+scanH+maxOffset);
-  const safeH=safeBot-safeTop;
-  if(safeH<=0)return null;
-
-  const id=ctx.getImageData(bx,safeTop,bw,safeH);
-  const d=id.data;
+  // Tái dùng fullData đã có từ detectBallotBounds — không getImageData thêm
   const profile=new Float32Array(scanH);
+  const xL2=Math.floor(bw*.05), xR2=Math.floor(bw*.95);
 
   for(let row=0;row<scanH;row++){
     let dark=0,total=0;
-    const xL2=Math.floor(bw*.05), xR2=Math.floor(bw*.95);
+    const baseY=topY+row;
     for(let x=xL2;x<xR2;x++){
-      // y offset do nghiêng: dịch chuyển theo (x-xCenter)*slope
-      const yOff=Math.round((x-xCenter+bx-bx)*slope); // relative to bx
-      const actualYInSafe=row+(topY-safeTop)+yOff;
-      if(actualYInSafe<0||actualYInSafe>=safeH)continue;
-      const idx=(actualYInSafe*bw+x)*4;
-      if(idx<0||idx>=d.length-3)continue;
+      const yOff=Math.round((bx+x-xCenter)*slope);
+      const gy=baseY+yOff;
+      const gx=bx+x;
+      if(gx<0||gx>=W||gy<0||gy>=H)continue;
+      const idx=(gy*W+gx)*4;
       total++;
-      if((d[idx]+d[idx+1]+d[idx+2])/3<155)dark++;
+      if((fullData[idx]+fullData[idx+1]+fullData[idx+2])/3<155)dark++;
     }
     profile[row]=total?dark/total:0;
   }
@@ -1047,29 +1026,35 @@ function analyzeBallot(ctx,W,H,baseColor){
   const spacing=listH/nC;
   const halfRow=Math.floor(spacing*0.40);
 
-  // ── BƯỚC 5: bgLum từ anchor gap ───────────────────────────────
-  const bgY=hppTop+anchorPeakIdx+4;
-  const bgH=Math.max(2,Y_listStart-(bgY+2));
+  // ── BƯỚC 5+6: bgLum và zoneLums từ fullData ──────────────────
+  // Đo trong vùng khoảng trắng anchor (nền sạch nhất)
+  const bgY2=hppTop+anchorPeakIdx+4;
+  const bgH2=Math.max(2,Y_listStart-bgY2-2);
   let bgLum=230;
-  if(bgH>2){
-    const bgData=ctx.getImageData(bx+Math.floor(bw*.15),bgY,Math.floor(bw*.70),bgH);
-    bgLum=meanLum(bgData.data);
-  }
-
-  // ── BƯỚC 6: Local bgLum per zone (chống bóng) ─────────────────
-  // Đo bgLum tại 4 vùng ngang để tính local threshold
   const nZones=4;
   const zoneLums=new Float32Array(nZones);
-  const zoneW=Math.floor(bw/nZones);
-  for(let z=0;z<nZones;z++){
-    const zx=bx+z*zoneW+Math.floor(zoneW*.1);
-    const zw=Math.floor(zoneW*.8);
-    if(bgH>2&&zw>4){
-      const zd=ctx.getImageData(zx,bgY,zw,Math.min(bgH,8));
-      zoneLums[z]=meanLum(zd.data);
-    } else {
-      zoneLums[z]=bgLum;
+  const {fullData:fd,W:fW,H:fH}=bounds;
+  if(bgH2>2&&fd){
+    // Tính bgLum global từ vùng giữa
+    let lumSum=0,lumN=0;
+    const zoneW2=Math.floor(bw/nZones);
+    for(let z=0;z<nZones;z++){
+      let zSum=0,zN=0;
+      const zx0=bx+z*zoneW2+Math.floor(zoneW2*.1);
+      const zx1=zx0+Math.floor(zoneW2*.8);
+      for(let y=bgY2;y<Math.min(bgY2+bgH2,bgY2+12);y++){
+        for(let x=zx0;x<zx1;x+=2){
+          if(x<0||x>=fW||y<0||y>=fH)continue;
+          const idx=(y*fW+x)*4;
+          const l=(fd[idx]+fd[idx+1]+fd[idx+2])/3;
+          zSum+=l;zN++;lumSum+=l;lumN++;
+        }
+      }
+      zoneLums[z]=zN>0?zSum/zN:230;
     }
+    if(lumN>0)bgLum=lumSum/lumN;
+  } else {
+    zoneLums.fill(bgLum);
   }
 
   // ── BƯỚC 7: Generate tọa độ hàng ─────────────────────────────
@@ -1117,60 +1102,36 @@ function analyzeBallot(ctx,W,H,baseColor){
 // C3 — MULTI-ROW: band liên tiếp ≥2 row
 // ════════════════════════════════════════════════════════════════
 function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum){
-  if(h<4)return{isCrossed:false,score:1,dbg:{cp:0,run:0,band:0}};
-  const {bx,bw,slope,xCenter}=bounds;
+  if(h<4)return{isCrossed:false,score:1,dbg:{cp:0,pk:0,band:0}};
+  const {bx,bw,slope,xCenter,fullData,W,H}=bounds;
 
-  // Lấy vùng ảnh đủ rộng bù góc nghiêng
-  const maxOffset=Math.ceil(Math.abs(slope)*bw/2)+2;
-  const safeTop=Math.max(0,y0-maxOffset);
-  const safeH=h+maxOffset*2;
-  const id=ctx.getImageData(bx,safeTop,bw,safeH);
-  const d=id.data;
-
+  // Tái dùng fullData — không getImageData thêm
   const xL=Math.floor(bw*.06), xR=Math.floor(bw*.94), uw=xR-xL;
   const nZones=zoneLums.length;
-  const zoneW=Math.floor(bw/nZones);
+  const zoneW=Math.floor(uw/nZones);
 
-  // Helper: lấy lum pixel tại (x, y) với bù góc nghiêng
+  // Lấy lum pixel tại cột x, hàng baseRow (tính từ y0), có bù nghiêng
   function getTiltedLum(x, baseRow){
-    const yOff=Math.round((x+bx-xCenter)*slope);
-    const yi=baseRow+(y0-safeTop)+yOff;
-    if(yi<0||yi>=safeH)return 255;
-    const idx=(yi*bw+x)*4;
-    if(idx<0||idx>=d.length-3)return 255;
-    return (d[idx]+d[idx+1]+d[idx+2])/3;
+    const yOff=Math.round((bx+x-xCenter)*slope);
+    const gy=y0+baseRow+yOff;
+    const gx=bx+x;
+    if(gx<0||gx>=W||gy<0||gy>=H)return 255;
+    const idx=(gy*W+gx)*4;
+    return (fullData[idx]+fullData[idx+1]+fullData[idx+2])/3;
   }
 
-  // Helper: local darkTh tại cột x
+  // Local darkTh theo zone ngang (chống bóng)
   function localDarkTh(x){
-    const z=Math.min(nZones-1, Math.floor((x-xL)/zoneW));
-    const zLum=zoneLums[z]||bgLum;
-    return Math.min(190, Math.max(45, zLum*0.78));
+    const z=Math.min(nZones-1,Math.floor((x-xL)/zoneW));
+    return Math.min(190,Math.max(45,(zoneLums[z]||bgLum)*0.78));
   }
 
-  // ── C1: COLUMN PROBE ────────────────────────────────────────
-  // Probe 20 cột đều nhau, mỗi cột scan toàn chiều cao halfRow
-  const nProbes=20;
-  const probeStep=Math.floor(uw/nProbes);
-  let probeHits=0;
-  for(let k=0;k<nProbes;k++){
-    const px=xL+k*probeStep;
-    const th=localDarkTh(px);
-    let hit=false;
-    for(let row=0;row<h;row++){
-      if(getTiltedLum(px,row)<th){hit=true;break;}
-    }
-    if(hit)probeHits++;
-  }
-  const colProbeRatio=probeHits/nProbes;
-
-  // ── HPP với tilt ────────────────────────────────────────────
+  // ── HPP: dark ratio per row ──────────────────────────────────
   const rowRatio=new Float32Array(h);
   for(let row=0;row<h;row++){
     let dark=0;
     for(let x=xL;x<xR;x++){
-      const th=localDarkTh(x);
-      if(getTiltedLum(x,row)<th)dark++;
+      if(getTiltedLum(x,row)<localDarkTh(x))dark++;
     }
     rowRatio[row]=dark/uw;
   }
@@ -1179,57 +1140,70 @@ function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum){
   const peak=sorted[sorted.length-1];
   const gap_p10=peak-p10;
 
-  // ── C2: PEAK vs BASELINE ────────────────────────────────────
-  // Bóng điện thoại: tạo gradient đều → p10 và peak đều tăng → gap_p10 không tăng nhiều
-  // Gạch thực: chỉ 1-2 hàng có peak cao → gap_p10 lớn
-  const C2=gap_p10>=0.16&&peak>=0.25;
-
-  // ── C3: MULTI-ROW BAND ──────────────────────────────────────
-  const bandTh=p10+0.08;
+  // ── MULTI-ROW BAND ───────────────────────────────────────────
+  const bandTh=p10+0.07;
   let maxBand=0,bandRun=0;
   for(let row=0;row<h;row++){
     if(rowRatio[row]>bandTh){bandRun++;if(bandRun>maxBand)maxBand=bandRun;}
     else bandRun=0;
   }
-  const C3=maxBand>=2&&peak>=0.18;
 
-  // ── ANTI-SHADOW: nếu colProbeRatio cao nhưng đều ở CẢ 2 phía → bóng ──
-  // Bóng: làm 1 nửa phiếu tối → probe hits tập trung 1 bên
-  // Gạch: probe hits rải đều cả 2 bên
-  let shadowFlag=false;
-  if(colProbeRatio>=0.50){
-    // Đếm hits ở nửa trái vs nửa phải
-    let leftHits=0,rightHits=0;
-    const mid=Math.floor(nProbes/2);
-    let kk=0;
-    for(let k=0;k<nProbes;k++){
-      const px=xL+k*probeStep;
-      const th=localDarkTh(px);
-      let hit=false;
-      for(let row=0;row<h;row++){if(getTiltedLum(px,row)<th){hit=true;break;}}
-      if(hit){if(k<mid)leftHits++;else rightHits++;}
-      kk++;
+  // ── COLUMN PROBE ─────────────────────────────────────────────
+  // Probe 16 cột, mỗi cột: có ÍT NHẤT 1 pixel tối trong toàn chiều cao row?
+  // QUAN TRỌNG: chữ in cũng có pixel tối → phân biệt gạch vs chữ bằng:
+  // Gạch: pixel tối xuất hiện Ở GIỮA HÀNG (không phải ở vùng chữ đậm đặc)
+  // → dùng p10 làm baseline: chỉ count cột có lum < localDarkTh
+  //   VÀ pixel đó thấp hơn đáng kể so với median của cột
+  const nProbes=16;
+  const probeStep=Math.floor(uw/nProbes);
+  let probeHits=0;
+  const leftHits_arr=[], rightHits_arr=[];
+  for(let k=0;k<nProbes;k++){
+    const px=xL+k*probeStep;
+    const th=localDarkTh(px);
+    // Tìm pixel tối nhất trong cột này
+    let minLum=255;
+    for(let row=0;row<h;row++){
+      const lum=getTiltedLum(px,row);
+      if(lum<minLum)minLum=lum;
     }
-    // Nếu 1 bên chiếm > 80% hits → bóng
-    const total=leftHits+rightHits;
-    if(total>4&&(leftHits/total>0.82||rightHits/total>0.82))shadowFlag=true;
+    // Chỉ count nếu tối hơn threshold cục bộ
+    if(minLum<th){
+      probeHits++;
+      if(k<nProbes/2)leftHits_arr.push(1); else rightHits_arr.push(1);
+    } else {
+      if(k<nProbes/2)leftHits_arr.push(0); else rightHits_arr.push(0);
+    }
+  }
+  const colProbeRatio=probeHits/nProbes;
+
+  // ── ANTI-SHADOW ──────────────────────────────────────────────
+  // Bóng tập trung 1 phía → leftHits hoặc rightHits >> phía kia
+  // Gạch rải đều 2 phía
+  let shadowFlag=false;
+  if(colProbeRatio>=0.45){
+    const lh=leftHits_arr.reduce((a,b)=>a+b,0);
+    const rh=rightHits_arr.reduce((a,b)=>a+b,0);
+    const tot=lh+rh;
+    if(tot>=6&&(lh/tot>0.85||rh/tot>0.85))shadowFlag=true;
   }
 
-  const dbg={cp:+colProbeRatio.toFixed(2),p10:+p10.toFixed(3),
-    pk:+peak.toFixed(3),gp:+gap_p10.toFixed(3),band:maxBand,shd:shadowFlag?1:0};
+  const dbg={cp:+colProbeRatio.toFixed(2),pk:+peak.toFixed(3),
+    gp:+gap_p10.toFixed(3),band:maxBand,shd:shadowFlag?1:0};
 
-  // ── QUYẾT ĐỊNH ──────────────────────────────────────────────
   if(shadowFlag)return{isCrossed:false,score:0.5,dbg};
 
-  // C1: column probe ≥55% = gạch đi qua phần lớn chiều rộng
-  const C1=colProbeRatio>=0.55;
-  const score_sum=(C1?1:0)+(C2?1:0)+(C3?1:0);
+  // C1: gạch đi qua ≥50% chiều rộng (bút bi mỏng vẫn tạo pixel tối mỗi cột)
+  const C1=colProbeRatio>=0.50;
+  // C2: peak bất thường so với baseline
+  const C2=gap_p10>=0.14&&peak>=0.22;
+  // C3: band ≥2 hàng liên tiếp
+  const C3=maxBand>=2&&peak>=0.16;
 
+  const score_sum=(C1?1:0)+(C2?1:0)+(C3?1:0);
   if(score_sum>=2)return{isCrossed:true,score:1,dbg};
-  if(score_sum===1){
-    return{isCrossed:C1||(colProbeRatio>=0.45&&C3),score:0.5,dbg};
-  }
-  return{isCrossed:false,score:peak<0.30?1:0.5,dbg};
+  if(score_sum===1)return{isCrossed:C1&&colProbeRatio>=0.45,score:0.5,dbg};
+  return{isCrossed:false,score:peak<0.28?1:0.5,dbg};
 }
 
 // Debug overlay: hiện anchor + tilt angle
