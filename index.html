@@ -1273,7 +1273,7 @@ function analyzeBallot(ctx,W,H,baseColor){
   const listH=Y_listEnd-Y_listStart;
   if(listH<15)return null;
   const spacing=listH/nC;
-  const halfRow=Math.floor(spacing*0.40);
+  const halfRow=Math.floor(spacing*0.32); // giảm từ 0.40→0.32 tránh overlap hàng liền kề
 
   // ── BƯỚC 5+6: bgLum và zoneLums từ fullData ──────────────────
   // Đo trong vùng khoảng trắng anchor (nền sạch nhất)
@@ -1426,11 +1426,19 @@ function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum){
   }
   const colProbeRatio=probeHits/nProbes;
 
+  // ── CONTINUITY CHECK ─────────────────────────────────────────
+  // Gạch thật: pixel tối LIÊN TỤC ngang (≥5 probe liền nhau)
+  // Blur từ hàng khác: pixel tối rải rác, không thành dải liên tục
+  const hitArr=[...leftHits_arr,...rightHits_arr];
+  let maxRun=0,run=0;
+  for(const h of hitArr){if(h){run++;if(run>maxRun)maxRun=run;}else run=0;}
+  const hasStreak=maxRun>=5; // gạch thật phải có ≥5 probe liên tiếp tối
+
   // ── ANTI-SHADOW ──────────────────────────────────────────────
   // Bóng tập trung 1 phía → leftHits hoặc rightHits >> phía kia
   // Gạch rải đều 2 phía
   let shadowFlag=false;
-  if(colProbeRatio>=0.45){
+  if(colProbeRatio>=0.52){ // tăng từ 0.45 → kích hoạt anti-shadow sớm hơn
     const lh=leftHits_arr.reduce((a,b)=>a+b,0);
     const rh=rightHits_arr.reduce((a,b)=>a+b,0);
     const tot=lh+rh;
@@ -1438,20 +1446,22 @@ function detectStrikeTilted(ctx,bounds,y0,h,zoneLums,bgLum){
   }
 
   const dbg={cp:+colProbeRatio.toFixed(2),pk:+peak.toFixed(3),
-    gp:+gap_p10.toFixed(3),band:maxBand,shd:shadowFlag?1:0};
+    gp:+gap_p10.toFixed(3),band:maxBand,shd:shadowFlag?1:0,sk:maxRun};
 
   if(shadowFlag)return{isCrossed:false,score:0.5,dbg};
 
-  // C1: gạch đi qua ≥50% chiều rộng (bút bi mỏng vẫn tạo pixel tối mỗi cột)
-  const C1=colProbeRatio>=0.50;
-  // C2: peak bất thường so với baseline
-  const C2=gap_p10>=0.14&&peak>=0.22;
-  // C3: band ≥2 hàng liên tiếp
-  const C3=maxBand>=2&&peak>=0.16;
+  // C1: gạch đi qua ≥58% chiều rộng — tăng ngưỡng tránh blur dính hàng liền kề
+  const C1=colProbeRatio>=0.58;
+  // C2: peak bất thường so với baseline — tăng gap ngưỡng
+  const C2=gap_p10>=0.17&&peak>=0.25;
+  // C3: band ≥3 hàng liên tiếp (tăng từ 2→3, blur thường chỉ tạo 1-2 band)
+  const C3=maxBand>=3&&peak>=0.20;
 
   const score_sum=(C1?1:0)+(C2?1:0)+(C3?1:0);
-  if(score_sum>=2)return{isCrossed:true,score:1,dbg};
-  if(score_sum===1)return{isCrossed:C1&&colProbeRatio>=0.45,score:0.5,dbg};
+  // Yêu cầu thêm: phải có streak liên tục — loại bỏ blur rải rác từ hàng khác
+  if(score_sum>=2&&hasStreak)return{isCrossed:true,score:1,dbg};
+  if(score_sum>=2)return{isCrossed:false,score:0.5,dbg}; // có signal nhưng không có streak → nghi ngờ
+  if(score_sum===1)return{isCrossed:C1&&colProbeRatio>=0.55&&hasStreak,score:0.5,dbg};
   return{isCrossed:false,score:peak<0.28?1:0.5,dbg};
 }
 
@@ -1630,7 +1640,7 @@ function drawOverlay(W,H,rowData,bx,bw){
       c.fillStyle='rgba(255,255,80,.95)';
       c.textAlign='left';
       const dg=row.dbg;
-      c.fillText(`p${dg.peak} g${dg.gap} r${dg.run} b${dg.band}`,rx+18,ry+rh2/2);
+      c.fillText(`cp${dg.cp} pk${dg.pk} b${dg.band} sk${dg.sk}`,rx+18,ry+rh2/2);
     }
   });
 }
