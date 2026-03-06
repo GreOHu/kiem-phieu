@@ -46,7 +46,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
 .mid{flex:1;display:flex;overflow:hidden;min-height:0;}
 
 /* ── CAM COL: 40% ─────────────────────────────────────────────── */
-.cam-col{width:40%;flex-shrink:0;display:flex;flex-direction:column;
+.cam-col{width:50%;flex-shrink:0;display:flex;flex-direction:column;
   background:var(--bg);}
 
 /* topbar: chỉ dot + typePill, không có A4/A5 */
@@ -90,12 +90,17 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
 .sln.on{display:block;animation:slnAnim 1.4s ease-in-out infinite;}
 @keyframes slnAnim{0%{top:4px;opacity:1}95%{top:calc(100% - 4px);opacity:1}100%{top:calc(100% - 4px);opacity:0}}
 
-/* Lock ring — 1.5px */
+/* Lock ring */
 .lring{position:absolute;inset:0;pointer-events:none;display:none;}
 .lring svg{width:100%;height:100%;}
-.lr-t{fill:none;stroke:rgba(245,158,11,.05);stroke-width:1.5;}
-.lr-f{fill:none;stroke:var(--gold);stroke-width:1.5;stroke-linecap:round;}
+.lr-t{fill:none;stroke:rgba(245,158,11,.1);stroke-width:3;}
+.lr-f{fill:none;stroke:var(--gold);stroke-width:3;stroke-linecap:round;}
 .lr-f.done{stroke:var(--green);}
+.ring-pct{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:20px;font-weight:900;color:var(--gold);pointer-events:none;
+  text-shadow:0 1px 6px rgba(0,0,0,.9);display:none;}
+.ring-pct.show{display:block;}
+.ring-pct.done{color:var(--green);font-size:26px;}
 /* Lock bar bottom */
 .lbar{position:absolute;bottom:0;left:0;right:0;height:2px;}
 .lbar-f{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));
@@ -201,9 +206,11 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
   padding:3px 6px;flex-shrink:0;}
 .fvalid.ok{color:var(--green);}.fvalid.err{color:var(--red);}
 .fbtns{display:flex;gap:4px;padding:4px 6px 5px;flex-shrink:0;}
-.btn-ok{flex:1;padding:7px;border:none;border-radius:7px;
-  font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;
-  background:linear-gradient(135deg,#059669,#047857);color:#fff;}
+.btn-ok{flex:1;padding:9px;border:none;border-radius:9px;
+  font-size:13px;font-weight:900;cursor:pointer;font-family:inherit;
+  background:linear-gradient(135deg,#059669,#10b981);color:#fff;
+  letter-spacing:-.3px;box-shadow:0 2px 12px rgba(5,150,105,.4);}
+.btn-ok:active{transform:scale(.97);opacity:.9;}
 .btn-rescan{padding:7px 9px;border-radius:7px;font-size:10px;
   font-weight:700;cursor:pointer;font-family:inherit;
   background:rgba(59,130,246,.1);color:var(--blue);
@@ -369,6 +376,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);
           </svg>
         </div>
         <div class="lbar"><div class="lbar-f" id="lockFill"></div></div>
+        <div class="ring-pct" id="ringPct"></div>
         <div class="conf-badge" id="confBadge"></div>
         <button class="btn-cam" id="btnCamera" onclick="startCamera()">📷 Bật Camera</button>
       </div>
@@ -508,7 +516,7 @@ let currentUnit=1,BALLOTS=buildBallots(1);
 let votes={},stats={total:0,valid:0,invalid:0},ballotLog=[],undoStack=[];
 let stream=null,scanInterval=null,distTab='qh';
 let scanState='idle',lockCount=0,lastDetType=null;
-const LOCK_NEEDED=5;
+const LOCK_NEEDED=4;
 let frozenResult=null,cooldownUntil=0,manualCrossed=null;
 
 try{
@@ -643,13 +651,22 @@ function setLockProgress(r){
   document.getElementById('lockFill').style.width=(r*100)+'%';
   const ring=document.getElementById('ring');
   const fill=document.getElementById('ringFill');
-  if(r<=0){ring.style.display='none';return;}
+  const pct=document.getElementById('ringPct');
+  if(r<=0){
+    ring.style.display='none';
+    if(pct){pct.className='ring-pct';pct.textContent='';}
+    return;
+  }
   ring.style.display='block';
-  // Perimeter rect 98×140: 2*(98+140)=476
   const P=476;
   fill.style.strokeDasharray=P;
   fill.style.strokeDashoffset=P*(1-Math.min(r,1));
-  fill.classList.toggle('done',r>=1);
+  const done=r>=1;
+  fill.classList.toggle('done',done);
+  if(pct){
+    pct.className='ring-pct show'+(done?' done':'');
+    pct.textContent=done?'✓':(Math.round(r*100)+'%');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -864,35 +881,48 @@ function detectStrikeHPPFull(ctx,x0,y0,w,h,bgLum){
     else bandRun=0;
   }
 
+  // p10 = percentile 10 = baseline thực sự (pixel nền, không chữ)
+  const p10=sorted[Math.floor(sorted.length*.10)];
+  const p90=sorted[Math.floor(sorted.length*.90)];
+  // gap_p10: peak so với nền thực → không bị chữ đậm ảnh hưởng
+  const gap_p10=peak-p10;
+  // spread: khoảng rộng của distribution → chữ đậm làm spread cao
+  const spread=p90-p10;
+
   const dbg={
     peak:+peak.toFixed(3),gap:+gap.toFixed(3),
     run:+runRatio.toFixed(3),med:+median.toFixed(3),
-    band:maxBandLen,bgL:Math.round(bgLum),th:Math.round(darkTh)
+    band:maxBandLen,p10:+p10.toFixed(3),gp:+gap_p10.toFixed(3)
   };
 
   // === QUYẾT ĐỊNH ===
-  // Gạch xác nhận nếu ĐÁP ỨNG ÍT NHẤT 2 trong 3 điều kiện:
-  // C1: run liên tục ≥ 25% chiều rộng
-  // C2: gap (peak-median) ≥ 0.12 (có hàng tối bất thường)
-  // C3: band liên tiếp ≥ 2 hàng có dark ratio cao
+  // Với phiếu chữ lớn in đậm:
+  // - Chữ không gạch: peak ~0.3-0.5 (nét đậm chữ HOA), p10 ~0.05-0.15
+  //   run liên tục ngắn vì chữ không liên tục theo chiều ngang
+  // - Hàng bị gạch: peak ~0.4-0.7, run liên tục ≥30% chiều rộng
+  //   band ≥ 2 hàng liên tiếp có dark ratio cao
+  //
+  // KEY INSIGHT: chữ in HOA VN không tạo ra run ngang liên tục dài
+  // (chữ H,N,G,Ô,Ă có nét ngang nhưng ngắn, < 15% chiều rộng hàng)
+  // Chỉ gạch bút bi mới tạo run ≥ 30% chiều rộng liên tục
 
-  const C1 = runRatio>=0.25;
-  const C2 = gap>=0.12 && peak>=0.20;
-  const C3 = maxBandLen>=2 && peak>=0.15;
+  // C1: run liên tục ≥ 30% — key indicator cho gạch thực
+  const C1 = runRatio>=0.30;
+  // C2: peak cao BẤT THƯỜNG hơn nền p10 + spread rộng + band dài
+  const C2 = gap_p10>=0.25 && peak>=0.35 && maxBandLen>=2;
+  // C3: kết hợp nhẹ: run>=20% VÀ band>=3 hàng
+  const C3 = runRatio>=0.20 && maxBandLen>=3;
 
-  const score_sum = (C1?1:0)+(C2?1:0)+(C3?1:0);
+  const score_sum=(C1?1:0)+(C2?1:0)+(C3?1:0);
 
   if(score_sum>=2){
-    // Gạch rõ ràng
     return{isCrossed:true, score:1, dbg};
   }
   if(score_sum===1){
-    // 1 điều kiện → mơ hồ, ưu tiên hiện cho user xem
-    const isCrossed = C1||(C2&&peak>0.28)||(C3&&runRatio>0.15);
-    return{isCrossed, score:0.5, dbg};
+    // Mơ hồ: C1 đáng tin nhất
+    return{isCrossed:C1||(runRatio>=0.22&&maxBandLen>=2), score:0.5, dbg};
   }
-  // Không có điều kiện nào → không gạch
-  return{isCrossed:false, score:gap<0.05?1:0.5, dbg};
+  return{isCrossed:false, score:peak<0.35?1:0.5, dbg};
 }
 
 function findContentStart(ctx,bx,by,bw,scanH){
@@ -930,32 +960,51 @@ function buildHorizProfile(ctx,bx,topY,bw,scanH){
     let dark=0,total=0;
     for(let x=Math.floor(bw*.05);x<Math.floor(bw*.95);x++){
       const i=(row*bw+x)*4;if(d[i+3]<50)continue;
-      total++;if((d[i]+d[i+1]+d[i+2])/3<180)dark++; // bắt pixel xám nhạt
+      total++;if((d[i]+d[i+1]+d[i+2])/3<155)dark++; // chỉ lấy pixel tối thật sự
     }
     profile[row]=total?dark/total:0;
   }
   return profile;
 }
 function findSegsFromProfile(profile,topY){
+  // Smooth với window rộng hơn (±4) để merge sub-peaks trong 1 chữ
   const sm=new Float32Array(profile.length);
   for(let i=0;i<profile.length;i++){
     let s=0,c=0;
-    for(let k=-2;k<=2;k++)if(i+k>=0&&i+k<profile.length){s+=profile[i+k];c++;}
+    for(let k=-4;k<=4;k++)if(i+k>=0&&i+k<profile.length){s+=profile[i+k];c++;}
     sm[i]=s/c;
   }
   const mean=sm.reduce((a,b)=>a+b,0)/sm.length;
   const std=Math.sqrt(sm.reduce((a,b)=>a+(b-mean)**2,0)/sm.length);
-  const thresh=mean+std*.35; // rất nhạy để bắt hàng kẻ mỏng
-  const segs=[];let inS=false,sStart=0;
+  const thresh=mean+std*.30;
+  const raw=[];let inS=false,sStart=0;
   for(let i=0;i<sm.length;i++){
     if(sm[i]>thresh&&!inS){inS=true;sStart=i;}
     else if(sm[i]<=thresh&&inS){
       inS=false;const h=i-sStart;
-      if(h>=4)segs.push({start:topY+sStart,end:topY+i,
+      if(h>=3)raw.push({start:topY+sStart,end:topY+i,
         mid:topY+sStart+Math.floor(h/2),h});
     }
   }
-  return segs;
+  if(!raw.length)return raw;
+
+  // Merge pass: gộp các seg liên tiếp có gap < 20px
+  // (chữ lớn có thể tạo 2 seg gần nhau từ các nét khác nhau)
+  const merged=[];
+  let cur=raw[0];
+  for(let i=1;i<raw.length;i++){
+    const gap=raw[i].start-cur.end;
+    if(gap<22){ // merge nếu khoảng trắng < 22px
+      cur={start:cur.start, end:raw[i].end,
+           mid:Math.floor((cur.start+raw[i].end)/2),
+           h:raw[i].end-cur.start};
+    } else {
+      merged.push(cur);
+      cur=raw[i];
+    }
+  }
+  merged.push(cur);
+  return merged;
 }
 function meanLum(data){
   let s=0,n=0;
@@ -972,7 +1021,32 @@ function findEvenGroup(segs,n){
     const g=segs.slice(i,i+n),cv=groupCV(g);
     if(cv<bestCV){bestCV=cv;best=g;}
   }
-  return bestCV<0.42?best:null; // nới lỏng thêm cho phiếu thật
+  // CV < 0.55: khá nới lỏng, phiếu thật hàng không đều tuyệt đối
+  if(bestCV<0.55)return best;
+
+  // Fallback: nếu không tìm được nhóm đều, thử dùng tất cả segs
+  // và lấy n segs có khoảng cách đều nhất bằng regression
+  if(segs.length>=n){
+    // Thử estimate spacing từ toàn bộ segs
+    const mids=segs.map(s=>s.mid);
+    const estSpacing=Math.round((mids[mids.length-1]-mids[0])/(mids.length-1));
+    if(estSpacing>10){
+      // Snap: với mỗi hàng, tìm seg gần nhất
+      const ref=mids[Math.floor(mids.length/2)];
+      const anchors=[];
+      for(let i=-(Math.floor(n/2));i<=Math.ceil(n/2);i++){
+        const target=ref+i*estSpacing;
+        let nearest=null,minD=Infinity;
+        for(const s of segs){if(Math.abs(s.mid-target)<minD){minD=Math.abs(s.mid-target);nearest=s;}}
+        if(nearest&&minD<estSpacing*0.45&&!anchors.includes(nearest))anchors.push(nearest);
+      }
+      if(anchors.length===n){
+        anchors.sort((a,b)=>a.mid-b.mid);
+        return anchors;
+      }
+    }
+  }
+  return null;
 }
 function groupCV(g){
   const d=g.map(s=>s.mid).slice(1).map((v,i)=>v-g[i].mid);
@@ -1053,7 +1127,9 @@ function showFreezePanel(result){
     conf.className='fhdr-conf '+(pct>=85?'hi':'lo');
   }
   updateTypePill(type);
-  document.getElementById('freezePanel').classList.add('show');
+  const fp=document.getElementById('freezePanel');
+  fp.classList.add('show');
+  setTimeout(()=>fp.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
   setStatus(result.fallback?'scan':'ready',
     result.fallback?'⚠️ Tự tích thủ công':'🔍 Kiểm tra kết quả',
     result.fallback?'Chạm tên để đánh dấu':'Chạm tên để sửa nếu cần');
@@ -1125,7 +1201,7 @@ function _doConfirm(type,crossed,mode){
   }
   if(undoStack.length>30)undoStack.shift();
   updateStats();renderDistMini(distTab);saveData();updateUndoUI();renderLog();
-  cooldownUntil=Date.now()+2500;
+  cooldownUntil=Date.now()+1500;
   document.getElementById('freezePanel').classList.remove('show');
   frozenResult=null;manualCrossed=null;scanState='detecting';
   lockCount=0;lastDetType=null;setLockProgress(0);
@@ -1133,7 +1209,7 @@ function _doConfirm(type,crossed,mode){
   setTimeout(()=>{
     clearOverlay();updateTypePill(null);
     setStatus('scan','📷 Phiếu tiếp theo','');
-  },2500);
+  },1500);
 }
 
 // ════════════════════════════════════════════════════════════════
