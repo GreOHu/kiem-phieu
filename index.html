@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.7</title>
+<title>Kiểm Phiếu 2026 v2.8</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -50,7 +50,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 /* VID WRAP */
 .vid-wrap{position:relative;overflow:hidden;background:#000;aspect-ratio:1/1.414;width:100%;flex-shrink:0;}
 #video{width:100%;height:100%;object-fit:cover;display:block;}
-#overlay{position:absolute;inset:0;pointer-events:none;}
+#overlay{position:absolute;inset:0;pointer-events:none;width:100%;height:100%;}
 #canvas{display:none;}
 .gf{position:absolute;inset:4px;border:1px dashed rgba(232,160,32,.15);border-radius:2px;pointer-events:none;}
 .cr{position:absolute;width:10px;height:10px;}
@@ -229,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.7</span>
+    <span class="hdr-ver">v2.8</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -459,6 +459,7 @@ function saveData(){
 // CAMERA
 // ════════════════════════════════════════════════════════════
 async function startCamera(){
+  try{_getAC();}catch(e){} // unlock AudioContext trong gesture
   try{
     stream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:'environment',width:{ideal:1280},height:{ideal:960}}
@@ -472,6 +473,18 @@ async function startCamera(){
     };
     document.getElementById('btnCamera').style.display='none';
     document.getElementById('camDot').classList.add('live');
+    // Wake Lock: giữ màn hình sáng khi đang quét
+    try{
+      if(navigator.wakeLock){
+        window._wakeLock=await navigator.wakeLock.request('screen');
+        window._wakeLock.addEventListener('release',async()=>{
+          // Tự acquire lại nếu page vẫn visible
+          if(document.visibilityState==='visible'&&stream){
+            try{window._wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+          }
+        });
+      }
+    }catch(e){}
     try{
       const track=stream.getVideoTracks()[0];
       const caps=track.getCapabilities();
@@ -881,10 +894,11 @@ function analyzeV2(imageData,W,H,color,paperOverride){
 function drawOverlayV2(W,H,rows,paper,dbg){
   const ov=document.getElementById('overlay');
   const vid=document.getElementById('video');
-  const VW=vid.offsetWidth||ov.width, VH=vid.offsetHeight||ov.height;
-  const sx=VW/ov.width, sy=VH/ov.height;
+  const iW=vid.videoWidth||W||ov.width, iH=vid.videoHeight||H||ov.height;
+  if(ov.width!==iW||ov.height!==iH){ov.width=iW;ov.height=iH;}
+  const sx=1,sy=1; // intrinsic coords, no transform needed
   const c=ov.getContext('2d');
-  c.clearRect(0,0,ov.width,ov.height);
+  c.clearRect(0,0,iW,iH);
 
   // Vẽ viền phiếu
   if(paper){
@@ -1073,13 +1087,19 @@ function scanFrame(){
   }
 
   frozenResult=result;
-  // Confidence cao → auto-confirm ngay, không show freeze panel
-  if(result.confidence>=0.75&&!result.ambiguous){
-    confirmBallotAuto(result); // beep + cộng dồn bên trong _doConfirm
+  // Auto-confirm nếu số phiếu hợp lệ (không quá max)
+  // Luôn show freeze panel để xác nhận, nhưng auto-confirm sau 1.5s
+  showFreezePanel(result);
+  const autoOK=result.votedNames.length<=BALLOTS[result.type].maxVotes;
+  if(autoOK){
+    const cb=document.getElementById('confBadge');
+    cb.textContent='AUTO ✓';cb.className='conf-badge high';
+    setStatus('auto','✅ Xác nhận sau 1.5s','Chạm Lại để huỷ');
+    v2._autoTimer=setTimeout(()=>{
+      if(frozenResult)confirmBallotAuto(frozenResult);
+    },1500);
   }else{
-    // Confidence thấp → show freeze panel cho user review
     setStatus('ready','📋 Kiểm tra kết quả','Chạm tên để sửa nếu cần');
-    showFreezePanel(result);
   }
 }
 
@@ -1093,31 +1113,28 @@ function drawPaperRingV2(paper,progress,done,W,H){
   if(!paper)return;
   const ov=document.getElementById('overlay');
   const vid=document.getElementById('video');
-
-  // object-fit:cover transform: tính đúng vị trí video content trên màn hình
-  const dW=vid.offsetWidth||ov.width, dH=vid.offsetHeight||ov.height;
-  const iW=vid.videoWidth||W, iH=vid.videoHeight||H;
-  const scale=Math.max(dW/iW, dH/iH);
-  const offX=(dW-iW*scale)/2, offY=(dH-iH*scale)/2;
-  function vx(x){return offX+x*scale;}
-  function vy(y){return offY+y*scale;}
-
+  // Canvas intrinsic = video intrinsic; CSS scale tự căn chỉnh (object-fit:cover match)
+  const iW=vid.videoWidth||W||ov.width;
+  const iH=vid.videoHeight||H||ov.height;
+  if(ov.width!==iW||ov.height!==iH){ov.width=iW;ov.height=iH;}
   const ctx=ov.getContext('2d');
-  ctx.clearRect(0,0,ov.width,ov.height);
+  ctx.clearRect(0,0,iW,iH);
 
-  const x0=vx(paper.xL), y0=vy(paper.yT);
-  const x1=vx(paper.xR), y1=vy(paper.yB);
+  // paper coords đã là intrinsic video pixels → vẽ thẳng
+  const x0=paper.xL, y0=paper.yT, x1=paper.xR, y1=paper.yB;
   const rw=x1-x0, rh=y1-y0;
   const col=done?'#22c55e':'#e8a020';
 
   // Nền mờ
   ctx.save();
   ctx.strokeStyle=done?'rgba(34,197,94,.22)':'rgba(232,160,32,.15)';
-  ctx.lineWidth=8; ctx.strokeRect(x0,y0,rw,rh);
+  ctx.lineWidth=Math.max(6,iW*0.006);
+  ctx.strokeRect(x0,y0,rw,rh);
 
-  // Góc nổi bật
+  // 4 góc nổi bật
   const cL=Math.min(rw,rh)*.10;
-  ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap='round'; ctx.setLineDash([]);
+  ctx.strokeStyle=col;ctx.lineWidth=Math.max(3,iW*0.003);
+  ctx.lineCap='round';ctx.setLineDash([]);
   [[x0,y0,x0+cL,y0,x0,y0+cL],[x1,y0,x1-cL,y0,x1,y0+cL],
    [x0,y1,x0+cL,y1,x0,y1-cL],[x1,y1,x1-cL,y1,x1,y1-cL]].forEach(([ox,oy,ax,ay,bx,by])=>{
     ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ox,oy);ctx.lineTo(bx,by);ctx.stroke();
@@ -1127,18 +1144,16 @@ function drawPaperRingV2(paper,progress,done,W,H){
   const mx=(x0+x1)/2;
   const peri=2*(rw+rh);
   const drawn=peri*(done?1:progress);
-  ctx.strokeStyle=col; ctx.lineWidth=done?4:3;
-  ctx.setLineDash([]); ctx.lineCap='round';
-  const segs=[
-    [mx,y0,x1,y0,rw/2],[x1,y0,x1,y1,rh],
-    [x1,y1,x0,y1,rw],[x0,y1,x0,y0,rh],[x0,y0,mx,y0,rw/2]
-  ];
+  ctx.strokeStyle=col;ctx.lineWidth=Math.max(4,iW*0.004);
+  ctx.setLineDash([]);ctx.lineCap='round';
+  const segs=[[mx,y0,x1,y0,rw/2],[x1,y0,x1,y1,rh],
+              [x1,y1,x0,y1,rw],[x0,y1,x0,y0,rh],[x0,y0,mx,y0,rw/2]];
   let rem=drawn;
-  ctx.beginPath(); ctx.moveTo(mx,y0);
+  ctx.beginPath();ctx.moveTo(mx,y0);
   for(const[sx2,sy2,ex,ey,len] of segs){
     if(rem<=0)break;
     const t=Math.min(1,rem/len);
-    ctx.lineTo(sx2+(ex-sx2)*t, sy2+(ey-sy2)*t);
+    ctx.lineTo(sx2+(ex-sx2)*t,sy2+(ey-sy2)*t);
     rem-=len;
   }
   ctx.stroke();
@@ -1194,6 +1209,7 @@ function updateValidityMsg(type,crossed,B){
 }
 function rescan(){
   frozenResult=null;manualCrossed=null;
+  if(v2._autoTimer){clearTimeout(v2._autoTimer);v2._autoTimer=null;}
   v2={frameCount:0,paperEMA:null,stableStart:null,missCount:0,locked:false,lastColor:null,colorVotes:[]};
   clearOverlayV2();showNoPaperHint(false);setLockProgress(0);
   document.getElementById('freezePanel').classList.remove('show');
@@ -1274,6 +1290,22 @@ function _getAC(){
 // Unlock AudioContext ngay khi user chạm (iOS cần gesture đầu tiên)
 document.addEventListener('touchstart',()=>{try{_getAC();}catch(e){}},{once:true});
 document.addEventListener('click',()=>{try{_getAC();}catch(e){}},{once:true});
+// Resume camera khi quay lại app (màn hình tắt rồi bật lại)
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='visible'){
+    // Resume AudioContext
+    try{if(_ac&&_ac.state==='suspended')_ac.resume();}catch(e){}
+    // Re-acquire wake lock
+    try{
+      if(navigator.wakeLock&&stream&&(!window._wakeLock||window._wakeLock.released)){
+        window._wakeLock=await navigator.wakeLock.request('screen');
+      }
+    }catch(e){}
+    // Resume video nếu bị pause
+    const vid=document.getElementById('video');
+    if(vid&&vid.paused&&stream)vid.play().catch(()=>{});
+  }
+});
 
 function beep(times){
   try{
