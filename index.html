@@ -247,7 +247,6 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
       <div class="vid-wrap">
         <video id="video" autoplay playsinline muted></video>
         <canvas id="canvas"></canvas>
-        <canvas id="thumbCanvas" style="display:none"></canvas>
         <canvas id="overlay"></canvas>
         <div class="gf"><div class="cr tl"></div><div class="cr tr"></div><div class="cr bl"></div><div class="cr br"></div></div>
         <div class="sln" id="scanLine"></div>
@@ -464,6 +463,7 @@ async function startCamera(){
     vid.onloadedmetadata=()=>{
       const ov=document.getElementById('overlay');
       ov.width=vid.videoWidth||640; ov.height=vid.videoHeight||480;
+      vid.play().catch(()=>{});
     };
     document.getElementById('btnCamera').style.display='none';
     document.getElementById('camDot').classList.add('live');
@@ -879,7 +879,7 @@ function scanFrame(){
   // KHÔNG reset canvas chính → video không bị ảnh hưởng
   const tW=320, tH=240;
   const thumbCanvas=document.getElementById('thumbCanvas');
-  const tCtx=thumbCanvas.getContext('2d',{willReadFrequently:true});
+  const tCtx=thumbCanvas.getContext('2d',{});
   thumbCanvas.width=tW; thumbCanvas.height=tH;
   tCtx.drawImage(video,0,0,tW,tH);
   const thumbData=tCtx.getImageData(0,0,tW,tH);
@@ -968,7 +968,7 @@ function scanFrame(){
   const canvas=document.getElementById('canvas');
   // Chỉ set canvas size một lần nếu chưa đúng (tránh reset liên tục)
   if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const ctx=canvas.getContext('2d',{});
   ctx.drawImage(video,0,0);
   const imageData=ctx.getImageData(0,0,W,H);
 
@@ -1316,5 +1316,6 @@ function resetAll(){
   updateTypePill(null);setStatus('scan','✅ Đã reset','');
 }
 </script>
+  <canvas id="thumbCanvas" style="display:none;position:fixed;left:-9999px"></canvas>
 </body>
 </html>
