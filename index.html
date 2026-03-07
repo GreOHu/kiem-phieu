@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.11</title>
+<title>Kiểm Phiếu 2026 v2.12</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -229,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.11</span>
+    <span class="hdr-ver">v2.12</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -705,7 +705,7 @@ function analyzeV2(imageData,W,H,color,paperOverride){
     return(d[i]*77+d[i+1]*150+d[i+2]*29)>>8;
   }
 
-  // Background lum từ vùng tiêu đề (sáng, không có gạch)
+  // Background từ vùng tiêu đề sáng
   let bgSum=0,bgN=0;
   for(let y=yT+Math.floor(bh*.04);y<yT+Math.floor(bh*.18);y+=3)
     for(let x=xL+Math.floor(bw*.10);x<xL+Math.floor(bw*.90);x+=4){
@@ -717,16 +717,31 @@ function analyzeV2(imageData,W,H,color,paperOverride){
   const colX0=xL+Math.floor(bw*.08), colX1=xL+Math.floor(bw*.92);
   const colW=colX1-colX0;
 
-  // ══ SLOT-BASED ROW DETECTION ════════════════════════════════
-  // Zone ứng cử viên: 20%-86% chiều cao phiếu (cố định, không detect dynamic)
-  // Chia thành nC slot đều nhau → mỗi slot chứa đúng 1 ứng viên
-  // Không dùng peak detection → không bị shift row giữa các lần quét
+  // ══ SLOT-BASED: mỗi row ứng viên = 1 slot cố định ══════════
   const zoneTop=yT+Math.floor(bh*0.20);
   const zoneBot=yT+Math.floor(bh*0.86);
   const slotH=(zoneBot-zoneTop)/nC;
 
-  // Với mỗi slot: tính centroid của dark signal → tìm đúng vị trí tên ứng viên
-  // Centroid luôn nằm trong slot → không bao giờ nhảy sang row khác
+  // ══ PASS 1: thu thập totalDark mỗi slot → tính median ══════
+  const slotDarks=[];
+  for(let i=0;i<nC;i++){
+    const s0=zoneTop+Math.floor(i*slotH);
+    const s1=zoneTop+Math.floor((i+1)*slotH);
+    const half=Math.max(8,Math.floor(slotH*0.38));
+    const mid=Math.round((s0+s1)/2);
+    const y0=Math.max(yT,mid-half), y1=Math.min(yB,mid+half);
+    let darkCnt=0,total=0;
+    for(let y=y0;y<y1;y+=2)
+      for(let x=colX0;x<colX1;x+=3){
+        if(lumAt(x,y)<darkTh)darkCnt++;total++;
+      }
+    slotDarks.push(total>0?darkCnt/total:0);
+  }
+  const sortedD=[...slotDarks].sort((a,b)=>a-b);
+  // Median loại row 8 (signature line thường rất tối) → lấy median nC-1 phần tử đầu
+  const medDark=sortedD[Math.floor((nC-1)/2)];
+
+  // ══ PASS 2: centroid + cross detection ══════════════════════
   const rowMids=[];
   for(let i=0;i<nC;i++){
     const s0=zoneTop+Math.floor(i*slotH);
@@ -735,34 +750,47 @@ function analyzeV2(imageData,W,H,color,paperOverride){
     for(let y=s0;y<s1;y+=2){
       let cnt=0;
       for(let x=colX0;x<colX1;x+=4)if(lumAt(x,y)<darkTh)cnt++;
-      const density=cnt/Math.max(1,(colX1-colX0)/4);
-      wSum+=density*y; dSum+=density;
+      const dens=cnt/Math.max(1,(colX1-colX0)/4);
+      wSum+=dens*y;dSum+=dens;
     }
-    // Centroid của dark signal trong slot; fallback = giữa slot
     rowMids.push(dSum>0.01?Math.round(wSum/dSum):Math.round((s0+s1)/2));
   }
 
-  // ══ PER-ROW CROSS DETECTION ══════════════════════════════════
-  // halfRow = nửa chiều cao mỗi slot (không overlap)
   const halfRow=Math.max(8,Math.floor(slotH*0.38));
 
   const rowData=rowMids.map((midY,idx)=>{
-    const y0=Math.max(yT,midY-halfRow);
-    const y1=Math.min(yB,midY+halfRow);
+    const y0=Math.max(yT,midY-halfRow), y1=Math.min(yB,midY+halfRow);
     const h=Math.max(4,y1-y0);
 
-    // 1. PEAK: max % dark pixels trong 1 hàng ngang (detect đường gạch đậm)
-    let peak=0;
+    // --- A. darkProfile mỗi hàng ---
+    const profile=new Float32Array(h);
     for(let r=0;r<h;r++){
       let cnt=0;
       for(let x=colX0;x<colX1;x+=2)if(lumAt(x,y0+r)<darkTh)cnt++;
-      const p=cnt/(colW/2);
-      if(p>peak)peak=p;
+      profile[r]=cnt/(colW/2);
     }
 
-    // 2. COLCOV: % cột có ít nhất 1 dark pixel (liên tục = gạch, rải rác = chữ)
+    // --- B. maxRun: chạy trên TOP-3 hàng đậm nhất ---
+    // Bắt gạch ngang (thẳng hoặc tay): run liên tục dài
+    const sorted3=[...profile].map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,3);
+    let maxRun=0;
+    for(const{i:ri} of sorted3){
+      let run=0;
+      for(let x=colX0;x<colX1;x+=2){
+        if(lumAt(x,y0+ri)<darkTh){run++;if(run>maxRun)maxRun=run;}
+        else run=0;
+      }
+    }
+    const runRatio=maxRun/(colW/2);
+
+    // --- C. totalDark và relative excess ---
+    const totalDark=slotDarks[idx];
+    // excess tương đối so với median peers trong phiếu
+    const excessRel=(totalDark-medDark)/(medDark+0.005);
+
+    // --- D. colCov: % cột có dark pixel (bắt gạch chéo/sóng) ---
     let covC=0,totC=0;
-    const r0=Math.floor(h*.25),r1=Math.ceil(h*.75);
+    const r0=Math.floor(h*.20),r1=Math.ceil(h*.80);
     for(let x=colX0;x<colX1;x+=3){
       let has=false;
       for(let r=r0;r<r1;r++)if(lumAt(x,y0+r)<darkTh){has=true;break;}
@@ -770,58 +798,35 @@ function analyzeV2(imageData,W,H,color,paperOverride){
     }
     const colCov=totC>0?covC/totC:0;
 
-    // 3. RUNMAX: đoạn liên tục dài nhất trong 1 hàng (gạch = run dài)
-    let runMax=0;
-    for(let r=r0;r<r1;r++){
-      let run=0,best=0;
-      for(let x=colX0;x<colX1;x+=2){
-        if(lumAt(x,y0+r)<darkTh){run++;if(run>best)best=run;}
-        else run=0;
-      }
-      if(best>runMax)runMax=best;
-    }
-    const runRatio=runMax/(colW/2);
+    // --- E. COMBINED SCORE ---
+    // runRatio: bắt gạch ngang (mọi kiểu)
+    // excessRel: bắt gạch chéo, ngoằn ngoèo, X
+    // colCov: bắt gạch partial (từ 30%)
+    const scoreRun=runRatio*1.2;
+    const scoreExc=Math.max(0,excessRel)*2.5;
+    const scoreCov=colCov>0.80?0.6:colCov>0.60?0.3:0;
+    const score=Math.max(scoreRun, scoreExc, scoreCov);
 
-    return{y0,y1,midY,peak,colCov,runRatio,
-           dbg:{sp:+colCov.toFixed(2),pk:+peak.toFixed(2),cc:+runRatio.toFixed(2)}};
+    const isCrossed=score>=0.42;
+    const isAmbig=!isCrossed&&score>=0.24;
+
+    return{y0,y1,midY,isCrossed,isAmbig,
+           score:isCrossed?1:(isAmbig?0.5:0),
+           dbg:{rn:+runRatio.toFixed(2),ex:+excessRel.toFixed(2),cv:+colCov.toFixed(2)}};
   });
 
-  // ══ SCORING: KẾT HỢP 3 METRICS ══════════════════════════════
-  // Gạch (bị gạch bỏ) cần TẤT CẢ:
-  //   peak cao (đường đậm), colCov cao (liên tục ngang), runRatio cao (run dài)
-  // Chỉ tên (không gạch): peak thấp-vừa, colCov thấp-vừa, runRatio thấp
-  //
-  // So sánh TƯƠNG ĐỐI trong cùng phiếu: normalize theo median của phiếu đó
-  // → ổn định với mọi điều kiện sáng/tối
-  const medPeak=[...rowData].sort((a,b)=>a.peak-b.peak)[Math.floor(nC/2)].peak;
-  const medCov=[...rowData].sort((a,b)=>a.colCov-b.colCov)[Math.floor(nC/2)].colCov;
-
   const crossed=new Set();
-  const finalRows=rowData.map((r,idx)=>{
-    // Score tuyệt đối
-    const absScore=(r.peak>0.40?1:r.peak>0.25?0.5:0)
-                  +(r.colCov>0.70?1:r.colCov>0.50?0.5:0)
-                  +(r.runRatio>0.50?1:r.runRatio>0.30?0.5:0);
-    // Score tương đối so với median phiếu
-    const relPeak=(medPeak>0.01)?(r.peak-medPeak)/medPeak:0;
-    const relCov=(medCov>0.01)?(r.colCov-medCov)/medCov:0;
-    const relScore=(relPeak>0.5?1:relPeak>0.25?0.5:0)
-                  +(relCov>0.4?1:relCov>0.2?0.5:0);
-    // Combine: lấy max để không bỏ sót
-    const total=Math.max(absScore, relScore*1.5);
-    const isCrossed=total>=2;
-    if(isCrossed)crossed.add(idx);
-    // score=1 = rõ ràng (không gạch hoặc gạch rõ), 0.5 = ambiguous
-    const score=isCrossed?1:(total>=1?0.5:1);
-    return{...r,isCrossed,score};
+  const finalRows=rowData.map((r,i)=>{
+    if(r.isCrossed)crossed.add(i);
+    return r;
   });
 
   drawOverlayV2(W,H,finalRows,paper,DBG);
-  const clearCount=finalRows.filter(r=>r.score!==0.5).length;
+  const clearCount=finalRows.filter(r=>!r.isAmbig).length;
   const votedNames=BALLOTS[type].candidates.filter((_,i)=>!crossed.has(i));
   return{type,crossed,votedNames,rowData:finalRows,
          confidence:clearCount/nC,
-         ambiguous:finalRows.some(r=>r.score===0.5)};
+         ambiguous:finalRows.some(r=>r.isAmbig)};
 }
 
 // ── Draw overlay v2 ──────────────────────────────────────────
@@ -862,8 +867,8 @@ function drawOverlayV2(W,H,rows,paper,dbg){
     ctx.restore();
 
     if(dbg){
-      const dg=row.dbg;
-      const txt=`sp${dg.sp} pk${dg.pk} cc${dg.cc}`;
+      const dg=row.dbg||{};
+      const txt=`rn${dg.rn||0} ex${dg.ex||0} cv${dg.cv||0}`;
       const fs=Math.max(10,Math.min(rh*.42,14));
       ctx.save();
       ctx.font=`bold ${fs}px monospace`;
