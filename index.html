@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.13</title>
+<title>Kiểm Phiếu 2026 v2.14</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -229,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.13</span>
+    <span class="hdr-ver">v2.14</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -704,8 +704,12 @@ function analyzeV2(imageData,W,H,color,paperOverride){
   const colW=colX1-colX0;
 
   // ══ SLOT-BASED: mỗi row ứng viên = 1 slot cố định ══════════
-  const zoneTop=yT+Math.floor(bh*0.20);
-  const zoneBot=yT+Math.floor(bh*0.86);
+  // Zone boundaries calibrated từ ảnh thực tế mỗi loại phiếu
+  // QH (hồng): ứng viên 23-72% | TINH (xanh): 29-66% | XÃ (kem): 19-76%
+  const _zt=type==='tinh'?0.29:type==='qh'?0.23:0.19;
+  const _zb=type==='tinh'?0.66:type==='qh'?0.72:0.76;
+  const zoneTop=yT+Math.floor(bh*_zt);
+  const zoneBot=yT+Math.floor(bh*_zb);
   const slotH=(zoneBot-zoneTop)/nC;
 
   // ══ PASS 1: thu thập totalDark mỗi slot → tính median ══════
