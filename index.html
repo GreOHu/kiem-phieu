@@ -557,44 +557,66 @@ function detectPaperV2(imageData, W, H){
   return{xL,yT,xR,yB,pw,ph,ratio,cx:(xL+xR)/2,cy:(yT+yB)/2};
 }
 
-// ── 2. DETECT COLOR: R-G Channel Comparison ─────────────────
-// Đã kiểm chứng trực tiếp trên ảnh phiếu thật:
-//   QH  (hồng/magenta) : R-G > +20   (R >> G)
-//   Tỉnh (cyan)        : R-G < -20   (G ≈ B >> R)
-//   Xã   (kem/trắng)   : |R-G| ≤ 20  (neutral)
-// Chỉ tính pixel SÁNG (lum > 130) = nền giấy, bỏ chữ/gạch
+// ── 2. DETECT COLOR: Adaptive Clean-Zone Grid ───────────────
+// Chia phiếu thành grid 20×20 ô, tìm động các ô SẠCHnhất
+// (ít pixel tối = ít chữ = nền thuần), lấy màu trung bình.
+// Không dùng vùng cố định → không bị ảnh hưởng bởi chữ tiêu đề.
+//
+// Từ calibration trên 4 ảnh thật:
+//   QH  (hồng) : R-G ≈ +49 đến +56
+//   Tỉnh (cyan): R-G ≈ -93
+//   Xã   (kem) : R-G ≈  -7
+// Threshold ±20 đủ để phân biệt chắc chắn.
 function detectColorV2(imageData, W, H, paper){
   const d=imageData.data;
   if(!paper)return null;
-
   const{xL,yT,xR,yB}=paper;
-  // Vùng 10–90% ngang, 8–50% dọc (nửa trên = nền + tiêu đề)
-  const x0=Math.floor(xL+(xR-xL)*0.10);
-  const x1=Math.floor(xL+(xR-xL)*0.90);
-  const y0=Math.floor(yT+(yB-yT)*0.08);
-  const y1=Math.floor(yT+(yB-yT)*0.50);
+  const bw=xR-xL, bh=yB-yT;
 
-  let sumR=0, sumG=0, sumB=0, n=0;
-  for(let y=y0;y<y1;y+=3){
-    for(let x=x0;x<x1;x+=3){
-      const i=(y*W+x)*4;
-      const r=d[i], g=d[i+1], b=d[i+2];
-      if((r+g+b)/3 < 130)continue; // bỏ pixel tối
-      sumR+=r; sumG+=g; sumB+=b; n++;
+  const ROWS=20, COLS=20;
+  // Bỏ 2 row đầu (logo), 2 row cuối (ký tên), 1 cột lề
+  const rStart=2, rEnd=18, cStart=1, cEnd=19;
+
+  // Thu thập tất cả ô
+  const cells=[];
+  for(let r=rStart;r<rEnd;r++){
+    const cy0=yT+Math.floor(bh*r/ROWS);
+    const cy1=yT+Math.floor(bh*(r+1)/ROWS);
+    for(let c2=cStart;c2<cEnd;c2++){
+      const cx0=xL+Math.floor(bw*c2/COLS);
+      const cx1=xL+Math.floor(bw*(c2+1)/COLS);
+      let sumR=0,sumG=0,sumB=0,dark=0,n=0;
+      for(let y=cy0;y<cy1;y+=2){
+        for(let x=cx0;x<cx1;x+=2){
+          const i=(y*W+x)*4;
+          const r2=d[i],g=d[i+1],b=d[i+2];
+          const lum=(r2*77+g*150+b*29)>>8;
+          sumR+=r2;sumG+=g;sumB+=b;n++;
+          if(lum<200)dark++;
+        }
+      }
+      if(n>0)cells.push({dr:dark/n,R:sumR/n,G:sumG/n,B:sumB/n});
     }
   }
-  if(n<80)return null;
 
-  const R=sumR/n, G=sumG/n, B=sumB/n;
+  // Sắp xếp theo dark ratio, lấy 1/3 sạch nhất
+  cells.sort((a,b)=>a.dr-b.dr);
+  // Chỉ giữ ô thực sự sạch (< 2% pixel tối)
+  let clean=cells.filter(c=>c.dr<0.02);
+  if(clean.length<5)clean=cells.slice(0,Math.max(5,Math.floor(cells.length/3)));
+
+  const R=clean.reduce((s,c)=>s+c.R,0)/clean.length;
+  const G=clean.reduce((s,c)=>s+c.G,0)/clean.length;
+  const B=clean.reduce((s,c)=>s+c.B,0)/clean.length;
   const RG=R-G;
 
-  // Debug pill
+  // Debug
   document.getElementById('typePill').setAttribute('data-raw',
-    `R-G: R=${R.toFixed(0)} G=${G.toFixed(0)} B=${B.toFixed(0)} RG=${RG.toFixed(1)} n=${n}`);
+    `grid: R=${R.toFixed(0)} G=${G.toFixed(0)} B=${B.toFixed(0)} R-G=${RG.toFixed(1)} n=${clean.length}`);
 
-  if(RG > 20) return'qh';            // hồng: R >> G
-  if(RG < -20 && G > R) return'tinh'; // cyan: G ≈ B >> R
-  return'xa';                         // kem/neutral → Xã
+  if(RG>20)return'qh';
+  if(RG<-20&&G>R)return'tinh';
+  return'xa';
 }
 
 // ── 3. ANALYZE BALLOT: Spike Score Detection ─────────────────
