@@ -557,66 +557,44 @@ function detectPaperV2(imageData, W, H){
   return{xL,yT,xR,yB,pw,ph,ratio,cx:(xL+xR)/2,cy:(yT+yB)/2};
 }
 
-// ── 2. DETECT COLOR: HSL Hue Analysis ────────────────────────
-// Hoàn toàn khác v1 (v1: RGB ratio)
-// v2: Chuyển sang HSL, phân tích hue histogram của nền giấy
-// Độc lập hoàn toàn với độ sáng (bất biến với flash/bóng tối)
+// ── 2. DETECT COLOR: R-G Channel Comparison ─────────────────
+// Đã kiểm chứng trực tiếp trên ảnh phiếu thật:
+//   QH  (hồng/magenta) : R-G > +20   (R >> G)
+//   Tỉnh (cyan)        : R-G < -20   (G ≈ B >> R)
+//   Xã   (kem/trắng)   : |R-G| ≤ 20  (neutral)
+// Chỉ tính pixel SÁNG (lum > 130) = nền giấy, bỏ chữ/gạch
 function detectColorV2(imageData, W, H, paper){
   const d=imageData.data;
   if(!paper)return null;
 
   const{xL,yT,xR,yB}=paper;
-  // Lấy vùng TRUNG TÂM của giấy (tránh mép có chữ)
-  const x0=Math.floor(xL+(xR-xL)*0.15);
-  const x1=Math.floor(xL+(xR-xL)*0.85);
-  const y0=Math.floor(yT+(yB-yT)*0.10);
-  const y1=Math.floor(yT+(yB-yT)*0.55); // chỉ nửa trên (tránh chữ ứng viên)
+  // Vùng 10–90% ngang, 8–50% dọc (nửa trên = nền + tiêu đề)
+  const x0=Math.floor(xL+(xR-xL)*0.10);
+  const x1=Math.floor(xL+(xR-xL)*0.90);
+  const y0=Math.floor(yT+(yB-yT)*0.08);
+  const y1=Math.floor(yT+(yB-yT)*0.50);
 
-  let pinkCount=0, cyanCount=0, neutralCount=0, total=0;
-
+  let sumR=0, sumG=0, sumB=0, n=0;
   for(let y=y0;y<y1;y+=3){
     for(let x=x0;x<x1;x+=3){
       const i=(y*W+x)*4;
-      const r=d[i],g=d[i+1],b=d[i+2];
-      const lum=(r+g+b)/3;
-      if(lum<100||lum>250)continue; // bỏ quá tối/sáng
-      total++;
-
-      // Chuyển RGB → HSL
-      const rn=r/255,gn=g/255,bn=b/255;
-      const cMax=Math.max(rn,gn,bn), cMin=Math.min(rn,gn,bn);
-      const delta=cMax-cMin;
-      const L=(cMax+cMin)/2;
-      if(delta<0.05){neutralCount++;continue;} // saturation thấp = neutral/trắng/kem
-      const S2=delta/(1-Math.abs(2*L-1));
-      if(S2<0.08){neutralCount++;continue;}
-      let H2;
-      if(cMax===rn) H2=60*((gn-bn)/delta%6);
-      else if(cMax===gn) H2=60*((bn-rn)/delta+2);
-      else H2=60*((rn-gn)/delta+4);
-      if(H2<0)H2+=360;
-
-      // Phân loại theo hue:
-      // QH pink/magenta: hue 280–360 hoặc 0–20
-      // Tỉnh cyan: hue 160–210
-      if((H2>=280||H2<=20)&&S2>0.12)pinkCount++;
-      else if(H2>=155&&H2<=215&&S2>0.10)cyanCount++;
-      else neutralCount++;
+      const r=d[i], g=d[i+1], b=d[i+2];
+      if((r+g+b)/3 < 130)continue; // bỏ pixel tối
+      sumR+=r; sumG+=g; sumB+=b; n++;
     }
   }
+  if(n<80)return null;
 
-  if(total<50)return null;
-  const pp=pinkCount/total, cp=cyanCount/total, np=neutralCount/total;
+  const R=sumR/n, G=sumG/n, B=sumB/n;
+  const RG=R-G;
 
-  // Debug
+  // Debug pill
   document.getElementById('typePill').setAttribute('data-raw',
-    `hsl: pk=${pp.toFixed(3)} cy=${cp.toFixed(3)} nt=${np.toFixed(3)} n=${total}`);
+    `R-G: R=${R.toFixed(0)} G=${G.toFixed(0)} B=${B.toFixed(0)} RG=${RG.toFixed(1)} n=${n}`);
 
-  // Quyết định
-  if(pp>0.08&&pp>cp*1.8)return'qh';
-  if(cp>0.06&&cp>pp*1.5)return'tinh';
-  if(np>0.60)return'xa'; // phiếu kem/vàng nhạt: neutral chiếm đa số
-  return null;
+  if(RG > 20) return'qh';            // hồng: R >> G
+  if(RG < -20 && G > R) return'tinh'; // cyan: G ≈ B >> R
+  return'xa';                         // kem/neutral → Xã
 }
 
 // ── 3. ANALYZE BALLOT: Spike Score Detection ─────────────────
