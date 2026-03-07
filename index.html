@@ -610,11 +610,10 @@ function analyzeV2(imageData,W,H,color){
   const d=imageData.data;
   const type=color==='xa'?'xa':color==='tinh'?'tinh':'qh';
 
-  // ── Detect paper ──────────────────────────────────────────
   const paper=detectPaperV2(imageData,W,H);
   if(!paper)return null;
   const{xL,yT,xR,yB}=paper;
-  const bw=xR-xL, bh=yB-yT;
+  const bw=xR-xL,bh=yB-yT;
 
   function lumAt(gx,gy){
     if(gx<0||gx>=W||gy<0||gy>=H)return 255;
@@ -622,7 +621,7 @@ function analyzeV2(imageData,W,H,color){
     return(d[i]*77+d[i+1]*150+d[i+2]*29)>>8;
   }
 
-  // ── BG luminance (vùng tiêu đề 4–18% phiếu) ─────────────
+  // BG lum từ vùng tiêu đề
   let bgSum=0,bgN=0;
   for(let y=yT+Math.floor(bh*.04);y<yT+Math.floor(bh*.18);y+=3)
     for(let x=xL+Math.floor(bw*.10);x<xL+Math.floor(bw*.90);x+=4){
@@ -631,43 +630,41 @@ function analyzeV2(imageData,W,H,color){
   const bgLum=bgN>0?bgSum/bgN:220;
   const darkTh=Math.min(195,Math.max(40,bgLum*0.82));
 
-  // ── HPP: đếm pixel tối từng hàng (30%–93% chiều cao phiếu) ─
-  const colX0=xL+Math.floor(bw*.08), colX1=xL+Math.floor(bw*.92);
+  const colX0=xL+Math.floor(bw*.08),colX1=xL+Math.floor(bw*.92);
   const colW=colX1-colX0;
-  const scanTop=yT+Math.floor(bh*.30);  // bắt đầu từ 30% để bắt row1
+  // Scan từ 25% để không bỏ sót row 1
+  const scanTop=yT+Math.floor(bh*.25);
   const scanBot=yT+Math.floor(bh*.93);
   const scanH=scanBot-scanTop;
+  // Spacing tối thiểu: ~4.5% chiều cao phiếu (phân biệt ứng viên với noise)
+  const minSpPx=Math.floor(bh*0.045);
 
+  // HPP
   const rowDark=new Float32Array(scanH);
   for(let r=0;r<scanH;r++){
     let cnt=0;
     for(let x=colX0;x<colX1;x+=2)if(lumAt(x,scanTop+r)<darkTh)cnt++;
     rowDark[r]=cnt/(colW/2);
   }
-  // Smooth 5-tap
   const rowSm=new Float32Array(scanH);
   for(let i=0;i<scanH;i++){
-    let s=0,c=0;
-    for(let k=-2;k<=2;k++){
-      const j=i+k;
-      if(j>=0&&j<scanH){s+=rowDark[j];c++;}
-    }
-    rowSm[i]=s/c;
+    let s=0,c2=0;
+    for(let k=-2;k<=2;k++){const j=i+k;if(j>=0&&j<scanH){s+=rowDark[j];c2++;}}
+    rowSm[i]=s/c2;
   }
 
-  // ── Peak detection với dedup ─────────────────────────────
-  // minDist nhỏ hơn để không bỏ sót row1 gần đầu scan
-  const minDist=Math.max(15,Math.floor(scanH/(nC*3)));
+  // Raw peaks
+  const minDist=Math.max(minSpPx>>1,10);
   const rawPeaks=[];
   for(let i=minDist;i<scanH-minDist;i++){
-    if(rowSm[i]<0.05)continue;
+    if(rowSm[i]<0.04)continue;
     let ok=true;
     for(let k=1;k<=minDist;k++){
       if(rowSm[i-k]>rowSm[i]||rowSm[i+k]>rowSm[i]){ok=false;break;}
     }
     if(ok)rawPeaks.push(i);
   }
-  // Dedup: merge peaks trong vòng 20px
+  // Dedup 20px
   const peaks=[];
   for(let i=0;i<rawPeaks.length;i++){
     if(i>0&&rawPeaks[i]-rawPeaks[i-1]<20){
@@ -675,60 +672,61 @@ function analyzeV2(imageData,W,H,color){
     }else peaks.push(rawPeaks[i]);
   }
 
-  // ── Tìm nhóm nC peaks đều nhau nhất ─────────────────────
-  let bestGroup=null,bestCV=99;
-  for(let s=0;s<=peaks.length-nC;s++){
-    const g=peaks.slice(s,s+nC);
-    const sp=g.slice(1).map((v,j)=>v-g[j]);
-    const m=sp.reduce((a,b)=>a+b,0)/sp.length;
-    if(m<10)continue; // spacing quá nhỏ = không hợp lệ
-    const cv=Math.sqrt(sp.reduce((a,b)=>a+(b-m)**2,0)/sp.length)/(m+1);
-    if(cv<bestCV){bestCV=cv;bestGroup=g;}
+  // Tìm best group nC peaks với minSpacing constraint
+  // Dùng sliding window (không dùng combinations vì quá chậm trên mobile)
+  let bestGroup=null,bestScore=99;
+  if(peaks.length>=nC){
+    for(let s=0;s<=peaks.length-nC;s++){
+      const g=peaks.slice(s,s+nC);
+      const sps=g.slice(1).map((v,j)=>v-g[j]);
+      if(Math.min(...sps)<minSpPx)continue;
+      const m=sps.reduce((a,b)=>a+b,0)/sps.length;
+      if(m<10)continue;
+      const cv=Math.sqrt(sps.reduce((a,b)=>a+(b-m)**2,0)/sps.length)/(m+1);
+      const densScore=g.reduce((a,p)=>a+rowSm[p],0)/nC;
+      const score=cv-densScore*0.4;
+      if(score<bestScore){bestScore=score;bestGroup=g;}
+    }
   }
 
-  // ── Tính rowMids ─────────────────────────────────────────
+  // rowMids
   let rowMids;
-  if(bestGroup&&bestGroup.length===nC&&bestCV<0.35){
-    // Peaks khớp → dùng trực tiếp
+  if(bestGroup&&bestGroup.length===nC&&bestScore<0.5){
     rowMids=bestGroup.map(p=>scanTop+p);
   }else if(peaks.length>=2){
-    // Có một số peaks → ước tính spacing từ median spacing
+    // Dùng median spacing + anchor
     const allSp=peaks.slice(1).map((v,i)=>v-peaks[i]).sort((a,b)=>a-b);
     const medSp=allSp[Math.floor(allSp.length/2)];
-    // Dùng peak DÀY đặc nhất làm anchor
-    let anchor=peaks.reduce((best,p)=>rowSm[p]>rowSm[best]?p:best,peaks[0]);
-    // Tìm row index của anchor bằng cách fit vào grid
-    // Thử tất cả row index (0..nC-1) cho anchor, chọn fit tốt nhất
-    let bestFit=null,bestFitScore=99;
-    for(let anc=0;anc<nC;anc++){
-      const mids=Array.from({length:nC},(_,i)=>anchor+(i-anc)*medSp);
-      // Score: sum of (distance from mids to nearest peak)
-      let score=0;
-      for(const mid of mids){
-        const nearest=peaks.reduce((b,p)=>Math.abs(p-mid)<Math.abs(b-mid)?p:b,peaks[0]);
-        score+=Math.abs(nearest-mid);
+    if(medSp>=minSpPx){
+      const anchor=peaks.reduce((b,p)=>rowSm[p]>rowSm[b]?p:b,peaks[0]);
+      let bFit=null,bFitS=99999;
+      for(let anc=0;anc<nC;anc++){
+        const mids=Array.from({length:nC},(_,i2)=>anchor+(i2-anc)*medSp);
+        const score=mids.reduce((s,mid)=>{
+          const near=peaks.reduce((b,p)=>Math.abs(p-mid)<Math.abs(b-mid)?p:b,peaks[0]);
+          return s+Math.abs(near-mid);
+        },0);
+        if(score<bFitS){bFitS=score;bFit=mids;}
       }
-      if(score<bestFitScore){bestFitScore=score;bestFit={anc,mids};}
+      rowMids=bFit.map(p=>scanTop+p);
     }
-    rowMids=bestFit.mids.map(p=>scanTop+p);
-  }else{
-    // Full fallback: vị trí cố định theo type (đã xác nhận trên 4 ảnh thật)
-    // qh=30%, tinh=38%, xa=39% là listTop thực tế
-    const startPct=type==='qh'?0.30:type==='tinh'?0.38:0.39;
-    const endPct=0.91;
-    const sp=(endPct-startPct)/nC;
-    rowMids=Array.from({length:nC},(_,i)=>yT+Math.floor(bh*(startPct+(i+0.5)*sp)));
+  }
+  if(!rowMids){
+    // Hard-coded fallback từ calibration thực tế
+    const sp={'qh':0.36,'tinh':0.38,'xa':0.37}[type];
+    const ep=0.91;
+    const spPct=(ep-sp)/nC;
+    rowMids=Array.from({length:nC},(_,i2)=>yT+Math.floor(bh*(sp+(i2+0.5)*spPct)));
   }
 
   const spacing=rowMids.length>1?rowMids[1]-rowMids[0]:Math.floor(bh/nC);
   const halfRow=Math.max(10,Math.floor(spacing*0.34));
 
-  // ── Spike score cho từng hàng ────────────────────────────
+  // Per-row metrics
   const rowData=rowMids.map((midY,idx)=>{
     const y0=Math.max(yT,midY-halfRow);
     const y1=Math.min(scanBot,midY+halfRow);
     const h=Math.max(4,y1-y0);
-
     const profile=new Float32Array(h);
     for(let r=0;r<h;r++){
       let cnt=0;
@@ -736,55 +734,45 @@ function analyzeV2(imageData,W,H,color){
       profile[r]=cnt/(colW/2);
     }
     const sm=new Float32Array(h);
-    for(let i=0;i<h;i++){
-      sm[i]=(profile[Math.max(0,i-1)]+profile[i]+profile[Math.min(h-1,i+1)])/3;
-    }
+    for(let i=0;i<h;i++)sm[i]=(profile[Math.max(0,i-1)]+profile[i]+profile[Math.min(h-1,i+1)])/3;
     const r0=Math.floor(h*.20),r1=Math.ceil(h*.80);
-    let peak=0;
-    for(let i=r0;i<r1;i++)if(sm[i]>peak)peak=sm[i];
-
-    // localBg = 20th percentile (noise floor trong strip)
+    let peak=0;for(let i=r0;i<r1;i++)if(sm[i]>peak)peak=sm[i];
     const sorted=[...sm].sort((a,b)=>a-b);
     const localBg=sorted[Math.floor(sorted.length*.20)];
     const spike=(peak-localBg)/(localBg+0.005);
-
-    // colCov: fraction of columns có dark pixel ở giữa strip
-    const cS=Math.floor(h*.25),cE=Math.ceil(h*.75);
     let covC=0,totC=0;
     for(let x=colX0;x<colX1;x+=4){
       let has=false;
-      for(let r=cS;r<cE;r++)if(lumAt(x,y0+r)<darkTh){has=true;break;}
+      for(let r=Math.floor(h*.25);r<Math.ceil(h*.75);r++)if(lumAt(x,y0+r)<darkTh){has=true;break;}
       if(has)covC++;totC++;
     }
     const colCov=totC>0?covC/totC:0;
-
-    const dbg={sp:+spike.toFixed(1),pk:+peak.toFixed(2),cc:+colCov.toFixed(2)};
-
-    // ── Scoring ──────────────────────────────────────────────
-    // sA: peak density tuyệt đối
-    const sA=peak>0.30?1:peak>0.20?0.5:0;
-    // sB: spike ratio (gạch tạo spike rõ so với noise)
-    const sB=spike>2.5?1:spike>1.5?0.5:0;
-    // sC: column coverage (gạch trải rộng)
-    const sC=colCov>0.65?0.5:colCov>0.45?0.25:0;
-    const total=sA+sB+sC;
-
-    const isCrossed=total>=2;
-    const score=isCrossed?1:(total>=1?0.5:1);
-    return{y0,y1,midY,peak,spike,colCov,dbg,isCrossed,score};
+    return{y0,y1,midY,peak,spike,colCov,dbg:{sp:+spike.toFixed(1),pk:+peak.toFixed(2),cc:+colCov.toFixed(2)}};
   });
 
-  const crossed=new Set(rowData.map((r,i)=>r.isCrossed?i:-1).filter(i=>i>=0));
+  // Global median để so sánh tương đối
+  const allPeaks=rowData.map(r=>r.peak).sort((a,b)=>a-b);
+  const medPeak=allPeaks[Math.floor(allPeaks.length/2)];
+
+  const crossed=new Set();
+  const finalRows=rowData.map((r,idx)=>{
+    const sA=r.peak>0.30?1:r.peak>0.20?0.5:0;
+    const sB=r.spike>2.5?1:r.spike>1.5?0.5:0;
+    const sC=r.colCov>0.65?0.5:r.colCov>0.45?0.25:0;
+    // Relative so với median toàn phiếu
+    const relPeak=(r.peak-medPeak)/(medPeak+0.001);
+    const sREL=relPeak>0.35?1:relPeak>0.18?0.5:0;
+    const total=Math.max(sA+sB+sC, sREL+sB+sC);
+    const isCrossed=total>=2;
+    if(isCrossed)crossed.add(idx);
+    const score=isCrossed?1:(total>=1?0.5:1);
+    return{...r,isCrossed,score};
+  });
+
+  drawOverlayV2(W,H,finalRows,paper,DBG);
+  const clearCount=finalRows.filter(r=>r.score!==0.5).length;
   const votedNames=BALLOTS[type].candidates.filter((_,i)=>!crossed.has(i));
-  const clearCount=rowData.filter(r=>r.score!==0.5).length;
-
-  drawOverlayV2(W,H,rowData,paper,DBG);
-
-  return{
-    type,crossed,votedNames,rowData,
-    confidence:clearCount/nC,
-    ambiguous:rowData.some(r=>r.score===0.5)
-  };
+  return{type,crossed,votedNames,rowData:finalRows,confidence:clearCount/nC,ambiguous:finalRows.some(r=>r.score===0.5)};
 }
 
 // ── Draw overlay v2 ──────────────────────────────────────────
@@ -923,9 +911,11 @@ function scanFrame(){
 
   // ── Đo độ ổn định vị trí giấy ────────────────────────────
   // v2: kiểm tra xem EMA có khớp với raw detection không
-  const dx=Math.abs(paper.cx-v2.paperEMA.cx||paper.cx);
-  const dy=Math.abs(paper.cy-(v2.paperEMA.cy||paper.cy));
-  const isStable=dx<paper.pw*0.05&&dy<paper.ph*0.05;
+  const paperCx=(paper.xL+paper.xR)/2, paperCy=(paper.yT+paper.yB)/2;
+  const emaCx=v2.paperEMA?(v2.paperEMA.xL+v2.paperEMA.xR)/2:paperCx;
+  const emaCy=v2.paperEMA?(v2.paperEMA.yT+v2.paperEMA.yB)/2:paperCy;
+  const dx=Math.abs(paperCx-emaCx), dy=Math.abs(paperCy-emaCy);
+  const isStable=dx<paper.pw*0.06&&dy<paper.ph*0.06;
 
   if(!isStable){
     v2.stableStart=null;
@@ -954,9 +944,6 @@ function scanFrame(){
   }
 
   // ── TRIGGER ANALYZE ───────────────────────────────────────
-  // Chỉ analyze mỗi SCAN_EVERY frames để không lag
-  if(v2.frameCount%SCAN_EVERY!==0&&elapsed<STABLE_MS+200)return;
-
   v2.locked=true;
   document.getElementById('scanLine').classList.remove('on');
 
