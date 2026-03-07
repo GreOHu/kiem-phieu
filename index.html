@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.6</title>
+<title>Kiểm Phiếu 2026 v2.7</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -154,6 +154,8 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 .sr-nm{flex:1;font-size:10px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 4px;position:relative;z-index:1;}
 .sr-v{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);min-width:22px;text-align:right;flex-shrink:0;position:relative;z-index:1;}
 .bump{animation:bump .38s ease-out;}
+.grp-flash{animation:grpFlash .6s ease;}
+@keyframes grpFlash{0%{background:rgba(34,197,94,.25);}100%{background:transparent;}}
 @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.55);color:var(--green)}100%{transform:scale(1)}}
 
 /* DIST */
@@ -227,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.6</span>
+    <span class="hdr-ver">v2.7</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -1071,15 +1073,14 @@ function scanFrame(){
   }
 
   frozenResult=result;
-  if(result.confidence>=0.85&&!result.ambiguous){
-    const cb=document.getElementById('confBadge');
-    cb.textContent='AUTO ✓'; cb.className='conf-badge high';
-    setStatus('auto','⚡ Tự nhận diện thành công','Xác nhận trong 1 giây…');
-    setTimeout(()=>{if(frozenResult&&!manualCrossed)confirmBallotAuto(frozenResult);},1000);
+  // Confidence cao → auto-confirm ngay, không show freeze panel
+  if(result.confidence>=0.75&&!result.ambiguous){
+    confirmBallotAuto(result); // beep + cộng dồn bên trong _doConfirm
   }else{
+    // Confidence thấp → show freeze panel cho user review
     setStatus('ready','📋 Kiểm tra kết quả','Chạm tên để sửa nếu cần');
+    showFreezePanel(result);
   }
-  showFreezePanel(result);
 }
 
 
@@ -1092,29 +1093,55 @@ function drawPaperRingV2(paper,progress,done,W,H){
   if(!paper)return;
   const ov=document.getElementById('overlay');
   const vid=document.getElementById('video');
-  const VW=vid.offsetWidth||ov.width, VH=vid.offsetHeight||ov.height;
-  const sx=VW/ov.width, sy=VH/ov.height;
+
+  // object-fit:cover transform: tính đúng vị trí video content trên màn hình
+  const dW=vid.offsetWidth||ov.width, dH=vid.offsetHeight||ov.height;
+  const iW=vid.videoWidth||W, iH=vid.videoHeight||H;
+  const scale=Math.max(dW/iW, dH/iH);
+  const offX=(dW-iW*scale)/2, offY=(dH-iH*scale)/2;
+  function vx(x){return offX+x*scale;}
+  function vy(y){return offY+y*scale;}
+
   const ctx=ov.getContext('2d');
   ctx.clearRect(0,0,ov.width,ov.height);
-  const x0=paper.xL*sx,y0=paper.yT*sy;
-  const x1=paper.xR*sx,y1=paper.yB*sy;
-  const peri=2*((x1-x0)+(y1-y0));
+
+  const x0=vx(paper.xL), y0=vy(paper.yT);
+  const x1=vx(paper.xR), y1=vy(paper.yB);
+  const rw=x1-x0, rh=y1-y0;
   const col=done?'#22c55e':'#e8a020';
-  const gCol=done?'rgba(34,197,94,.3)':'rgba(232,160,32,.3)';
+
+  // Nền mờ
   ctx.save();
-  ctx.strokeStyle=gCol;ctx.lineWidth=7;
-  ctx.beginPath();ctx.rect(x0,y0,x1-x0,y1-y0);ctx.stroke();
-  ctx.strokeStyle=col;ctx.lineWidth=done?3.5:2.5;
-  ctx.setLineDash([peri*progress,peri*(1-progress)+1]);
-  ctx.lineDashOffset=0;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y0);ctx.lineTo(x1,y1);ctx.lineTo(x0,y1);ctx.closePath();
-  ctx.stroke();ctx.restore();
-  const cL=Math.min(x1-x0,y1-y0)*.09;
-  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=3;ctx.lineCap='round';ctx.setLineDash([]);
+  ctx.strokeStyle=done?'rgba(34,197,94,.22)':'rgba(232,160,32,.15)';
+  ctx.lineWidth=8; ctx.strokeRect(x0,y0,rw,rh);
+
+  // Góc nổi bật
+  const cL=Math.min(rw,rh)*.10;
+  ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap='round'; ctx.setLineDash([]);
   [[x0,y0,x0+cL,y0,x0,y0+cL],[x1,y0,x1-cL,y0,x1,y0+cL],
    [x0,y1,x0+cL,y1,x0,y1-cL],[x1,y1,x1-cL,y1,x1,y1-cL]].forEach(([ox,oy,ax,ay,bx,by])=>{
     ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ox,oy);ctx.lineTo(bx,by);ctx.stroke();
   });
+
+  // Ring tiến trình CW từ mid-top
+  const mx=(x0+x1)/2;
+  const peri=2*(rw+rh);
+  const drawn=peri*(done?1:progress);
+  ctx.strokeStyle=col; ctx.lineWidth=done?4:3;
+  ctx.setLineDash([]); ctx.lineCap='round';
+  const segs=[
+    [mx,y0,x1,y0,rw/2],[x1,y0,x1,y1,rh],
+    [x1,y1,x0,y1,rw],[x0,y1,x0,y0,rh],[x0,y0,mx,y0,rw/2]
+  ];
+  let rem=drawn;
+  ctx.beginPath(); ctx.moveTo(mx,y0);
+  for(const[sx2,sy2,ex,ey,len] of segs){
+    if(rem<=0)break;
+    const t=Math.min(1,rem/len);
+    ctx.lineTo(sx2+(ex-sx2)*t, sy2+(ey-sy2)*t);
+    rem-=len;
+  }
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1199,6 +1226,9 @@ function _doConfirm(type,crossed,mode){
     stats.total++;stats.valid++;
     votedNames.forEach(n=>{votes[type][n]=(votes[type][n]||0)+1;});
     renderAllRows();votedNames.forEach(n=>bumpVote(type,n));beep(1);
+    // Flash board group
+    const grpEl=document.querySelector('.grp-'+type);
+    if(grpEl){grpEl.classList.remove('grp-flash');void grpEl.offsetWidth;grpEl.classList.add('grp-flash');}
     ballotLog.push({type,votedFor:votedNames,count:voted,valid:true,time:now,mode});
     undoStack.push({snap,desc:'✅ '+B.name+' ('+voted+'ng)'});
     setStatus('ok','✅ Hợp lệ — bầu '+voted+'/'+B.maxVotes,B.name);
