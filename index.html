@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.8</title>
+<title>Kiểm Phiếu 2026 v2.9</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -229,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.8</span>
+    <span class="hdr-ver">v2.9</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -466,11 +466,16 @@ async function startCamera(){
     });
     const vid=document.getElementById('video');
     vid.srcObject=stream;
-    vid.onloadedmetadata=()=>{
+    vid.onloadedmetadata=()=>{vid.play().catch(()=>{});};
+    // Set overlay size = CSS size (không phải intrinsic) để coords khớp
+    const _syncOv=()=>{
       const ov=document.getElementById('overlay');
-      ov.width=vid.videoWidth||640; ov.height=vid.videoHeight||480;
-      vid.play().catch(()=>{});
+      const w=vid.offsetWidth||320, h=vid.offsetHeight||452;
+      if(ov.width!==w||ov.height!==h){ov.width=w;ov.height=h;}
     };
+    vid.addEventListener('loadeddata',_syncOv);
+    new ResizeObserver(_syncOv).observe(vid);
+    setTimeout(_syncOv,300);
     document.getElementById('btnCamera').style.display='none';
     document.getElementById('camDot').classList.add('live');
     // Wake Lock: giữ màn hình sáng khi đang quét
@@ -535,30 +540,31 @@ function detectPaperV2(imageData, W, H){
     }
   }
   const lumMean=lumSum/(dW*dH);
-
-  // Threshold: pixel "sáng" = nền giấy (sáng hơn mean đáng kể)
-  const brightTh=Math.min(lumMean*1.25, 200);
-
-  // Tìm bounding box của vùng sáng ở TRUNG TÂM frame
-  // (loại bỏ 10% mép để không bị nhầm với mép sáng)
   const m10y=Math.floor(dH*0.10), m90y=Math.floor(dH*0.90);
   const m10x=Math.floor(dW*0.10), m90x=Math.floor(dW*0.90);
+  const scanArea=(m90y-m10y)*(m90x-m10x);
 
-  let minY=m90y,maxY=m10y,minX=m90x,maxX=m10x;
-  let brightCount=0;
-  for(let y=m10y;y<m90y;y++){
-    for(let x=m10x;x<m90x;x++){
-      if(lum[y*dW+x]>=brightTh){
-        if(y<minY)minY=y; if(y>maxY)maxY=y;
-        if(x<minX)minX=x; if(x>maxX)maxX=x;
-        brightCount++;
+  // Shadow-tolerant: thử 3 mức threshold giảm dần
+  // Strict → bắt phiếu sáng bình thường
+  // Medium → bắt phiếu bị hắt bóng 1 phần
+  // Loose  → bắt phiếu trong điều kiện thiếu sáng
+  const thresholds=[lumMean*1.15, lumMean*0.82, lumMean*0.60];
+  let minY,maxY,minX,maxX,brightCount;
+  let found=false;
+  for(const brightTh of thresholds){
+    minY=m90y;maxY=m10y;minX=m90x;maxX=m10x;brightCount=0;
+    for(let y=m10y;y<m90y;y++){
+      for(let x=m10x;x<m90x;x++){
+        if(lum[y*dW+x]>=brightTh){
+          if(y<minY)minY=y;if(y>maxY)maxY=y;
+          if(x<minX)minX=x;if(x>maxX)maxX=x;
+          brightCount++;
+        }
       }
     }
+    if(brightCount>=scanArea*0.08){found=true;break;}
   }
-
-  // Cần đủ pixel sáng (> 15% vùng quét)
-  const scanArea=(m90y-m10y)*(m90x-m10x);
-  if(brightCount<scanArea*0.10)return null;
+  if(!found)return null;
 
   // Chuyển về canvas coords
   const xL=minX*S, yT=minY*S, xR=maxX*S, yB=maxY*S;
@@ -894,62 +900,52 @@ function analyzeV2(imageData,W,H,color,paperOverride){
 function drawOverlayV2(W,H,rows,paper,dbg){
   const ov=document.getElementById('overlay');
   const vid=document.getElementById('video');
-  const iW=vid.videoWidth||W||ov.width, iH=vid.videoHeight||H||ov.height;
-  if(ov.width!==iW||ov.height!==iH){ov.width=iW;ov.height=iH;}
-  const sx=1,sy=1; // intrinsic coords, no transform needed
-  const c=ov.getContext('2d');
-  c.clearRect(0,0,iW,iH);
-
-  // Vẽ viền phiếu
-  if(paper){
-    const{xL,yT,xR,yB}=paper;
-    c.save();
-    c.strokeStyle='rgba(232,160,32,0.6)';c.lineWidth=2;c.setLineDash([6,3]);
-    c.strokeRect(xL*sx,yT*sy,(xR-xL)*sx,(yB-yT)*sy);
-    c.restore();
-  }
+  const cssW=vid.offsetWidth||320, cssH=vid.offsetHeight||452;
+  if(ov.width!==cssW||ov.height!==cssH){ov.width=cssW;ov.height=cssH;}
+  const vW=vid.videoWidth||W||cssW, vH=vid.videoHeight||H||cssH;
+  const sc=Math.max(cssW/vW,cssH/vH);
+  const ox=(cssW-vW*sc)/2, oy=(cssH-vH*sc)/2;
+  // cover transform: video px → canvas px
+  const tx=x=>ox+x*sc, ty=y=>oy+y*sc;
+  const ctx=ov.getContext('2d');
+  ctx.clearRect(0,0,cssW,cssH);
 
   if(!rows||!rows.length)return;
 
   rows.forEach(row=>{
-    const y0r=row.y0*sy, y1r=row.y1*sy, rh=(y1r-y0r);
-    const rx=(paper.xL+paper.pw*0.06)*sx;
-    const rw=(paper.pw*0.88)*sx;
+    const y0r=ty(row.y0), y1r=ty(row.y1), rh=y1r-y0r;
+    if(rh<2)return;
+    const rx=tx(paper.xL+paper.pw*0.06);
+    const rw=(paper.pw*0.88)*sc;
 
-    // Màu theo kết quả
     let col,bg;
     if(row.isCrossed){col='rgba(239,68,68,.9)';bg='rgba(239,68,68,.12)';}
     else if(row.score===0.5){col='rgba(245,158,11,.9)';bg='rgba(245,158,11,.10)';}
     else{col='rgba(34,197,94,.9)';bg='rgba(34,197,94,.06)';}
 
-    c.save();
-    c.fillStyle=bg;
-    c.fillRect(rx,y0r,rw,rh);
-    // Border trái
-    c.fillStyle=col;
-    c.fillRect(rx,y0r,3,rh);
-    // Icon
-    c.font=`bold ${Math.max(10,rh*0.5)}px sans-serif`;
-    c.fillStyle=col;
-    c.textAlign='left';
-    c.textBaseline='middle';
-    c.fillText(row.isCrossed?'✗':row.score===0.5?'?':'✓',rx+6,y0r+rh/2);
-    c.restore();
+    ctx.save();
+    ctx.fillStyle=bg;
+    ctx.fillRect(rx,y0r,rw,rh);
+    ctx.fillStyle=col;
+    ctx.fillRect(rx,y0r,3,rh);
+    ctx.font=`bold ${Math.max(10,rh*0.5)}px sans-serif`;
+    ctx.fillStyle=col;ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(row.isCrossed?'✗':row.score===0.5?'?':'✓',rx+6,y0r+rh/2);
+    ctx.restore();
 
-    // Debug text
     if(dbg){
       const dg=row.dbg;
       const txt=`sp${dg.sp} pk${dg.pk} cc${dg.cc}`;
       const fs=Math.max(10,Math.min(rh*.42,14));
-      c.save();
-      c.font=`bold ${fs}px 'IBM Plex Mono',monospace`;
-      c.textAlign='left';c.textBaseline='middle';
-      const tm=c.measureText(txt);
-      c.fillStyle='rgba(0,0,0,.7)';
-      c.fillRect(rx+18,y0r+rh/2-fs,tm.width+6,fs+4);
-      c.fillStyle='rgba(250,230,50,1)';
-      c.fillText(txt,rx+21,y0r+rh/2);
-      c.restore();
+      ctx.save();
+      ctx.font=`bold ${fs}px monospace`;
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      const tm=ctx.measureText(txt);
+      ctx.fillStyle='rgba(0,0,0,.7)';
+      ctx.fillRect(rx+18,y0r+rh/2-fs,tm.width+6,fs+4);
+      ctx.fillStyle='rgba(250,230,50,1)';
+      ctx.fillText(txt,rx+21,y0r+rh/2);
+      ctx.restore();
     }
   });
 }
@@ -1113,39 +1109,46 @@ function drawPaperRingV2(paper,progress,done,W,H){
   if(!paper)return;
   const ov=document.getElementById('overlay');
   const vid=document.getElementById('video');
-  // Canvas intrinsic = video intrinsic; CSS scale tự căn chỉnh (object-fit:cover match)
-  const iW=vid.videoWidth||W||ov.width;
-  const iH=vid.videoHeight||H||ov.height;
-  if(ov.width!==iW||ov.height!==iH){ov.width=iW;ov.height=iH;}
-  const ctx=ov.getContext('2d');
-  ctx.clearRect(0,0,iW,iH);
+  // Luôn sync canvas size với CSS display size trước khi vẽ
+  const cssW=vid.offsetWidth||320;
+  const cssH=vid.offsetHeight||452;
+  if(ov.width!==cssW||ov.height!==cssH){ov.width=cssW;ov.height=cssH;}
+  const vW=vid.videoWidth||W||cssW;
+  const vH=vid.videoHeight||H||cssH;
 
-  // paper coords đã là intrinsic video pixels → vẽ thẳng
-  const x0=paper.xL, y0=paper.yT, x1=paper.xR, y1=paper.yB;
-  const rw=x1-x0, rh=y1-y0;
+  // Cover transform: video → CSS coords
+  const scale=Math.max(cssW/vW,cssH/vH);
+  const ox=(cssW-vW*scale)/2, oy=(cssH-vH*scale)/2;
+  const tx=x=>ox+x*scale, ty=y=>oy+y*scale;
+
+  const ctx=ov.getContext('2d');
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const x0=tx(paper.xL),y0=ty(paper.yT),x1=tx(paper.xR),y1=ty(paper.yB);
+  const rw=x1-x0,rh=y1-y0;
   const col=done?'#22c55e':'#e8a020';
 
-  // Nền mờ
   ctx.save();
+  // Nền mờ
   ctx.strokeStyle=done?'rgba(34,197,94,.22)':'rgba(232,160,32,.15)';
-  ctx.lineWidth=Math.max(6,iW*0.006);
+  ctx.lineWidth=Math.max(5,cssW*0.013);
   ctx.strokeRect(x0,y0,rw,rh);
 
-  // 4 góc nổi bật
-  const cL=Math.min(rw,rh)*.10;
-  ctx.strokeStyle=col;ctx.lineWidth=Math.max(3,iW*0.003);
+  // 4 góc
+  const cL=Math.min(rw,rh)*.09;
+  ctx.strokeStyle=col;ctx.lineWidth=Math.max(2.5,cssW*0.007);
   ctx.lineCap='round';ctx.setLineDash([]);
   [[x0,y0,x0+cL,y0,x0,y0+cL],[x1,y0,x1-cL,y0,x1,y0+cL],
-   [x0,y1,x0+cL,y1,x0,y1-cL],[x1,y1,x1-cL,y1,x1,y1-cL]].forEach(([ox,oy,ax,ay,bx,by])=>{
-    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ox,oy);ctx.lineTo(bx,by);ctx.stroke();
+   [x0,y1,x0+cL,y1,x0,y1-cL],[x1,y1,x1-cL,y1,x1,y1-cL]].forEach(([ox2,oy2,ax,ay,bx,by])=>{
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ox2,oy2);ctx.lineTo(bx,by);ctx.stroke();
   });
 
-  // Ring tiến trình CW từ mid-top
+  // Ring CW từ mid-top
   const mx=(x0+x1)/2;
   const peri=2*(rw+rh);
   const drawn=peri*(done?1:progress);
-  ctx.strokeStyle=col;ctx.lineWidth=Math.max(4,iW*0.004);
-  ctx.setLineDash([]);ctx.lineCap='round';
+  ctx.strokeStyle=col;ctx.lineWidth=Math.max(3,cssW*0.009);
+  ctx.lineCap='round';
   const segs=[[mx,y0,x1,y0,rw/2],[x1,y0,x1,y1,rh],
               [x1,y1,x0,y1,rw],[x0,y1,x0,y0,rh],[x0,y0,mx,y0,rw/2]];
   let rem=drawn;
