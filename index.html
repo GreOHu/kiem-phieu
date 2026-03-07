@@ -247,6 +247,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
       <div class="vid-wrap">
         <video id="video" autoplay playsinline muted></video>
         <canvas id="canvas"></canvas>
+        <canvas id="thumbCanvas" style="display:none"></canvas>
         <canvas id="overlay"></canvas>
         <div class="gf"><div class="cr tl"></div><div class="cr tr"></div><div class="cr bl"></div><div class="cr br"></div></div>
         <div class="sln" id="scanLine"></div>
@@ -871,23 +872,23 @@ function scanFrame(){
   if(Date.now()<cooldownUntil){clearOverlayV2();return;}
 
   const video=document.getElementById('video');
-  const canvas=document.getElementById('canvas');
-  if(!video.videoWidth)return;
+  if(!video.videoWidth||!video.videoHeight)return;
 
-  v2.frameCount++;
-  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-  const ctx=canvas.getContext('2d');
-  ctx.drawImage(video,0,0);
-  const W=canvas.width, H=canvas.height;
-  const imageData=ctx.getImageData(0,0,W,H);
+  // ── Phase 1: Quick paper detect trên thumbnail NHỎ ──────────
+  // Dùng canvas nhỏ cố định 320x240 → chỉ 76k px thay vì 1.2M
+  // KHÔNG reset canvas chính → video không bị ảnh hưởng
+  const tW=320, tH=240;
+  const thumbCanvas=document.getElementById('thumbCanvas');
+  const tCtx=thumbCanvas.getContext('2d',{willReadFrequently:true});
+  thumbCanvas.width=tW; thumbCanvas.height=tH;
+  tCtx.drawImage(video,0,0,tW,tH);
+  const thumbData=tCtx.getImageData(0,0,tW,tH);
 
-  // ── Detect paper ──────────────────────────────────────────
-  const paper=detectPaperV2(imageData,W,H);
+  const thumbPaper=detectPaperV2(thumbData,tW,tH);
 
-  if(!paper){
+  if(!thumbPaper){
     v2.missCount++;
     if(v2.missCount>3){
-      // Mất giấy thật sự
       v2.paperEMA=null; v2.stableStart=null; v2.lastColor=null;
       v2.missCount=0;
       showNoPaperHint(true);
@@ -897,64 +898,58 @@ function scanFrame(){
       setStatus('scan','📄 Đặt tờ phiếu vào khung','🌸 Hồng=QH · 🔵 Xanh=Tỉnh · 🟡 Vàng=Xã');
       clearOverlayV2();
     }
-    // 1–3 frame miss: giữ nguyên trạng thái (không reset)
-    return;
+    return; // KHÔNG capture full-res nếu không có phiếu
   }
   v2.missCount=0;
   showNoPaperHint(false);
 
+  // Scale thumbnail paper coords → full video coords
+  const scaleX=video.videoWidth/tW, scaleY=video.videoHeight/tH;
+  const paper={
+    xL:Math.round(thumbPaper.xL*scaleX),
+    yT:Math.round(thumbPaper.yT*scaleY),
+    xR:Math.round(thumbPaper.xR*scaleX),
+    yB:Math.round(thumbPaper.yB*scaleY),
+    get pw(){return this.xR-this.xL},
+    get ph(){return this.yB-this.yT},
+    cx:(thumbPaper.xL+thumbPaper.xR)/2*scaleX,
+    cy:(thumbPaper.yT+thumbPaper.yB)/2*scaleY,
+  };
+
   // ── EMA smoothing vị trí giấy ─────────────────────────────
   if(!v2.paperEMA){
-    v2.paperEMA={...paper};
+    v2.paperEMA={xL:paper.xL,yT:paper.yT,xR:paper.xR,yB:paper.yB};
   }else{
     const a=EMA_ALPHA;
     v2.paperEMA.xL=v2.paperEMA.xL*(1-a)+paper.xL*a;
     v2.paperEMA.yT=v2.paperEMA.yT*(1-a)+paper.yT*a;
     v2.paperEMA.xR=v2.paperEMA.xR*(1-a)+paper.xR*a;
     v2.paperEMA.yB=v2.paperEMA.yB*(1-a)+paper.yB*a;
-    v2.paperEMA.pw=v2.paperEMA.xR-v2.paperEMA.xL;
-    v2.paperEMA.ph=v2.paperEMA.yB-v2.paperEMA.yT;
   }
 
-  // ── Detect màu phiếu (mỗi frame) ──────────────────────────
-  const color=detectColorV2(imageData,W,H,paper);
+  // ── Phase 2: Detect màu trên thumbnail (đủ cho color) ───────
+  const color=detectColorV2(thumbData,tW,tH,thumbPaper);
   if(!color){
     setStatus('scan','🔍 Nhận diện màu phiếu...','Giữ phẳng, đủ ánh sáng');
     updateTypePill(null); v2.stableStart=null;
-    drawPaperRingV2(v2.paperEMA,0,false,W,H);
+    drawPaperRingV2(paper,0,false,video.videoWidth,video.videoHeight);
     return;
   }
-
-  // Màu đổi → reset timer
-  if(color!==v2.lastColor){
-    v2.lastColor=color; v2.stableStart=null;
-  }
+  if(color!==v2.lastColor){v2.lastColor=color; v2.stableStart=null;}
   updateTypePill(color);
 
-  // ── Đo độ ổn định vị trí giấy ────────────────────────────
-  // v2: kiểm tra xem EMA có khớp với raw detection không
-  const paperCx=(paper.xL+paper.xR)/2, paperCy=(paper.yT+paper.yB)/2;
-  const emaCx=v2.paperEMA?(v2.paperEMA.xL+v2.paperEMA.xR)/2:paperCx;
-  const emaCy=v2.paperEMA?(v2.paperEMA.yT+v2.paperEMA.yB)/2:paperCy;
-  const dx=Math.abs(paperCx-emaCx), dy=Math.abs(paperCy-emaCy);
+  // ── Đo độ ổn định ─────────────────────────────────────────
+  const emaCx=(v2.paperEMA.xL+v2.paperEMA.xR)/2;
+  const emaCy=(v2.paperEMA.yT+v2.paperEMA.yB)/2;
+  const dx=Math.abs(paper.cx-emaCx), dy=Math.abs(paper.cy-emaCy);
   const isStable=dx<paper.pw*0.06&&dy<paper.ph*0.06;
+  if(!isStable){v2.stableStart=null;}
+  else if(!v2.stableStart){v2.stableStart=Date.now();}
 
-  if(!isStable){
-    v2.stableStart=null;
-  }else if(!v2.stableStart){
-    v2.stableStart=Date.now();
-  }
-
-  // Update EMA cx/cy
-  v2.paperEMA.cx=(v2.paperEMA.xL+v2.paperEMA.xR)/2;
-  v2.paperEMA.cy=(v2.paperEMA.yT+v2.paperEMA.yB)/2;
-
-  const now=Date.now();
-  const elapsed=v2.stableStart?now-v2.stableStart:0;
+  const elapsed=v2.stableStart?Date.now()-v2.stableStart:0;
   const progress=Math.min(elapsed/STABLE_MS,1);
 
-  // Hiện progress
-  drawPaperRingV2(v2.paperEMA,progress,progress>=1,W,H);
+  drawPaperRingV2(paper,progress,progress>=1,video.videoWidth,video.videoHeight);
   const pct=document.getElementById('ringPct');
   pct.className='ring-pct show'+(progress>=1?' done':'');
   pct.textContent=progress>=1?'✓':Math.round(progress*100)+'%';
@@ -965,15 +960,22 @@ function scanFrame(){
     return;
   }
 
-  // ── TRIGGER ANALYZE ───────────────────────────────────────
+  // ── Phase 3: Analyze chỉ khi ổn định → capture full-res ────
   v2.locked=true;
   document.getElementById('scanLine').classList.remove('on');
+
+  const W=video.videoWidth, H=video.videoHeight;
+  const canvas=document.getElementById('canvas');
+  // Chỉ set canvas size một lần nếu chưa đúng (tránh reset liên tục)
+  if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(video,0,0);
+  const imageData=ctx.getImageData(0,0,W,H);
 
   const result=analyzeV2(imageData,W,H,color);
   const type=color==='xa'?'xa':color==='tinh'?'tinh':'qh';
 
   if(!result){
-    // Analyze fail → reset locked, báo lỗi để user thử lại
     v2.locked=false;
     document.getElementById('scanLine').classList.add('on');
     v2.stableStart=null;
@@ -992,6 +994,7 @@ function scanFrame(){
   }
   showFreezePanel(result);
 }
+
 
 function clearOverlayV2(){
   const ov=document.getElementById('overlay');
