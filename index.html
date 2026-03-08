@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.16</title>
+<title>Kiểm Phiếu 2026 v2.17</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -229,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.16</span>
+    <span class="hdr-ver">v2.17</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -704,20 +704,103 @@ function analyzeV2(imageData,W,H,color,paperOverride){
   const colX0=xL+Math.floor(bw*.08), colX1=xL+Math.floor(bw*.92);
   const colW=colX1-colX0;
 
-  // ══ ZONE BOUNDARIES (% of paper height, calibrated from real images) ══
-  // TINH: candidates at 30-71%  QH: 36-78%  XÃ: 24-66%
-  const _zt=type==='tinh'?0.30:type==='qh'?0.36:0.24;
-  const _zb=type==='tinh'?0.71:type==='qh'?0.78:0.66;
-  const zoneTop=yT+Math.floor(bh*_zt);
-  const zoneBot=yT+Math.floor(bh*_zb);
-  const zoneH=zoneBot-zoneTop;
-  const slotH=zoneH/nC;
+  // ══ ANCHOR DETECTION: tìm "Được bầu XX đại biểu" + đo spacing ════════════
+  // Profile row density
+  const midX0=xL+Math.floor(bw*.25), midX1=xL+Math.floor(bw*.75);
+  const midW=midX1-midX0;
+  const fullX0=colX0, fullX1=colX1;
+
+  function rowDarkFrac(y,x0,x1,th){
+    let c=0,tot=0;
+    for(let x=x0;x<x1;x+=3){if(lumAt(x,y)<th)c++;tot++;}
+    return tot>0?c/tot:0;
+  }
+  // Build smoothed profile (window=7px)
+  const PROF_STEP=2;
+  const profLen=Math.ceil(bh/PROF_STEP);
+  const smMid=new Float32Array(profLen);
+  const smFull=new Float32Array(profLen);
+  for(let i=0;i<profLen;i++){
+    const gy=yT+i*PROF_STEP;
+    let mS=0,fS=0,n=0;
+    for(let k=-3;k<=3;k++){
+      const y2=gy+k*PROF_STEP;
+      if(y2<yT||y2>=yB)continue;
+      mS+=rowDarkFrac(y2,midX0,midX1,darkTh);
+      fS+=rowDarkFrac(y2,fullX0,fullX1,darkTh);
+      n++;
+    }
+    smMid[i]=n>0?mS/n:0; smFull[i]=n>0?fS/n:0;
+  }
+  function profIdx(y){return Math.min(profLen-1,Math.floor((y-yT)/PROF_STEP));}
+
+  // STEP 1: Tìm anchor "Được bầu" = last mid-density peak trong 15-33% bh
+  let anchorY=yT+Math.floor(bh*.24); // fallback
+  {
+    const a0=profIdx(yT+Math.floor(bh*.15));
+    const a1=profIdx(yT+Math.floor(bh*.33));
+    let lastPeakI=-1;
+    for(let i=a0+1;i<a1-1;i++){
+      if(smMid[i]>0.09&&smMid[i]>=smMid[i-1]&&smMid[i]>=smMid[i+1]){
+        lastPeakI=i;
+      }
+    }
+    if(lastPeakI>=0) anchorY=yT+lastPeakI*PROF_STEP;
+  }
+
+  // STEP 2: Tìm tất cả peaks trong full-density sau anchor
+  const minDist=Math.max(4,Math.floor(bh*.03/PROF_STEP)); // 3% bh
+  const scanStart=profIdx(anchorY+Math.floor(bh*.015));
+  const scanEnd=profIdx(yT+Math.floor(bh*.84));
+  const cPeaks=[];
+  for(let i=scanStart+1;i<scanEnd-1;i++){
+    if(smFull[i]>0.07&&smFull[i]>=smFull[i-1]&&smFull[i]>=smFull[i+1]){
+      if(cPeaks.length===0||i-cPeaks[cPeaks.length-1]>=minDist)
+        cPeaks.push(i);
+    }
+  }
+
+  // STEP 3: spacing = median of spacings >= 4% bh
+  let spacing=Math.floor(bh*(type==='xa'?0.052:type==='tinh'?0.067:0.086)); // fallback
+  if(cPeaks.length>=2){
+    const bigSps=[];
+    for(let i=1;i<cPeaks.length;i++){
+      const s=(cPeaks[i]-cPeaks[i-1])*PROF_STEP;
+      if(s>=Math.floor(bh*.04))bigSps.push(s);
+    }
+    if(bigSps.length>0){
+      bigSps.sort((a,b)=>a-b);
+      spacing=bigSps[Math.floor(bigSps.length/2)];
+    }
+  }
+
+  // STEP 4: Tìm y0 tối ưu (grid search nhỏ trong [anchor+1.5%, anchor+spacing])
+  let bestY0=anchorY+Math.floor(bh*.02), bestScore=-1;
+  const gStart=anchorY+Math.floor(bh*.015);
+  const gEnd=anchorY+spacing+Math.floor(bh*.01);
+  const gStep=Math.max(1,Math.floor(spacing/16));
+  for(let y0=gStart;y0<=gEnd;y0+=gStep){
+    const last=y0+(nC-1)*spacing;
+    if(last>=yB-Math.floor(bh*.05))continue;
+    let sc=0;
+    for(let i=0;i<nC;i++){
+      const pi=profIdx(y0+i*spacing);
+      sc+=smFull[Math.min(profLen-1,pi)];
+    }
+    if(sc>bestScore){bestScore=sc;bestY0=y0;}
+  }
+
+  // Kết quả: rowMids từ anchor detection
+  const halfSlot=Math.max(8,Math.floor(spacing*.40));
+  const zoneTop=bestY0; // dùng cho overlay
+  const slotH=spacing;
 
   // ══ CENTROID SNAP (darkTh) ══════════════════════════════════
-  const halfRow=Math.max(8,Math.floor(slotH*0.40));
+  const halfRow=halfSlot;
   const rowMids=Array.from({length:nC},(_,i)=>{
-    const s0=zoneTop+Math.floor(i*slotH);
-    const s1=zoneTop+Math.floor((i+1)*slotH);
+    const midEst=bestY0+Math.round(i*spacing);
+    const s0=Math.max(yT,midEst-halfSlot);
+    const s1=Math.min(yB,midEst+halfSlot);
     let wS=0,dS=0;
     for(let y=s0;y<s1;y++){
       let cnt=0;
