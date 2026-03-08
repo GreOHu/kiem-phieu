@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.15</title>
+<title>Kiểm Phiếu 2026 v2.16</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -229,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.15</span>
+    <span class="hdr-ver">v2.16</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -691,53 +691,44 @@ function analyzeV2(imageData,W,H,color,paperOverride){
     return(d[i]*77+d[i+1]*150+d[i+2]*29)>>8;
   }
 
-  // ══ bgLum: p85 toàn paper ═════════════════════════════════════
+  // ══ bgLum: p85 toàn paper ═══════════════════════════════════
   const lumSamples=[];
   for(let y=yT+Math.floor(bh*.10);y<yT+Math.floor(bh*.90);y+=8)
     for(let x=xL+Math.floor(bw*.08);x<xL+Math.floor(bw*.92);x+=8)
       lumSamples.push(lumAt(x,y));
   lumSamples.sort((a,b)=>a-b);
   const bgLum=lumSamples[Math.floor(lumSamples.length*.85)]||180;
-
-  // Hai threshold:
-  // darkTh: bắt text rõ ràng (profile, centroid)
-  // crossTh: bắt ink nhạt strikethrough (th cao hơn)
-  const darkTh=Math.min(195,Math.max(50,bgLum*0.80));
-  const crossTh=Math.min(210,Math.max(60,bgLum*0.87));
+  const darkTh=Math.min(195,Math.max(50,bgLum*0.80));   // profile/centroid
+  const crossTh=Math.min(215,Math.max(60,bgLum*(type==='xa'?0.94:0.87)));
 
   const colX0=xL+Math.floor(bw*.08), colX1=xL+Math.floor(bw*.92);
   const colW=colX1-colX0;
 
-  // ══ ZONE BOUNDARIES — calibrated từ ảnh thực ════════════════
-  // % của paper height (bh):
-  // TINH: candidates tại 32-70% | QH: 34-80% | XÃ: 22-74%
-  const _zt=type==='tinh'?0.32:type==='qh'?0.34:0.22;
-  const _zb=type==='tinh'?0.70:type==='qh'?0.80:0.74;
+  // ══ ZONE BOUNDARIES (% of paper height, calibrated from real images) ══
+  // TINH: candidates at 30-71%  QH: 36-78%  XÃ: 24-66%
+  const _zt=type==='tinh'?0.30:type==='qh'?0.36:0.24;
+  const _zb=type==='tinh'?0.71:type==='qh'?0.78:0.66;
   const zoneTop=yT+Math.floor(bh*_zt);
   const zoneBot=yT+Math.floor(bh*_zb);
   const zoneH=zoneBot-zoneTop;
   const slotH=zoneH/nC;
 
-  // ══ EQUAL SLOTS với centroid snap ════════════════════════════
-  // Thay thế combo peak detection (quá chậm O(C(16,nC)) mỗi frame)
+  // ══ CENTROID SNAP (darkTh) ══════════════════════════════════
   const halfRow=Math.max(8,Math.floor(slotH*0.40));
-
-  // Pass 0: dark profile để centroid snap (dùng darkTh thấp)
   const rowMids=Array.from({length:nC},(_,i)=>{
     const s0=zoneTop+Math.floor(i*slotH);
     const s1=zoneTop+Math.floor((i+1)*slotH);
-    // Centroid weighted by darkTh density
     let wS=0,dS=0;
     for(let y=s0;y<s1;y++){
       let cnt=0;
-      for(let x=colX0;x<colX1;x+=4) if(lumAt(x,y)<darkTh)cnt++;
+      for(let x=colX0;x<colX1;x+=4)if(lumAt(x,y)<darkTh)cnt++;
       const v=cnt/Math.max(1,(colX1-colX0)/4);
-      wS+=v*y; dS+=v;
+      wS+=v*y;dS+=v;
     }
     return dS>0.01?Math.round(wS/dS):(s0+s1)>>1;
   });
 
-  // ══ PASS 1: slotDark với crossTh ═════════════════════════════
+  // ══ PASS 1: slotDark (crossTh) ══════════════════════════════
   const slotDarks=rowMids.map(midY=>{
     const y0=Math.max(yT,midY-halfRow),y1=Math.min(yB,midY+halfRow);
     let dk=0,tot=0;
@@ -748,65 +739,64 @@ function analyzeV2(imageData,W,H,color,paperOverride){
   });
   const medDark=[...slotDarks].sort((a,b)=>a-b)[Math.floor((nC-1)/2)];
 
-  // ══ PASS 2: cross detection ═══════════════════════════════════
+  // ══ PASS 2: cross detection ══════════════════════════════════
   const crossed=new Set();
   const finalRows=rowMids.map((midY,idx)=>{
     const y0=Math.max(yT,midY-halfRow),y1=Math.min(yB,midY+halfRow);
     const h=Math.max(4,y1-y0);
+    let score=0, dbgRn=0, dbgEx=0, dbgConsec=0;
 
-    // A. maxRun tại top-3 darkest rows (dùng crossTh)
-    const profH=new Float32Array(h);
-    for(let r=0;r<h;r++){
-      let c=0;
-      for(let x=colX0;x<colX1;x+=2) if(lumAt(x,y0+r)<crossTh)c++;
-      profH[r]=c/(colW/2);
-    }
-    const sorted3=[...profH].map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,3);
-    let maxRun=0;
-    for(const{i:ri}of sorted3){
-      let run=0;
-      for(let x=colX0;x<colX1;x+=2){
-        if(lumAt(x,y0+ri)<crossTh){run++;if(run>maxRun)maxRun=run;}
-        else run=0;
+    if(type==='xa'){
+      // ── XÃ: consecutive-rows metric (ink nhạt trên giấy kem) ──
+      // th=0.94*bgLum, smooth 5px, đếm rows liên tiếp với run>0.28
+      const rowRuns=new Float32Array(h);
+      for(let r=0;r<h;r++){
+        let run=0,mr=0;
+        for(let x=colX0;x<colX1;x+=3){
+          if(lumAt(x,y0+r)<crossTh){run++;if(run>mr)mr=run;}else run=0;
+        }
+        rowRuns[r]=mr/(colW/3);
       }
+      // Smooth 5 rows
+      const smRuns=new Float32Array(h);
+      for(let i=0;i<h;i++){let s=0,n=0;for(let k=-2;k<=2;k++){const j=i+k;if(j>=0&&j<h){s+=rowRuns[j];n++;}}smRuns[i]=s/n;}
+      // Count consecutive rows with smoothed run > 0.28
+      let consec=0,curC=0;
+      for(let i=0;i<h;i++){
+        if(smRuns[i]>0.28){curC++;if(curC>consec)consec=curC;}else curC=0;
+      }
+      dbgConsec=consec;
+      score=consec>=5?1.0:(consec>=3?0.5:0);
+    } else {
+      // ── TINH/QH: runRatio + excessRel ──────────────────────
+      const profH=new Float32Array(h);
+      for(let r=0;r<h;r++){
+        let c=0;for(let x=colX0;x<colX1;x+=2)if(lumAt(x,y0+r)<crossTh)c++;
+        profH[r]=c/(colW/2);
+      }
+      const sorted3=[...profH].map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,3);
+      let maxRun=0;
+      for(const{i:ri}of sorted3){
+        let run=0;
+        for(let x=colX0;x<colX1;x+=2){
+          if(lumAt(x,y0+ri)<crossTh){run++;if(run>maxRun)maxRun=run;}
+          else run=0;
+        }
+      }
+      const runRatio=maxRun/(colW/2);
+      const totalDark=slotDarks[idx];
+      const excessRel=(totalDark-medDark)/(medDark+0.005);
+      dbgRn=+runRatio.toFixed(2); dbgEx=+excessRel.toFixed(2);
+      score=Math.max(runRatio*1.3, Math.max(0,excessRel)*2.2);
     }
-    const runRatio=maxRun/(colW/2);
-
-    // B. excessRel (tổng dark so với median)
-    const totalDark=slotDarks[idx];
-    const excessRel=(totalDark-medDark)/(medDark+0.005);
-
-    // C. HSV pen color (bút xanh/đỏ bi)
-    let penPx=0,totPx=0;
-    for(let yy=y0;yy<y1;yy+=2)for(let xx=colX0;xx<colX1;xx+=3){
-      if(yy<0||yy>=H||xx<0||xx>=W)continue;
-      const pi=(yy*W+xx)*4;
-      const pR=d[pi]/255,pG=d[pi+1]/255,pB=d[pi+2]/255;
-      const pM=Math.max(pR,pG,pB),pD=pM-Math.min(pR,pG,pB)+0.0001;
-      const pS=pM>0?pD/pM:0,pV=pM;
-      if(pV<0.15||pV>0.96||pS<0.18){totPx++;continue;}
-      let pH=0;
-      if(pM===pR)pH=60*((pG-pB)/pD%6+6)%360;
-      else if(pM===pG)pH=60*((pB-pR)/pD+2);
-      else pH=60*((pR-pG)/pD+4);
-      if((pH>=170&&pH<=265)||(pH<22)||(pH>338))penPx++;
-      totPx++;
-    }
-    const penRatio=totPx>0?penPx/totPx:0;
-
-    // ── Tổng hợp ──────────────────────────────────────────────
-    const scoreRun =runRatio*1.3;
-    const scoreExc =Math.max(0,excessRel)*2.2;
-    const scorePen =penRatio>0.015?1.2:(penRatio>0.006?0.5:0);
-    const score=Math.max(scoreRun,scoreExc,scorePen);
 
     const isCrossed=score>=0.32;
-    const isAmbig=!isCrossed&&score>=0.20;
+    const isAmbig=!isCrossed&&score>=0.18;
     if(isCrossed)crossed.add(idx);
 
     return{y0,y1,midY,isCrossed,isAmbig,
            score:isCrossed?1:(isAmbig?0.5:0),
-           dbg:{rn:+runRatio.toFixed(2),ex:+excessRel.toFixed(2),pn:+penRatio.toFixed(3)}};
+           dbg:{rn:dbgRn,ex:dbgEx,cs:dbgConsec}};
   });
 
   drawOverlayV2(W,H,finalRows,paper,DBG);
