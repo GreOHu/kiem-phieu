@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kiểm Phiếu 2026 v2.17</title>
+<title>Kiểm Phiếu 2026 v2.18</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap');
 :root{
@@ -229,7 +229,7 @@ html,body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var
 <div id="app">
   <div class="hdr">
     <div class="hdr-logo">🗳️ Kiểm <em>Phiếu</em> 2026</div>
-    <span class="hdr-ver">v2.17</span>
+    <span class="hdr-ver">v2.18</span>
     <button class="btn-sm btn-del" onclick="resetAll()">🗑</button>
     <button class="btn-sm btn-kq" onclick="showResult()">📊 KQ</button>
   </div>
@@ -675,6 +675,128 @@ function detectColorV2(imageData, W, H, paper){
 // Metric: spike_score = (peak_dark - background_dark) / background_dark
 //         trong đó peak = max scan line density
 //               background = median của vùng xung quanh (không phải cả strip)
+
+// ═══════════════════════════════════════════════════════════════
+// ANCHOR-BASED ZONE DETECTION ("Được bầu XX đại biểu" anchor)
+// 1. Scan mid-strip (25-75%) text density
+// 2. Merge nearby peaks (3.5% window)
+// 3. Anchor = last peak in type-specific range with gap_after >= 3%
+// 4. C1 = next peak after anchor
+// 5. Cn = last peak in [C1+3%, C1+max_span]
+// 6. Zone = equal nC slots from C1..Cn
+// ═══════════════════════════════════════════════════════════════
+function detectZoneByAnchor(imageData, W, H, type) {
+  const d = imageData.data;
+  const nC = type==='xa' ? 8 : 5;
+  // Type-specific constants
+  const cfgMap = {
+    qh:   {lo:0.18, hi:0.38, maxSpan:0.45},
+    tinh: {lo:0.18, hi:0.28, maxSpan:0.44},
+    xa:   {lo:0.18, hi:0.26, maxSpan:0.45},
+  };
+  const cfg = cfgMap[type];
+  if(!cfg) return null;
+
+  // Mid-strip: 25-75% width
+  const xm0 = Math.floor(W*0.25), xm1 = Math.floor(W*0.75);
+  const midW = xm1 - xm0;
+
+  // bgLum
+  const lumSamples = [];
+  for(let y=Math.floor(H*0.10);y<Math.floor(H*0.90);y+=8)
+    for(let x=Math.floor(W*0.15);x<Math.floor(W*0.85);x+=8){
+      const i=(y*W+x)*4;
+      lumSamples.push((d[i]*77+d[i+1]*150+d[i+2]*29)>>8);
+    }
+  lumSamples.sort((a,b)=>a-b);
+  const bgLum = lumSamples[Math.floor(lumSamples.length*0.85)]||180;
+  const th = bgLum*0.82;
+
+  // Per-row dark density (mid-strip)
+  const rowD = new Float32Array(H);
+  for(let y=0;y<H;y++){
+    let dk=0;
+    for(let x=xm0;x<xm1;x+=2){
+      const i=(y*W+x)*4;
+      if((d[i]*77+d[i+1]*150+d[i+2]*29)>>8 < th) dk++;
+    }
+    rowD[y] = dk / (midW/2);
+  }
+
+  // Smooth 9px
+  const sm = new Float32Array(H);
+  for(let y=0;y<H;y++){
+    let s=0,n=0;
+    for(let k=-4;k<=4;k++){const j=y+k;if(j>=0&&j<H){s+=rowD[j];n++;}}
+    sm[y]=s/n;
+  }
+
+  // Find raw peaks (height>0.07, distance>=1.2%)
+  const minD = Math.max(4, Math.floor(H*0.012));
+  const rawPeaks = [];
+  const yA=Math.floor(H*0.10), yB=Math.floor(H*0.82);
+  for(let y=yA+minD;y<yB-minD;y++){
+    if(sm[y]<0.07) continue;
+    let isMax=true;
+    for(let k=1;k<=minD;k++) if(sm[y-k]>=sm[y]||sm[y+k]>=sm[y]){isMax=false;break;}
+    if(isMax) rawPeaks.push(y);
+  }
+
+  // Merge nearby peaks (3.5% window → keep highest)
+  const SP = Math.floor(H*0.035);
+  const merged = [];
+  let skipUntil = -1;
+  for(let i=0;i<rawPeaks.length;i++){
+    if(rawPeaks[i] <= skipUntil) continue;
+    let best = rawPeaks[i];
+    for(let j=i+1;j<rawPeaks.length&&rawPeaks[j]-rawPeaks[i]<=SP;j++){
+      if(sm[rawPeaks[j]]>sm[best]) best=rawPeaks[j];
+      skipUntil=rawPeaks[j];
+    }
+    merged.push(best);
+  }
+
+  // Find anchor: last peak in [lo%, hi%] with gap_after>=3% AND sm>=0.12
+  const GAP_TH = Math.floor(H*0.030);
+  const loY=Math.floor(H*cfg.lo), hiY=Math.floor(H*cfg.hi);
+  let anchorY=-1;
+  for(let i=0;i<merged.length;i++){
+    const p=merged[i];
+    if(p<loY||p>hiY||sm[p]<0.12) continue;
+    const gapAfter=(i+1<merged.length)?(merged[i+1]-p):0;
+    if(gapAfter>=GAP_TH) anchorY=p;  // keep last valid
+  }
+  if(anchorY<0){
+    // fallback: last peak in range with sm>=0.12
+    for(let i=merged.length-1;i>=0;i--)
+      if(merged[i]>=loY&&merged[i]<=hiY&&sm[merged[i]]>=0.12){anchorY=merged[i];break;}
+  }
+  if(anchorY<0) return null;
+
+  // C1 = next merged peak after anchor
+  const c1Y = merged.find(p=>p>anchorY+Math.floor(H*0.01));
+  if(!c1Y) return null;
+
+  // Cn = last peak in [c1+3%, c1+maxSpan], sm>0.08
+  const cnMax = Math.min(Math.floor(H*0.84), c1Y+Math.floor(H*cfg.maxSpan));
+  let cnY=-1;
+  for(let i=merged.length-1;i>=0;i--){
+    const p=merged[i];
+    if(p>c1Y+Math.floor(H*0.03)&&p<=cnMax&&sm[p]>0.08){cnY=p;break;}
+  }
+  if(cnY<=0) return null;
+
+  // Zone = equal nC slots
+  const slot=(cnY-c1Y)/Math.max(1,nC-1);
+  const zoneTop=Math.max(0,Math.round(c1Y-slot*0.5));
+  const zoneBot=Math.min(H-1,Math.round(cnY+slot*0.5));
+
+  // Sanity check
+  if(zoneTop<H*0.08||zoneBot>H*0.88||(zoneBot-zoneTop)/H<0.15) return null;
+
+  return {zoneTop, zoneBot, anchorY, c1Y, cnY, slot};
+}
+
 function analyzeV2(imageData,W,H,color,paperOverride){
   const nC=color==='xa'?8:5;
   const d=imageData.data;
@@ -734,11 +856,12 @@ function analyzeV2(imageData,W,H,color,paperOverride){
   }
   function profIdx(y){return Math.min(profLen-1,Math.floor((y-yT)/PROF_STEP));}
 
-  // STEP 1: Tìm anchor "Được bầu" = last mid-density peak trong 15-33% bh
-  let anchorY=yT+Math.floor(bh*.24); // fallback
+  // STEP 1: Tìm anchor "Được bầu" = last mid-density peak trong 15-25% bh
+  // (25% thay vì 33% để tránh bắt C1 của XA làm anchor)
+  let anchorY=yT+Math.floor(bh*.22); // fallback
   {
     const a0=profIdx(yT+Math.floor(bh*.15));
-    const a1=profIdx(yT+Math.floor(bh*.33));
+    const a1=profIdx(yT+Math.floor(bh*.25));
     let lastPeakI=-1;
     for(let i=a0+1;i<a1-1;i++){
       if(smMid[i]>0.09&&smMid[i]>=smMid[i-1]&&smMid[i]>=smMid[i+1]){
@@ -774,10 +897,14 @@ function analyzeV2(imageData,W,H,color,paperOverride){
     }
   }
 
-  // STEP 4: Tìm y0 tối ưu (grid search nhỏ trong [anchor+1.5%, anchor+spacing])
-  let bestY0=anchorY+Math.floor(bh*.02), bestScore=-1;
-  const gStart=anchorY+Math.floor(bh*.015);
-  const gEnd=anchorY+spacing+Math.floor(bh*.01);
+  // STEP 4: Tìm y0 tối ưu — grid range type-specific
+  // xa: C1 ngay sau anchor (không có dòng tiêu đề bảng)
+  // tinh/qh: C1 xa hơn anchor vì có dòng "STT|Họ tên|Đơn vị" ở giữa
+  const gMinOff = type==='xa'?0.02 : type==='tinh'?0.07 : 0.12;
+  const gMaxOff = type==='xa'?0.10 : type==='tinh'?0.18 : 0.22;
+  let bestY0=anchorY+Math.floor(bh*gMinOff), bestScore=-1;
+  const gStart=anchorY+Math.floor(bh*gMinOff);
+  const gEnd=anchorY+Math.floor(bh*gMaxOff);
   const gStep=Math.max(1,Math.floor(spacing/16));
   for(let y0=gStart;y0<=gEnd;y0+=gStep){
     const last=y0+(nC-1)*spacing;
