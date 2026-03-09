@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Kiểm Phiếu 2026</title>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script>var Module={onRuntimeInitialized(){onCvReady();}}</script>
 <script async src="https://docs.opencv.org/4.8.0/opencv.js"></script>
 <style>
@@ -15,184 +15,245 @@
   --g:#15803d;--gbg:#dcfce7;--rbg:#fee2e2;--bd:#e2e8f0;
   --fn:'Be Vietnam Pro',sans-serif;
 }
-html,body{height:100%;overflow:hidden;font-family:var(--fn)}
-body{background:var(--bg);color:var(--t);display:flex;flex-direction:column}
+html,body{height:100%;overflow:hidden;font-family:var(--fn);background:var(--bg)}
+body{display:flex;flex-direction:column;color:var(--t)}
 
-/* ══ HEADER ══════════════════════════════════════════════ */
+/* ══ HEADER ══ */
 .hdr{flex-shrink:0;background:var(--red);color:#fff;
-  padding:7px 12px;display:flex;align-items:center;justify-content:space-between}
-.hdr-left{display:flex;align-items:center;gap:8px}
-.hdr-left h1{font-size:.88em;font-weight:900;letter-spacing:.01em}
-.hdr-left p{font-size:.58em;opacity:.75;font-weight:400}
-.cv-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);
-  padding:3px 9px;border-radius:20px;font-size:.65em;font-weight:700;white-space:nowrap}
+  padding:7px 12px;display:flex;align-items:center;justify-content:space-between;
+  gap:8px}
+.hdr-info h1{font-size:.88em;font-weight:900}
+.hdr-info p{font-size:.58em;opacity:.75}
+.hdr-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.ver-badge{background:rgba(255,255,255,.18);color:rgba(255,255,255,.9);
+  font-size:.58em;font-weight:700;padding:2px 7px;border-radius:10px;
+  letter-spacing:.04em}
+.cv-pill{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);
+  padding:3px 8px;border-radius:20px;font-size:.65em;font-weight:700;white-space:nowrap}
 .dot{width:6px;height:6px;border-radius:50%;background:#fbbf24;animation:blink 1s infinite}
 .dot.ok{background:#4ade80;animation:none}
 .dot.err{background:#f87171;animation:none}
 @keyframes blink{50%{opacity:.15}}
 
-/* ══ NAV TABS (top) ══════════════════════════════════════ */
+/* ══ NAV ══ */
 .nav{flex-shrink:0;display:flex;background:var(--navy)}
 .nav-tab{flex:1;padding:8px 4px;text-align:center;font-size:.7em;font-weight:700;
   color:rgba(255,255,255,.45);cursor:pointer;border-bottom:2.5px solid transparent;
-  letter-spacing:.04em;transition:all .15s}
+  letter-spacing:.03em;transition:all .15s}
 .nav-tab.active{color:#fff;border-bottom-color:var(--gold)}
 
-/* ══ VIEWS ═══════════════════════════════════════════════ */
-.view{display:none;flex:1;overflow:hidden;min-height:0}
+/* ══ VIEWS ══ */
+.view{display:none;flex:1;min-height:0}
 .view.show{display:flex}
 
-/* ══════════════════════════════════════════════════════════
-   VIEW 1 — QUÉT
-   layout: camera-col (left) | data-col (right)
-═════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   VIEW: QUÉT
+══════════════════════════════════ */
 #v-quet{flex-direction:row}
 
-/* — camera column — */
-.cam-col{flex:0 0 38%;max-width:185px;display:flex;flex-direction:column;background:#0a0f1e}
-.cam-wrap{
-  flex:1;min-height:0;overflow:hidden;position:relative;
-  /* A5 portrait guide ratio: fixed aspect */
-  aspect-ratio:148/210;max-height:100%;
+/* — CAMERA COLUMN — */
+.cam-col{
+  flex:0 0 44%;max-width:195px;
+  display:flex;flex-direction:column;
+  background:#090e1c;
 }
-/* 2× CSS zoom: video fills 200%×200%, offset -50% so center is shown */
+
+/* cam-wrap fills remaining height */
+.cam-wrap{
+  flex:1;min-height:0;
+  position:relative;overflow:hidden;
+}
+
+/*
+  CSS 2× zoom trick:
+  video = 200%×200%, offset -50% so center quadrant fills the box.
+  The canvas cap captures the CENTER half of the actual video frame.
+*/
 video{
   position:absolute;
-  width:200%;height:200%;
-  left:-50%;top:-50%;
+  width:200%; height:200%;
+  left:-50%; top:-50%;
   object-fit:cover;
+  transform-origin:center center;
 }
-#overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+/* overlay canvas — MUST match cam-wrap display size via CSS */
+#overlay{
+  position:absolute;inset:0;
+  width:100%;height:100%;    /* CSS display size */
+  pointer-events:none;
+}
+
 #cap{display:none}
 
-/* guide dashed A5 frame */
-.guide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+/* guide rectangle — A5 portrait ratio, fills most of the column */
+.guide{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
 .g-rect{
-  width:72%;aspect-ratio:148/210;
-  border:1.5px dashed rgba(255,255,255,.3);border-radius:3px;
+  /* 88% wide, A5 portrait aspect ratio */
+  width:88%;
+  aspect-ratio:148/210;
+  border:2px solid rgba(255,255,255,.5);
+  border-radius:4px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.35); /* dim outside */
   position:relative;
 }
-.g-rect::before{
-  content:'▼ Đặt phiếu';position:absolute;top:-15px;left:50%;
-  transform:translateX(-50%);font-size:7.5px;color:rgba(255,255,255,.4);
-  font-family:var(--fn);font-weight:600;white-space:nowrap;letter-spacing:.04em;
+/* corner markers */
+.g-rect::before,.g-rect::after{
+  content:'';position:absolute;
+  width:12px;height:12px;
+  border-color:#fbbf24;border-style:solid;
+}
+.g-rect::before{top:-2px;left:-2px;border-width:2px 0 0 2px}
+.g-rect::after {bottom:-2px;right:-2px;border-width:0 2px 2px 0}
+.g-label{
+  position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);
+  font-size:8px;color:rgba(255,255,255,.55);white-space:nowrap;
+  font-family:var(--fn);font-weight:600;letter-spacing:.04em;
 }
 
 /* loading overlay */
-.cam-ld{position:absolute;inset:0;background:#0a0f1e;display:flex;
-  flex-direction:column;align-items:center;justify-content:center;
-  gap:8px;color:#fff;z-index:10;padding:10px;text-align:center}
-.spin{width:26px;height:26px;border:2.5px solid rgba(255,255,255,.15);
-  border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite}
+.cam-ld{
+  position:absolute;inset:0;background:#090e1c;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;color:#fff;z-index:10;
+  padding:12px;text-align:center;
+}
+.spin{
+  width:26px;height:26px;
+  border:2.5px solid rgba(255,255,255,.15);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .65s linear infinite;
+}
 @keyframes spin{to{transform:rotate(360deg)}}
-.cam-ld p{font-size:.6em;opacity:.5;line-height:1.5}
+.cam-ld p{font-size:.6em;opacity:.5;line-height:1.6}
 
 /* status strip */
-.cam-st{flex-shrink:0;background:#0d1527;color:#64748b;
-  font-size:.56em;font-weight:600;padding:4px 8px;
-  display:flex;align-items:center;gap:5px;letter-spacing:.03em;min-height:22px}
+.cam-st{
+  flex-shrink:0;background:#0c1323;color:#64748b;
+  font-size:.58em;font-weight:600;padding:5px 8px;
+  display:flex;align-items:center;gap:5px;letter-spacing:.03em;
+}
 .sdot{width:5px;height:5px;border-radius:50%;background:#334155;flex-shrink:0}
 .sdot.f{background:#fbbf24}
 .sdot.s{background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.25)}
 
-/* — data column — */
+/* — DATA COLUMN — */
 .data-col{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 
-/* ballot type selector */
-.btype{flex-shrink:0;display:flex;gap:4px;padding:6px 8px 4px;background:var(--bg)}
-.bt{flex:1;padding:6px 4px;text-align:center;font-size:.65em;font-weight:700;
-  border-radius:7px;cursor:pointer;color:var(--mu);background:var(--card);
-  border:1.5px solid var(--bd);transition:all .15s;letter-spacing:.02em}
+/* ballot type picker */
+.btype{
+  flex-shrink:0;display:flex;gap:4px;
+  padding:6px 8px 4px;background:var(--bg);
+}
+.bt{
+  flex:1;padding:6px 4px;text-align:center;
+  font-size:.64em;font-weight:700;border-radius:7px;cursor:pointer;
+  color:var(--mu);background:var(--card);border:1.5px solid var(--bd);
+  transition:all .15s;letter-spacing:.02em;
+}
 .bt.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 
 /* candidate list */
-.cand-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:0 8px 4px}
-.cand{display:flex;align-items:center;gap:5px;padding:5px 7px;
+.cand-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px 8px 4px}
+.cand{
+  display:flex;align-items:center;gap:5px;padding:5px 7px;
   border-radius:7px;margin-bottom:3px;background:var(--card);
-  border:1.5px solid var(--bd);transition:all .2s}
-.cand.ok{background:var(--gbg);border-color:#86efac}
+  border:1.5px solid var(--bd);transition:all .2s;
+}
+.cand.ok   {background:var(--gbg);border-color:#86efac}
 .cand.struck{background:var(--rbg);border-color:#fca5a5}
 .c-ico{font-size:.95em;width:16px;text-align:center;flex-shrink:0}
-.c-name{flex:1;font-size:.68em;font-weight:700;line-height:1.2;min-width:0}
+.c-name{flex:1;font-size:.68em;font-weight:700;line-height:1.25;min-width:0}
 .c-name em{display:block;font-size:.8em;font-style:normal;font-weight:400;color:var(--mu)}
 .c-v{font-size:.9em;font-weight:800;color:var(--navy);min-width:18px;text-align:right}
 .c-v.z{color:#94a3b8;font-weight:400}
 
-/* mini stats footer in scan view */
-.scan-stats{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr 1fr;
-  gap:3px;padding:4px 8px 6px;background:var(--bg)}
+/* mini stats */
+.scan-stats{
+  flex-shrink:0;display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:3px;padding:4px 8px 6px;background:var(--bg);
+}
 .ss{background:var(--card);border-radius:7px;padding:5px 4px;
   text-align:center;border:1px solid var(--bd)}
 .ss-n{font-size:1.25em;font-weight:900;color:var(--navy);line-height:1}
 .ss-n.g{color:var(--g)}.ss-n.r{color:var(--red)}
 .ss-l{font-size:.52em;font-weight:600;color:var(--mu);letter-spacing:.04em;margin-top:1px}
 
-/* ══════════════════════════════════════════════════════════
-   VIEW 2 — KẾT QUẢ (dashboard)
-═════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   VIEW: KẾT QUẢ
+══════════════════════════════════ */
 #v-kq{flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.kq-body{padding:8px 10px 20px;display:flex;flex-direction:column;gap:10px}
 
-.kq-body{padding:8px 10px 16px;display:flex;flex-direction:column;gap:10px}
-
-/* summary cards row */
 .kq-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.kq-card{background:var(--card);border-radius:10px;padding:10px 8px;
-  border:1.5px solid var(--bd);text-align:center;position:relative;overflow:hidden}
-.kq-card::before{content:'';position:absolute;top:0;left:0;right:0;
-  height:3px;background:var(--bd)}
+.kq-card{
+  background:var(--card);border-radius:10px;padding:10px 6px;
+  border:1.5px solid var(--bd);text-align:center;position:relative;overflow:hidden;
+}
+.kq-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--bd)}
 .kq-card.qh::before{background:var(--red)}
 .kq-card.tinh::before{background:#0284c7}
 .kq-card.xa::before{background:#059669}
-.kq-card-label{font-size:.6em;font-weight:700;color:var(--mu);
-  letter-spacing:.05em;margin-bottom:5px;text-transform:uppercase}
-.kq-big{font-size:1.7em;font-weight:900;color:var(--navy);line-height:1}
-.kq-sub{display:flex;justify-content:center;gap:6px;margin-top:4px}
-.kq-hl{font-size:.65em;font-weight:700;color:var(--g);
-  background:var(--gbg);padding:1px 6px;border-radius:10px}
-.kq-khl{font-size:.65em;font-weight:700;color:var(--red);
-  background:var(--rbg);padding:1px 6px;border-radius:10px}
+.kq-lbl{font-size:.58em;font-weight:700;color:var(--mu);letter-spacing:.05em;margin-bottom:4px;text-transform:uppercase}
+.kq-big{font-size:1.8em;font-weight:900;color:var(--navy);line-height:1}
+.kq-sub{display:flex;justify-content:center;gap:4px;margin-top:4px;flex-wrap:wrap}
+.tag-hl {font-size:.6em;font-weight:700;color:var(--g); background:var(--gbg);padding:1px 5px;border-radius:8px}
+.tag-khl{font-size:.6em;font-weight:700;color:var(--red);background:var(--rbg);padding:1px 5px;border-radius:8px}
 
-/* chart sections */
-.chart-sec{background:var(--card);border-radius:10px;padding:12px;
-  border:1px solid var(--bd)}
-.chart-title{font-size:.72em;font-weight:800;color:var(--navy);
-  margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.chart-badge{font-size:.72em;padding:2px 8px;border-radius:10px;font-weight:700}
+.chart-sec{background:var(--card);border-radius:10px;padding:12px 10px;border:1px solid var(--bd)}
+.chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.chart-ttl{font-size:.72em;font-weight:800;color:var(--navy)}
+.chart-badge{font-size:.68em;padding:2px 8px;border-radius:10px;font-weight:700}
 .cb-qh{background:#fee2e2;color:var(--red)}
 .cb-tinh{background:#dbeafe;color:#1d4ed8}
 .cb-xa{background:#d1fae5;color:#065f46}
-.bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
-.bar-name{font-size:.65em;font-weight:600;flex:0 0 auto;
-  width:90px;text-align:right;line-height:1.2;color:var(--t)}
-.bar-track{flex:1;background:#f1f5f9;border-radius:4px;overflow:hidden;height:16px;position:relative}
-.bar-fill{height:100%;border-radius:4px;transition:width .4s ease;
-  display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
-.bar-fill .bv{font-size:.6em;font-weight:800;color:#fff;white-space:nowrap}
-.bar-fill .bv.dark{color:#334155}
-.bf-qh{background:linear-gradient(90deg,#c8102e,#e85c75)}
-.bf-tinh{background:linear-gradient(90deg,#1d4ed8,#60a5fa)}
-.bf-xa{background:linear-gradient(90deg,#059669,#34d399)}
 
-/* reset + export row */
+.bar-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.bar-nm{
+  font-size:.63em;font-weight:600;flex:0 0 80px;
+  text-align:right;line-height:1.2;color:var(--t);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.bar-nm.elected{color:var(--navy);font-weight:800}
+.bar-track{flex:1;background:#f1f5f9;border-radius:4px;height:18px;overflow:hidden;position:relative}
+.bar-fill{
+  height:100%;border-radius:4px;
+  display:flex;align-items:center;justify-content:flex-end;
+  padding-right:5px;transition:width .4s ease;min-width:24px;
+}
+.bv{font-size:.65em;font-weight:800;color:#fff}
+.bv.dark{color:#334155}
+.bf-qh  {background:linear-gradient(90deg,#c8102e,#e85c75)}
+.bf-tinh{background:linear-gradient(90deg,#1d4ed8,#60a5fa)}
+.bf-xa  {background:linear-gradient(90deg,#059669,#34d399)}
+.star-badge{
+  position:absolute;left:4px;top:50%;transform:translateY(-50%);
+  font-size:.6em;color:var(--gold);
+}
+
 .kq-actions{display:flex;gap:6px}
-.btn-act{flex:1;padding:10px 6px;border-radius:9px;font-size:.72em;
-  font-weight:700;font-family:var(--fn);cursor:pointer;border:1.5px solid var(--bd)}
-.btn-reset{background:var(--bg);color:var(--mu)}
+.btn-act{
+  flex:1;padding:10px 6px;border-radius:9px;font-size:.72em;
+  font-weight:700;font-family:var(--fn);cursor:pointer;border:1.5px solid var(--bd);
+}
+.btn-reset {background:var(--bg);color:var(--mu)}
 .btn-export{background:var(--navy);color:#fff;border-color:var(--navy)}
 
-/* ══ CONFIRM SHEET ════════════════════════════════════════ */
-.sheet{display:none;position:fixed;inset:0;z-index:200;
-  background:rgba(10,15,30,.6);align-items:flex-end}
+/* ══ CONFIRM SHEET ══ */
+.sheet{display:none;position:fixed;inset:0;z-index:200;background:rgba(10,15,30,.6);align-items:flex-end}
 .sheet.show{display:flex}
-.sheet-body{width:100%;background:var(--card);border-radius:18px 18px 0 0;
-  padding:16px 14px 28px;animation:su .22s ease-out;max-height:85vh;overflow-y:auto}
+.sheet-body{
+  width:100%;background:var(--card);border-radius:18px 18px 0 0;
+  padding:16px 14px 28px;animation:su .22s ease-out;max-height:85vh;overflow-y:auto;
+}
 @keyframes su{from{transform:translateY(100%)}}
-.sh-title{font-size:.72em;font-weight:700;color:var(--mu);
-  text-align:center;letter-spacing:.05em;margin-bottom:8px}
-.sh-valid{text-align:center;font-size:.88em;font-weight:800;
-  padding:9px;border-radius:9px;margin-bottom:10px}
-.sh-valid.v{background:var(--gbg);color:var(--g)}
+.sh-title{font-size:.72em;font-weight:700;color:var(--mu);text-align:center;letter-spacing:.05em;margin-bottom:8px}
+.sh-valid{text-align:center;font-size:.9em;font-weight:800;padding:9px;border-radius:9px;margin-bottom:10px}
+.sh-valid.v {background:var(--gbg);color:var(--g)}
 .sh-valid.nv{background:var(--rbg);color:var(--red)}
 .sh-names{margin-bottom:12px}
 .sh-row{display:flex;align-items:center;gap:8px;padding:5px 7px;
@@ -200,21 +261,15 @@ video{
 .sh-row.ok{background:var(--gbg);color:var(--g)}
 .sh-row.st{background:var(--rbg);color:#dc2626;text-decoration:line-through;opacity:.7}
 .sh-btns{display:flex;gap:8px}
-.btn-ok{flex:2;background:var(--g);color:#fff;border:none;padding:13px;
-  border-radius:10px;font-size:.88em;font-weight:700;font-family:var(--fn);cursor:pointer}
-.btn-skip{flex:1;background:var(--bg);color:var(--mu);border:1.5px solid var(--bd);
-  padding:13px;border-radius:10px;font-size:.82em;font-weight:600;
-  font-family:var(--fn);cursor:pointer}
+.btn-ok  {flex:2;background:var(--g);color:#fff;border:none;padding:13px;border-radius:10px;font-size:.88em;font-weight:700;font-family:var(--fn);cursor:pointer}
+.btn-skip{flex:1;background:var(--bg);color:var(--mu);border:1.5px solid var(--bd);padding:13px;border-radius:10px;font-size:.82em;font-weight:600;font-family:var(--fn);cursor:pointer}
 
-/* ══ FLASH ════════════════════════════════════════════════ */
-.flash{display:none;position:fixed;inset:0;z-index:300;
-  flex-direction:column;align-items:center;justify-content:center;
-  gap:6px;color:#fff}
+/* ══ FLASH ══ */
+.flash{display:none;position:fixed;inset:0;z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff}
 .flash.show{display:flex}
-.flash.valid-fl{background:rgba(21,128,61,.94)}
-.flash.invalid-fl{background:rgba(153,27,27,.9)}
-.fi{font-size:3.2em}
-.ft{font-size:1.1em;font-weight:900}
+.flash.vfl{background:rgba(21,128,61,.94)}
+.flash.nvfl{background:rgba(153,27,27,.9)}
+.fi{font-size:3.2em}.ft{font-size:1.1em;font-weight:900}
 .fs{font-size:.76em;opacity:.88;text-align:center;padding:0 20px}
 </style>
 </head>
@@ -222,34 +277,40 @@ video{
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-left">
-    <div>
-      <h1>🗳️ KIỂM PHIẾU 2026</h1>
-      <p>HĐND 3 cấp — Tỉnh Đồng Nai</p>
-    </div>
+  <div class="hdr-info">
+    <h1>🗳️ KIỂM PHIẾU 2026</h1>
+    <p>HĐND 3 cấp — Tỉnh Đồng Nai</p>
   </div>
-  <div class="cv-pill">
-    <div class="dot" id="cv-dot"></div>
-    <span id="cv-lbl">Tải CV...</span>
+  <div class="hdr-right">
+    <span class="ver-badge">v1.4</span>
+    <div class="cv-pill">
+      <div class="dot" id="cv-dot"></div>
+      <span id="cv-lbl">Tải CV...</span>
+    </div>
   </div>
 </div>
 
 <!-- NAV -->
 <div class="nav">
   <div class="nav-tab active" data-view="v-quet">📷 QUÉT PHIẾU</div>
-  <div class="nav-tab" data-view="v-kq">📊 KẾT QUẢ</div>
+  <div class="nav-tab"        data-view="v-kq"  >📊 KẾT QUẢ</div>
 </div>
 
-<!-- ══ VIEW: QUÉT ══════════════════════════════════════ -->
+<!-- ══ VIEW: QUÉT ══ -->
 <div class="view show" id="v-quet">
 
-  <!-- camera column -->
   <div class="cam-col">
     <div class="cam-wrap">
       <video id="video" autoplay playsinline muted></video>
       <canvas id="overlay"></canvas>
       <canvas id="cap"></canvas>
-      <div class="guide"><div class="g-rect"></div></div>
+      <!-- guide frame -->
+      <div class="guide">
+        <div class="g-rect">
+          <span class="g-label">Đặt phiếu vào đây</span>
+        </div>
+      </div>
+      <!-- loading -->
       <div class="cam-ld" id="cam-ld">
         <div class="spin"></div>
         <p id="cam-msg">Đang tải<br>OpenCV.js<br>(~8MB lần đầu)</p>
@@ -261,88 +322,68 @@ video{
     </div>
   </div>
 
-  <!-- data column -->
   <div class="data-col">
-    <!-- ballot type picker -->
     <div class="btype">
       <div class="bt active" data-loai="QH">QUỐC HỘI</div>
-      <div class="bt" data-loai="Tinh">TỈNH</div>
-      <div class="bt" data-loai="Xa">XÃ</div>
+      <div class="bt"        data-loai="Tinh">TỈNH</div>
+      <div class="bt"        data-loai="Xa">XÃ</div>
     </div>
-    <!-- candidates -->
     <div class="cand-list" id="cands"></div>
-    <!-- mini stats -->
     <div class="scan-stats">
-      <div class="ss"><div class="ss-n" id="s-tong">0</div><div class="ss-l">TỔNG PHIẾU</div></div>
-      <div class="ss"><div class="ss-n g" id="s-hl">0</div><div class="ss-l">HỢP LỆ</div></div>
-      <div class="ss"><div class="ss-n r" id="s-khl">0</div><div class="ss-l">KH.HỢP LỆ</div></div>
+      <div class="ss"><div class="ss-n"   id="s-tong">0</div><div class="ss-l">TỔNG</div></div>
+      <div class="ss"><div class="ss-n g" id="s-hl"  >0</div><div class="ss-l">HỢP LỆ</div></div>
+      <div class="ss"><div class="ss-n r" id="s-khl" >0</div><div class="ss-l">KH.LỆ</div></div>
     </div>
   </div>
 </div>
 
-<!-- ══ VIEW: KẾT QUẢ ══════════════════════════════════ -->
+<!-- ══ VIEW: KẾT QUẢ ══ -->
 <div class="view" id="v-kq">
   <div class="kq-body">
-
-    <!-- summary cards -->
     <div class="kq-summary">
       <div class="kq-card qh">
-        <div class="kq-card-label">Quốc Hội</div>
-        <div class="kq-big" id="kq-tong-QH">0</div>
-        <div class="kq-sub">
-          <span class="kq-hl" id="kq-hl-QH">0 H.L</span>
-          <span class="kq-khl" id="kq-khl-QH">0 KHL</span>
-        </div>
+        <div class="kq-lbl">Quốc Hội</div>
+        <div class="kq-big" id="kq-t-QH">0</div>
+        <div class="kq-sub"><span class="tag-hl" id="kq-h-QH">0 HL</span><span class="tag-khl" id="kq-k-QH">0 KHL</span></div>
       </div>
       <div class="kq-card tinh">
-        <div class="kq-card-label">Tỉnh / TP</div>
-        <div class="kq-big" id="kq-tong-Tinh">0</div>
-        <div class="kq-sub">
-          <span class="kq-hl" id="kq-hl-Tinh">0 H.L</span>
-          <span class="kq-khl" id="kq-khl-Tinh">0 KHL</span>
-        </div>
+        <div class="kq-lbl">Tỉnh</div>
+        <div class="kq-big" id="kq-t-Tinh">0</div>
+        <div class="kq-sub"><span class="tag-hl" id="kq-h-Tinh">0 HL</span><span class="tag-khl" id="kq-k-Tinh">0 KHL</span></div>
       </div>
       <div class="kq-card xa">
-        <div class="kq-card-label">Xã / P.Thị</div>
-        <div class="kq-big" id="kq-tong-Xa">0</div>
-        <div class="kq-sub">
-          <span class="kq-hl" id="kq-hl-Xa">0 H.L</span>
-          <span class="kq-khl" id="kq-khl-Xa">0 KHL</span>
-        </div>
+        <div class="kq-lbl">Xã</div>
+        <div class="kq-big" id="kq-t-Xa">0</div>
+        <div class="kq-sub"><span class="tag-hl" id="kq-h-Xa">0 HL</span><span class="tag-khl" id="kq-k-Xa">0 KHL</span></div>
       </div>
     </div>
 
-    <!-- charts -->
     <div class="chart-sec">
-      <div class="chart-title">
-        <span>Quốc Hội — Bầu 3/5</span>
+      <div class="chart-hdr">
+        <span class="chart-ttl">Quốc Hội — bầu 3/5</span>
         <span class="chart-badge cb-qh">QH</span>
       </div>
-      <div id="chart-QH"></div>
+      <div id="ch-QH"></div>
     </div>
-
     <div class="chart-sec">
-      <div class="chart-title">
-        <span>Tỉnh Đồng Nai — Bầu 3/5</span>
+      <div class="chart-hdr">
+        <span class="chart-ttl">Tỉnh Đồng Nai — bầu 3/5</span>
         <span class="chart-badge cb-tinh">TỈNH</span>
       </div>
-      <div id="chart-Tinh"></div>
+      <div id="ch-Tinh"></div>
     </div>
-
     <div class="chart-sec">
-      <div class="chart-title">
-        <span>Xã Trị An — Bầu 5/8</span>
+      <div class="chart-hdr">
+        <span class="chart-ttl">Xã Trị An — bầu 5/8</span>
         <span class="chart-badge cb-xa">XÃ</span>
       </div>
-      <div id="chart-Xa"></div>
+      <div id="ch-Xa"></div>
     </div>
 
-    <!-- actions -->
     <div class="kq-actions">
-      <button class="btn-act btn-reset" id="btn-reset">↺ Đặt lại</button>
+      <button class="btn-act btn-reset"  id="btn-reset" >↺ Đặt lại</button>
       <button class="btn-act btn-export" id="btn-export">⬇ Xuất CSV</button>
     </div>
-
   </div>
 </div>
 
@@ -354,7 +395,7 @@ video{
     <div class="sh-names" id="sh-names"></div>
     <div class="sh-btns">
       <button class="btn-skip" id="btn-skip">Bỏ qua</button>
-      <button class="btn-ok"   id="btn-ok">✓ Ghi nhận phiếu</button>
+      <button class="btn-ok"   id="btn-ok"  >✓ Ghi nhận</button>
     </div>
   </div>
 </div>
@@ -369,258 +410,245 @@ video{
 <script>
 'use strict';
 
-/* ══ CẤU HÌNH ══════════════════════════════════════════ */
+// ── CẤU HÌNH ─────────────────────────────────────────────
 const CFG = {
-  QH:   {label:'Quốc Hội',bau:3,
-    ten:['Ông LÊ HOÀNG HẢI','Ông NGUYỄN HỒNG PHONG','Ông ĐẶNG DOÃN THÀNH','Bà HOÀNG THỊ THẮM','Ông BÙI XUÂN THỐNG']},
-  Tinh: {label:'Tỉnh',bau:3,
-    ten:['Bà MAI THỊ THÙY DUNG','Bà NGUYỄN THỊ HỒNG','Ông NGUYỄN KIM LONG','Ông PHẠM THÀNH NAM','Ông NGUYỄN THANH TÚ']},
-  Xa:   {label:'Xã',bau:5,
-    ten:['Ông NGUYỄN HẢI BẰNG','Bà NGUYỄN THỊ THÙY DUNG','Ông TRẦN MẠNH HÙNG','Bà TRẦN THỊ HUYÊN','Ông NGUYỄN TƯ KHÁNH','Ông NGUYỄN ĐÌNH THẮNG','Ông NGUYỄN VĂN TRUNG','Ông NGUYỄN MINH TUẤN']},
+  QH:  {label:'Quốc Hội',bau:3,ten:['Ông LÊ HOÀNG HẢI','Ông NGUYỄN HỒNG PHONG','Ông ĐẶNG DOÃN THÀNH','Bà HOÀNG THỊ THẮM','Ông BÙI XUÂN THỐNG']},
+  Tinh:{label:'Tỉnh',    bau:3,ten:['Bà MAI THỊ THÙY DUNG','Bà NGUYỄN THỊ HỒNG','Ông NGUYỄN KIM LONG','Ông PHẠM THÀNH NAM','Ông NGUYỄN THANH TÚ']},
+  Xa:  {label:'Xã',      bau:5,ten:['Ông NGUYỄN HẢI BẰNG','Bà NGUYỄN THỊ THÙY DUNG','Ông TRẦN MẠNH HÙNG','Bà TRẦN THỊ HUYÊN','Ông NGUYỄN TƯ KHÁNH','Ông NGUYỄN ĐÌNH THẮNG','Ông NGUYỄN VĂN TRUNG','Ông NGUYỄN MINH TUẤN']},
 };
 
-// Zoom: video hiển thị 2× (chỉ thấy 1/2 frame ở giữa)
-// → phiếu A5 chỉ cần cách camera ~40–50cm
-const ZOOM       = 2.0;
-const HEADER_R   = 0.36;
-const STABLE_N   = 3;
+// Zoom: capture vùng trung tâm 50% × 50% của frame gốc
+// → khoảng cách quét chỉ ~35–50cm với phiếu A5
+const ZOOM      = 2.0;
+const HEADER_R  = 0.36;
+const STABLE_N  = 3;
 const WARP_W=360, WARP_H=540;
 
-/* ══ STATE ══════════════════════════════════════════════ */
-function mkCounts(){
+// ── STATE ────────────────────────────────────────────────
+function mkC(){
   const c={};
   for(const k in CFG){c[k]={};CFG[k].ten.forEach(t=>c[k][t]=0);}
   return c;
 }
 const S={
-  cvReady:false, camReady:false,
-  loai:'QH', processing:false, cooldown:false, pending:false,
-  stableCount:0, lastHash:null, pendingResult:null,
-  counts:mkCounts(),
+  cvReady:false,camReady:false,
+  loai:'QH',proc:false,cool:false,pend:false,
+  stable:0,hash:null,result:null,
+  counts:mkC(),
   tong:{QH:0,Tinh:0,Xa:0},
   hl:  {QH:0,Tinh:0,Xa:0},
   khl: {QH:0,Tinh:0,Xa:0},
 };
 
-/* ══ OPENCV READY ════════════════════════════════════════ */
+// ── CV READY ─────────────────────────────────────────────
 function onCvReady(){
   S.cvReady=true;
   $('cv-dot').className='dot ok';
   $('cv-lbl').textContent='CV OK';
   if(S.camReady) startLoop();
-  else setStatus('📷 Mở camera...');
+  else setSt('📷 Mở camera...');
 }
 
-/* ══ CAMERA ══════════════════════════════════════════════ */
-const $vid = document.getElementById('video');
-const $ov  = document.getElementById('overlay');
-const $cap = document.getElementById('cap');
-const ovCtx= $ov.getContext('2d');
-const capCtx=$cap.getContext('2d',{willReadFrequently:true});
+// ── CAMERA ───────────────────────────────────────────────
+const vid = document.getElementById('video');
+const ovC = document.getElementById('overlay');
+const cap = document.getElementById('cap');
+const ovX = ovC.getContext('2d');
+const cpX = cap.getContext('2d',{willReadFrequently:true});
+
+// ovC canvas ATTRIBUTE dimensions = capture dimensions
+// CSS width:100%;height:100% stretches it to display — that's correct
+// We draw at capture coordinates, browser scales to display
 
 async function startCamera(){
   try{
-    // Yêu cầu portrait resolution
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:'environment',
-        width:{ideal:720},
-        height:{ideal:1280}
-      }
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:720},height:{ideal:1280}}
     });
-    $vid.srcObject=stream;
-    $vid.onloadedmetadata=()=>{
-      // Canvas capture = vùng giữa sau khi zoom (1/ZOOM của frame gốc)
-      const vw=$vid.videoWidth, vh=$vid.videoHeight;
+    vid.srcObject=stream;
+    vid.onloadedmetadata=()=>{
+      // Capture canvas = center crop of full frame
+      const vw=vid.videoWidth, vh=vid.videoHeight;
       const cw=Math.round(vw/ZOOM), ch=Math.round(vh/ZOOM);
-      $cap.width=cw; $cap.height=ch;
-      $ov.width=cw;  $ov.height=ch;
+      cap.width=cw; cap.height=ch;
+      // Overlay canvas SAME dimensions as capture
+      ovC.width=cw; ovC.height=ch;
       $('cam-ld').style.display='none';
       S.camReady=true;
       if(S.cvReady) startLoop();
-      else setStatus('⏳ Chờ OpenCV...');
+      else setSt('⏳ Chờ OpenCV...');
     };
   }catch(e){
-    $('cam-msg').textContent='❌ Không mở được camera\n(cần HTTPS)';
+    $('cam-msg').textContent='❌ Không mở camera\n(cần HTTPS)';
     $('cv-dot').className='dot err';
+    console.error(e);
   }
 }
 
-/* ══ CAPTURE vùng giữa (tương ứng zoom 2×) ═══════════════ */
-function captureZoomed(){
-  const vw=$vid.videoWidth, vh=$vid.videoHeight;
+function captureCenter(){
+  const vw=vid.videoWidth, vh=vid.videoHeight;
   if(!vw||!vh) return false;
-  const cw=Math.round(vw/ZOOM), ch=Math.round(vh/ZOOM);
-  const ox=Math.round((vw-cw)/2), oy=Math.round((vh-ch)/2);
-  // Đảm bảo canvas đúng kích thước
-  if($cap.width!==cw||$cap.height!==ch){
-    $cap.width=cw; $cap.height=ch;
-    $ov.width=cw;  $ov.height=ch;
-  }
-  capCtx.drawImage($vid, ox,oy,cw,ch, 0,0,cw,ch);
+  const cw=cap.width, ch=cap.height;
+  const ox=(vw-cw)/2, oy=(vh-ch)/2;
+  cpX.drawImage(vid, ox,oy,cw,ch, 0,0,cw,ch);
   return true;
 }
 
-/* ══ MAIN LOOP ════════════════════════════════════════════ */
+// ── LOOP ─────────────────────────────────────────────────
 function startLoop(){
-  setStatus('🔍 Đưa phiếu vào khung...');
+  setSt('🔍 Đưa phiếu vào khung...');
   renderCands(null);
   setTimeout(tick,500);
 }
+
 function tick(){
-  if(!S.cvReady||!S.camReady||S.pending||S.cooldown){setTimeout(tick,400);return;}
-  if(S.processing){setTimeout(tick,200);return;}
-  S.processing=true;
+  if(!S.cvReady||!S.camReady||S.pend||S.cool){setTimeout(tick,400);return;}
+  if(S.proc){setTimeout(tick,200);return;}
+  S.proc=true;
   try{
-    if(!captureZoomed()){S.processing=false;setTimeout(tick,400);return;}
-    const mat=cv.imread($cap);
-    const res=analyzeBallot(mat, CFG[S.loai].ten.length);
+    if(!captureCenter()){S.proc=false;setTimeout(tick,400);return;}
+    const mat=cv.imread(cap);
+    const res=analyze(mat, CFG[S.loai].ten.length);
     mat.delete();
     if(res.found){
       drawBox(res.corners);
       renderCands(res.gach);
-      const hash=res.gach.map(g=>g?'1':'0').join('');
-      if(hash===S.lastHash) S.stableCount++;
-      else{S.lastHash=hash;S.stableCount=1;}
-      if(S.stableCount>=STABLE_N){showSheet(res.gach);S.processing=false;return;}
-      setStatus(`📄 Thấy phiếu — giữ yên (${STABLE_N-S.stableCount})...`,'f');
+      const h=res.gach.map(g=>g?'1':'0').join('');
+      if(h===S.hash) S.stable++;
+      else{S.hash=h;S.stable=1;}
+      if(S.stable>=STABLE_N){showSheet(res.gach);S.proc=false;return;}
+      setSt(`📄 Thấy phiếu — giữ yên (${STABLE_N-S.stable})...`,'f');
     }else{
-      clearBox(); renderCands(null);
-      S.stableCount=0; S.lastHash=null;
-      setStatus('🔍 Đưa phiếu vào khung...');
+      clearBox();renderCands(null);
+      S.stable=0;S.hash=null;
+      setSt('🔍 Đưa phiếu vào khung...');
     }
   }catch(e){console.error('tick:',e);}
-  S.processing=false;
+  S.proc=false;
   setTimeout(tick,360);
 }
 
-/* ══ OPENCV PIPELINE ════════════════════════════════════ */
+// ── OPENCV ───────────────────────────────────────────────
 function findRect(mat){
-  const gray=new cv.Mat(),blur=new cv.Mat(),
-        thr=new cv.Mat(),cnts=new cv.MatVector(),hier=new cv.Mat();
+  const g=new cv.Mat(),bl=new cv.Mat(),
+        th=new cv.Mat(),cs=new cv.MatVector(),hi=new cv.Mat();
   try{
-    cv.cvtColor(mat,gray,cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
-    cv.adaptiveThreshold(blur,thr,255,
-      cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY_INV,21,4);
-    cv.findContours(thr,cnts,hier,
-      cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
+    cv.cvtColor(mat,g,cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(g,bl,new cv.Size(5,5),0);
+    cv.adaptiveThreshold(bl,th,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY_INV,21,4);
+    cv.findContours(th,cs,hi,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
     const imgA=mat.rows*mat.cols;
     let best=null,bestA=0;
-    for(let i=0;i<cnts.size();i++){
-      const cnt=cnts.get(i);
-      const area=cv.contourArea(cnt);
-      if(area<imgA*0.07||area>imgA*0.97){cnt.delete();continue;}
-      const peri=cv.arcLength(cnt,true);
+    for(let i=0;i<cs.size();i++){
+      const c=cs.get(i);
+      const area=cv.contourArea(c);
+      if(area<imgA*0.06||area>imgA*0.97){c.delete();continue;}
+      const peri=cv.arcLength(c,true);
       let corners=null;
-      for(const eps of [0.02,0.03,0.04,0.06]){
+      for(const eps of [0.02,0.03,0.04,0.055]){
         const ap=new cv.Mat();
-        cv.approxPolyDP(cnt,ap,eps*peri,true);
+        cv.approxPolyDP(c,ap,eps*peri,true);
         if(ap.rows===4){
-          const br=cv.boundingRect(cnt);
-          const r=br.height/br.width;
-          if(r>0.7&&r<2.5){
+          const br=cv.boundingRect(c),r=br.height/br.width;
+          if(r>0.65&&r<2.6){
             corners=[];
-            for(let j=0;j<4;j++)
-              corners.push({x:ap.data32S[j*2],y:ap.data32S[j*2+1]});
+            for(let j=0;j<4;j++) corners.push({x:ap.data32S[j*2],y:ap.data32S[j*2+1]});
           }
           ap.delete();break;
         }
         ap.delete();
       }
-      cnt.delete();
+      c.delete();
       if(corners&&area>bestA){bestA=area;best={corners};}
     }
     return best;
-  }finally{gray.delete();blur.delete();thr.delete();cnts.delete();hier.delete();}
+  }finally{g.delete();bl.delete();th.delete();cs.delete();hi.delete();}
 }
 
-function warpMat(src,corners){
+function warp(src,corners){
   const s=[...corners].sort((a,b)=>a.y-b.y);
   const t=s.slice(0,2).sort((a,b)=>a.x-b.x);
   const b=s.slice(2,4).sort((a,b)=>a.x-b.x);
   const o=[t[0],t[1],b[1],b[0]];
-  const sP=cv.matFromArray(4,1,cv.CV_32FC2,[o[0].x,o[0].y,o[1].x,o[1].y,o[2].x,o[2].y,o[3].x,o[3].y]);
-  const dP=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,WARP_W,0,WARP_W,WARP_H,0,WARP_H]);
-  const M=cv.getPerspectiveTransform(sP,dP);
+  const sp=cv.matFromArray(4,1,cv.CV_32FC2,[o[0].x,o[0].y,o[1].x,o[1].y,o[2].x,o[2].y,o[3].x,o[3].y]);
+  const dp=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,WARP_W,0,WARP_W,WARP_H,0,WARP_H]);
+  const M=cv.getPerspectiveTransform(sp,dp);
   const out=new cv.Mat();
   cv.warpPerspective(src,out,M,new cv.Size(WARP_W,WARP_H));
-  sP.delete();dP.delete();M.delete();
+  sp.delete();dp.delete();M.delete();
   return out;
 }
 
-function hasStrike(rowMat){
-  const gray=new cv.Mat(),eq=new cv.Mat(),
-        thr=new cv.Mat(),lines=new cv.Mat();
+function hasStrike(row){
+  const g=new cv.Mat(),e=new cv.Mat(),th=new cv.Mat(),ln=new cv.Mat();
   let hit=false;
   try{
-    cv.cvtColor(rowMat,gray,cv.COLOR_RGBA2GRAY);
-    try{const cl=new cv.CLAHE(2.5,new cv.Size(4,4));cl.apply(gray,eq);cl.delete();}
-    catch(_){cv.equalizeHist(gray,eq);}
-    const h=eq.rows,w=eq.cols;
+    cv.cvtColor(row,g,cv.COLOR_RGBA2GRAY);
+    try{const cl=new cv.CLAHE(2.5,new cv.Size(4,4));cl.apply(g,e);cl.delete();}
+    catch(_){cv.equalizeHist(g,e);}
+    const h=e.rows,w=e.cols;
     const bsz=Math.max(11,Math.floor(w/16)*2+1);
-    cv.adaptiveThreshold(eq,thr,255,cv.ADAPTIVE_THRESH_MEAN_C,cv.THRESH_BINARY_INV,bsz,7);
+    cv.adaptiveThreshold(e,th,255,cv.ADAPTIVE_THRESH_MEAN_C,cv.THRESH_BINARY_INV,bsz,7);
     const pad=Math.max(2,Math.floor(h*0.12));
     const rH=Math.max(1,h-pad*2);
     const minL=Math.floor(w*0.22),gap=Math.floor(w*0.1),vote=Math.max(8,Math.floor(w*0.14));
-    const roi=thr.roi(new cv.Rect(0,pad,w,rH));
-    cv.HoughLinesP(roi,lines,1,Math.PI/180,vote,minL,gap);
+    const roi=th.roi(new cv.Rect(0,pad,w,rH));
+    cv.HoughLinesP(roi,ln,1,Math.PI/180,vote,minL,gap);
     roi.delete();
-    for(let i=0;i<lines.rows&&!hit;i++){
-      const x1=lines.data32S[i*4],y1=lines.data32S[i*4+1];
-      const x2=lines.data32S[i*4+2],y2=lines.data32S[i*4+3];
+    for(let i=0;i<ln.rows&&!hit;i++){
+      const x1=ln.data32S[i*4],y1=ln.data32S[i*4+1];
+      const x2=ln.data32S[i*4+2],y2=ln.data32S[i*4+3];
       const ang=Math.abs(Math.atan2(y2-y1,x2-x1)*180/Math.PI);
       if(ang<22&&Math.hypot(x2-x1,y2-y1)>=minL) hit=true;
     }
+    // fallback projection
     if(!hit){
-      const d=thr.data,cols=thr.cols,rows=thr.rows;
+      const d=th.data,cols=th.cols,rows=th.rows;
       for(let r=pad;r<rows-pad&&!hit;r++){
         let dk=0;const base=r*cols;
         for(let c=0;c<cols;c++) if(d[base+c]>0) dk++;
         if(dk>cols*0.27) hit=true;
       }
     }
-  }finally{gray.delete();eq.delete();thr.delete();lines.delete();}
+  }finally{g.delete();e.delete();th.delete();ln.delete();}
   return hit;
 }
 
-function analyzeBallot(mat,nC){
+function analyze(mat,nC){
   const found=findRect(mat);
   if(!found) return {found:false};
   let w=null;
   try{
-    w=warpMat(mat,found.corners);
+    w=warp(mat,found.corners);
     const H=w.rows,W=w.cols;
     const mx=Math.floor(W*0.04),my=Math.floor(H*0.04);
-    const nameY=my+Math.floor((H-my*2)*HEADER_R);
-    const nameH=H-my-nameY;
-    const rowH=Math.floor(nameH/nC);
-    if(rowH<8) return {found:false};
+    const ny=my+Math.floor((H-my*2)*HEADER_R);
+    const rH=Math.floor((H-my-ny)/nC);
+    if(rH<8) return {found:false};
     const gach=[];
     for(let i=0;i<nC;i++){
-      const y1=nameY+i*rowH,y2=Math.min(nameY+(i+1)*rowH,H-my);
-      const pad=Math.max(2,Math.floor(rowH*0.10));
-      if(y2-y1-pad*2<5){gach.push(false);continue;}
-      const row=w.roi(new cv.Rect(mx,y1+pad,W-mx*2,y2-y1-pad*2));
-      gach.push(hasStrike(row));
-      row.delete();
+      const y1=ny+i*rH, y2=Math.min(ny+(i+1)*rH,H-my);
+      const pd=Math.max(2,Math.floor(rH*0.10));
+      if(y2-y1-pd*2<5){gach.push(false);continue;}
+      const r=w.roi(new cv.Rect(mx,y1+pd,W-mx*2,y2-y1-pd*2));
+      gach.push(hasStrike(r));
+      r.delete();
     }
     w.delete();
     return {found:true,gach,corners:found.corners};
   }catch(e){if(w)w.delete();console.error(e);return {found:false};}
 }
 
-/* ══ UI HELPERS ══════════════════════════════════════════ */
+// ── UI ───────────────────────────────────────────────────
 function $(id){return document.getElementById(id);}
 
-function setStatus(txt,type=''){
+function setSt(txt,type=''){
   $('stxt').textContent=txt;
   $('sdot').className='sdot'+(type?' '+type:'');
 }
 
 function renderCands(gach){
-  const {ten}=CFG[S.loai];
-  const cnts=S.counts[S.loai];
+  const {ten}=CFG[S.loai], cnts=S.counts[S.loai];
   $('cands').innerHTML=ten.map((n,i)=>{
     const sp=n.split(' '),pfx=sp[0],nm=sp.slice(1).join(' ');
     const v=cnts[n];
@@ -635,31 +663,32 @@ function renderCands(gach){
 }
 
 function drawBox(corners){
-  const cw=$cap.width, ch=$cap.height;
-  ovCtx.clearRect(0,0,$ov.width,$ov.height);
-  // canvas và overlay đã ở cùng kích thước (vùng cropped)
+  // overlay canvas attr = capture frame size (cap.width × cap.height)
+  // CSS stretches overlay to display size automatically
+  // → draw corners directly in capture coords — NO manual scaling needed
+  ovX.clearRect(0,0,ovC.width,ovC.height);
   const s=[...corners].sort((a,b)=>a.y-b.y);
   const t=s.slice(0,2).sort((a,b)=>a.x-b.x);
   const b=s.slice(2,4).sort((a,b)=>a.x-b.x);
   const pts=[t[0],t[1],b[1],b[0]];
-
-  // Scale corners → overlay display size
-  const sx=$ov.offsetWidth/cw, sy=$ov.offsetHeight/ch;
-  ovCtx.save();
-  ovCtx.strokeStyle='#fbbf24';ovCtx.lineWidth=2.5;
-  ovCtx.shadowColor='#fbbf24';ovCtx.shadowBlur=10;
-  ovCtx.beginPath();
-  ovCtx.moveTo(pts[0].x*sx,pts[0].y*sy);
-  pts.slice(1).forEach(p=>ovCtx.lineTo(p.x*sx,p.y*sy));
-  ovCtx.closePath();ovCtx.stroke();
-  ovCtx.restore();
+  ovX.save();
+  ovX.strokeStyle='#fbbf24';
+  ovX.lineWidth=4;
+  ovX.shadowColor='#fbbf24';
+  ovX.shadowBlur=12;
+  ovX.beginPath();
+  ovX.moveTo(pts[0].x,pts[0].y);
+  pts.slice(1).forEach(p=>ovX.lineTo(p.x,p.y));
+  ovX.closePath();
+  ovX.stroke();
+  ovX.restore();
 }
-function clearBox(){ovCtx.clearRect(0,0,$ov.width,$ov.height);}
+function clearBox(){ovX.clearRect(0,0,ovC.width,ovC.height);}
 
-/* ══ CONFIRM SHEET ═══════════════════════════════════════ */
+// ── CONFIRM SHEET ────────────────────────────────────────
 function showSheet(gach){
-  if(S.pending)return;
-  S.pending=true; S.pendingResult=gach;
+  if(S.pend)return;
+  S.pend=true;S.result=gach;
   const {ten,bau}=CFG[S.loai];
   const nB=gach.filter(g=>!g).length, ok=nB>0&&nB<=bau;
   const vel=$('sh-valid');
@@ -671,81 +700,74 @@ function showSheet(gach){
     `<div class="sh-row ${gach[i]?'st':'ok'}">${gach[i]?'✗':'✓'} ${n}</div>`
   ).join('');
   $('sheet').classList.add('show');
-  setStatus('⚠️ Xác nhận để ghi nhận','s');
+  setSt('⚠️ Xác nhận để ghi nhận','s');
 }
 
 function confirmBallot(){
-  const gach=S.pendingResult, loai=S.loai;
+  const gach=S.result,loai=S.loai;
   const {ten,bau}=CFG[loai];
-  const nB=gach.filter(g=>!g).length, ok=nB>0&&nB<=bau;
+  const nB=gach.filter(g=>!g).length,ok=nB>0&&nB<=bau;
   S.tong[loai]++;
   if(ok){S.hl[loai]++;ten.forEach((n,i)=>{if(!gach[i])S.counts[loai][n]++;});}
   else S.khl[loai]++;
-  closeSheet(); updateAll();
-  doFlash(nB,ok);
+  closeSheet();updateAll();doFlash(nB,ok);
 }
 
 function closeSheet(){
   $('sheet').classList.remove('show');
-  S.pending=false; S.pendingResult=null;
-  S.stableCount=0; S.lastHash=null; clearBox();
+  S.pend=false;S.result=null;S.stable=0;S.hash=null;clearBox();
 }
 
-/* ══ FLASH ════════════════════════════════════════════════ */
 function doFlash(nB,ok){
-  S.cooldown=true;
-  const fl=$('flash');
+  S.cool=true;
   $('f-ico').textContent=ok?'✅':'⚠️';
   $('f-txt').textContent=ok?'ĐÃ GHI NHẬN':'PHIẾU KHÔNG HỢP LỆ';
-  $('f-sub').textContent=ok?`Bầu ${nB} đại biểu — phiếu hợp lệ`:'Đã ghi nhận phiếu không hợp lệ';
-  fl.className='flash show '+(ok?'valid-fl':'invalid-fl');
+  $('f-sub').textContent=ok?`Bầu ${nB} đại biểu — hợp lệ`:'Đã ghi nhận không hợp lệ';
+  $('flash').className='flash show '+(ok?'vfl':'nvfl');
   setTimeout(()=>{
-    fl.className='flash';
-    S.cooldown=false;
-    setStatus('🔍 Đưa phiếu vào khung...');
+    $('flash').className='flash';
+    S.cool=false;
+    setSt('🔍 Đưa phiếu vào khung...');
     setTimeout(tick,200);
   },1800);
 }
 
-/* ══ UPDATE ALL DISPLAYS ════════════════════════════════ */
+// ── UPDATE ALL ───────────────────────────────────────────
 function updateAll(){
-  // scan stats
   const l=S.loai;
   $('s-tong').textContent=S.tong[l];
   $('s-hl').textContent=S.hl[l];
   $('s-khl').textContent=S.khl[l];
-  // dashboard
   for(const k of ['QH','Tinh','Xa']){
-    $(`kq-tong-${k}`).textContent=S.tong[k];
-    $(`kq-hl-${k}`).textContent=S.hl[k]+' H.L';
-    $(`kq-khl-${k}`).textContent=S.khl[k]+' KHL';
+    $(`kq-t-${k}`).textContent=S.tong[k];
+    $(`kq-h-${k}`).textContent=S.hl[k]+' HL';
+    $(`kq-k-${k}`).textContent=S.khl[k]+' KHL';
   }
-  renderCharts();
-  renderCands(null);
+  renderCharts();renderCands(null);
 }
 
-/* ══ CHARTS ══════════════════════════════════════════════ */
-const BAR_CLASS={QH:'bf-qh',Tinh:'bf-tinh',Xa:'bf-xa'};
+// ── CHARTS ───────────────────────────────────────────────
+const BFC={QH:'bf-qh',Tinh:'bf-tinh',Xa:'bf-xa'};
 
 function renderCharts(){
   for(const k of ['QH','Tinh','Xa']){
-    const ten=CFG[k].ten;
+    const {ten,bau}=CFG[k];
     const votes=ten.map(t=>S.counts[k][t]);
+    const sorted=[...votes].sort((a,b)=>b-a);
     const maxV=Math.max(...votes,1);
-    const bau=CFG[k].bau;
-    const bc=BAR_CLASS[k];
-    $(`chart-${k}`).innerHTML=ten.map((n,i)=>{
+    $(`ch-${k}`).innerHTML=ten.map((n,i)=>{
       const sp=n.split(' '),nm=sp.slice(1).join(' ');
-      const v=votes[i];
-      const pct=Math.round(v/maxV*100);
-      const elected=v>0&&[...votes].sort((a,b)=>b-a).indexOf(v)<bau;
-      const label=elected?`★ ${nm}`:nm;
-      const textCls=pct<15?'dark':'';
+      const v=votes[i],pct=Math.round(v/maxV*100);
+      // is this candidate in top `bau` by votes?
+      const elected=v>0&&sorted.indexOf(v)<bau;
+      const txtCls=pct<18?'dark':'';
       return `<div class="bar-row">
-        <div class="bar-name" title="${n}">${label}</div>
+        <div class="bar-nm${elected?' elected':''}" title="${n}">
+          ${elected?'★ ':''}${nm}
+        </div>
         <div class="bar-track">
-          <div class="bar-fill ${bc}" style="width:${Math.max(pct,2)}%">
-            <span class="bv ${textCls}">${v}</span>
+          <div class="bar-fill ${BFC[k]}" style="width:${Math.max(pct,3)}%">
+            <span class="bv ${txtCls}">${v}</span>
           </div>
         </div>
       </div>`;
@@ -753,26 +775,21 @@ function renderCharts(){
   }
 }
 
-/* ══ EXPORT CSV ══════════════════════════════════════════ */
+// ── CSV EXPORT ───────────────────────────────────────────
 function exportCSV(){
-  let csv='Loại,Ứng viên,Số phiếu\n';
+  let csv='\uFEFFLoại,Ứng viên,Số phiếu\n';
   for(const k of ['QH','Tinh','Xa']){
-    CFG[k].ten.forEach(n=>{
-      csv+=`${CFG[k].label},"${n}",${S.counts[k][n]}\n`;
-    });
+    CFG[k].ten.forEach(n=>{csv+=`${CFG[k].label},"${n}",${S.counts[k][n]}\n`;});
     csv+=`${CFG[k].label},TỔNG PHIẾU,${S.tong[k]}\n`;
     csv+=`${CFG[k].label},HỢP LỆ,${S.hl[k]}\n`;
     csv+=`${CFG[k].label},KHÔNG HỢP LỆ,${S.khl[k]}\n\n`;
   }
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download='kiem-phieu-2026.csv';
-  a.click(); URL.revokeObjectURL(url);
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='kiem-phieu-2026.csv';a.click();
 }
 
-/* ══ EVENTS ══════════════════════════════════════════════ */
-// nav view switch
+// ── EVENTS ───────────────────────────────────────────────
 document.querySelectorAll('.nav-tab').forEach(t=>
   t.addEventListener('click',()=>{
     const vid=t.dataset.view;
@@ -782,14 +799,12 @@ document.querySelectorAll('.nav-tab').forEach(t=>
   })
 );
 
-// ballot type
 document.querySelectorAll('.bt').forEach(t=>
   t.addEventListener('click',()=>{
-    if(S.pending)return;
+    if(S.pend)return;
     S.loai=t.dataset.loai;
     document.querySelectorAll('.bt').forEach(x=>x.classList.toggle('active',x===t));
-    S.stableCount=0; S.lastHash=null;
-    // update mini stats for selected type
+    S.stable=0;S.hash=null;
     $('s-tong').textContent=S.tong[S.loai];
     $('s-hl').textContent=S.hl[S.loai];
     $('s-khl').textContent=S.khl[S.loai];
@@ -797,21 +812,18 @@ document.querySelectorAll('.bt').forEach(t=>
   })
 );
 
-$('btn-ok').addEventListener('click',confirmBallot);
+$('btn-ok'  ).addEventListener('click',confirmBallot);
 $('btn-skip').addEventListener('click',()=>{closeSheet();setTimeout(tick,300);});
-
 $('btn-reset').addEventListener('click',()=>{
   if(!confirm('Đặt lại toàn bộ số liệu?'))return;
-  S.counts=mkCounts();
+  S.counts=mkC();
   for(const k of ['QH','Tinh','Xa']) S.tong[k]=S.hl[k]=S.khl[k]=0;
   updateAll();
 });
-
 $('btn-export').addEventListener('click',exportCSV);
 
-/* ══ INIT ════════════════════════════════════════════════ */
-renderCands(null);
-renderCharts();
+// ── INIT ─────────────────────────────────────────────────
+renderCands(null);renderCharts();
 startCamera();
 </script>
 </body>
