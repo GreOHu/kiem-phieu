@@ -71,10 +71,9 @@ body{display:flex;flex-direction:column;color:var(--t)}
 */
 video{
   position:absolute;
-  width:200%; height:200%;
-  left:-50%; top:-50%;
+  width:100%; height:100%;
+  left:0; top:0;
   object-fit:cover;
-  transform-origin:center center;
 }
 
 /* overlay canvas — MUST match cam-wrap display size via CSS */
@@ -467,12 +466,10 @@ async function startCamera(){
     });
     vid.srcObject=stream;
     vid.onloadedmetadata=()=>{
-      // Capture canvas = center crop of full frame
+      // Capture = full frame, no zoom/crop
       const vw=vid.videoWidth, vh=vid.videoHeight;
-      const cw=Math.round(vw/ZOOM), ch=Math.round(vh/ZOOM);
-      cap.width=cw; cap.height=ch;
-      // Overlay canvas SAME dimensions as capture
-      ovC.width=cw; ovC.height=ch;
+      cap.width=vw; cap.height=vh;
+      ovC.width=vw; ovC.height=vh;
       $('cam-ld').style.display='none';
       S.camReady=true;
       if(S.cvReady) startLoop();
@@ -488,9 +485,8 @@ async function startCamera(){
 function captureCenter(){
   const vw=vid.videoWidth, vh=vid.videoHeight;
   if(!vw||!vh) return false;
-  const cw=cap.width, ch=cap.height;
-  const ox=(vw-cw)/2, oy=(vh-ch)/2;
-  cpX.drawImage(vid, ox,oy,cw,ch, 0,0,cw,ch);
+  // Capture full frame — không zoom, không crop
+  cpX.drawImage(vid, 0,0,vw,vh, 0,0,cap.width,cap.height);
   return true;
 }
 
